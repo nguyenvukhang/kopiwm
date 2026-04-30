@@ -6,9 +6,9 @@ const dwmz = @import("app.zig");
 const drw = @import("drw.zig").drw;
 
 // X11 stuff.
-const xlib = @import("xlib.zig").xlib;
-const Display = xlib.Display;
-const XErrorEvent = xlib.XErrorEvent;
+const x = @import("c_lib.zig").x;
+const Display = x.Display;
+const XErrorEvent = x.XErrorEvent;
 
 var z: dwmz.App = undefined;
 
@@ -58,17 +58,17 @@ fn xerror(_dpy: ?*Display, _err: [*c]XErrorEvent) callconv(.c) c_int {
 var xerrorlib: ?*const fn (?*Display, [*c]XErrorEvent) callconv(.c) c_int = null;
 
 fn check_other_wm() void {
-    xerrorlib = xlib.XSetErrorHandler(xerrorstart);
+    xerrorlib = x.XSetErrorHandler(xerrorstart);
     // this causes an error if some other window manager is running
-    _ = xlib.XSelectInput(z.dpy, xlib.DefaultRootWindow(z.dpy), xlib.SubstructureRedirectMask);
-    _ = xlib.XSync(z.dpy, False);
-    _ = xlib.XSetErrorHandler(xerror);
-    _ = xlib.XSync(z.dpy, False);
+    _ = x.XSelectInput(z.dpy, x.DefaultRootWindow(z.dpy), x.SubstructureRedirectMask);
+    _ = x.XSync(z.dpy, False);
+    _ = x.XSetErrorHandler(xerror);
+    _ = x.XSync(z.dpy, False);
 }
 
 fn setup() void {
-    // var wa: xlib.XSetWindowAttributes = undefined;
-    // var utf8string: xlib.Atom = undefined;
+    // var wa: x.XSetWindowAttributes = undefined;
+    // var utf8string: x.Atom = undefined;
     var sa: c.struct_sigaction = undefined;
 
     // do not transform children into zombies when they terminate
@@ -80,11 +80,11 @@ fn setup() void {
     // clean up any zombies (inherited from .xinitrc etc) immediately
     while (std.c.waitpid(-1, null, std.c.W.NOHANG) > 0) {}
 
-    z.screen = xlib.DefaultScreen(z.dpy);
-    z.sw = xlib.DisplayWidth(z.dpy, z.screen);
-    z.sh = xlib.DisplayHeight(z.dpy, z.screen);
+    z.screen = x.DefaultScreen(z.dpy);
+    z.sw = x.DisplayWidth(z.dpy, z.screen);
+    z.sh = x.DisplayHeight(z.dpy, z.screen);
     log.info("width: {d}, height: {d}", .{ z.sw, z.sh });
-    z.root = xlib.RootWindow(z.dpy, z.screen);
+    z.root = x.RootWindow(z.dpy, z.screen);
     // TODO: continue from here after drw.zig is complete
     // z.drw = drw.drw_create(z.dpy, z.screen, z.root, z.sw, z.sh);
 
@@ -162,16 +162,16 @@ pub fn main() !void {
         } else if (argv.len != 1) {
             return try stdout.print("usage: {s} [-v]\n", .{build_opts.name});
         }
-        if (c.setlocale(c.LC_CTYPE, "") == null or xlib.XSupportsLocale() == 0) {
+        if (c.setlocale(c.LC_CTYPE, "") == null or x.XSupportsLocale() == 0) {
             try stderr.print("warning: no locale support\n", .{});
         }
-        z.dpy = xlib.XOpenDisplay(null) orelse {
+        z.dpy = x.XOpenDisplay(null) orelse {
             return try stdout.print("dwm: cannot open display\n", .{});
         };
     }
     setup();
     check_other_wm();
-    _ = xlib.XCloseDisplay(z.dpy);
+    _ = x.XCloseDisplay(z.dpy);
     log.info("The end!", .{});
 }
 

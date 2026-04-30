@@ -16,5 +16,4 @@ pub const drw = @cImport({
     @cInclude("X11/Xproto.h");
     @cInclude("X11/Xutil.h");
     @cInclude("X11/Xft/Xft.h");
-    @cInclude("drw.h");
 });
