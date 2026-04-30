@@ -1,0 +1,20 @@
+pub const drw = @cImport({
+    @cInclude("errno.h");
+    @cInclude("locale.h");
+    @cInclude("signal.h");
+    @cInclude("stdarg.h");
+    @cInclude("stdio.h");
+    @cInclude("stdlib.h");
+    @cInclude("string.h");
+    @cInclude("unistd.h");
+    @cInclude("sys/types.h");
+    @cInclude("sys/wait.h");
+    @cInclude("X11/cursorfont.h");
+    @cInclude("X11/keysym.h");
+    @cInclude("X11/Xatom.h");
+    @cInclude("X11/Xlib.h");
+    @cInclude("X11/Xproto.h");
+    @cInclude("X11/Xutil.h");
+    @cInclude("X11/Xft/Xft.h");
+    @cInclude("drw.h");
+});

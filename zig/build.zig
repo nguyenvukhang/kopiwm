@@ -76,6 +76,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addSystemIncludePath(b.path("X11"));
 
     exe.addIncludePath(b.path("small"));
+    exe.addIncludePath(b.path(".."));
 
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default
