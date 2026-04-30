@@ -7,3 +7,7 @@ pub const x = @cImport({
     @cInclude("X11/Xutil.h");
     @cInclude("X11/Xft/Xft.h");
 });
+
+pub const fc = @cImport({
+    @cInclude("fontconfig/fontconfig.h");
+});

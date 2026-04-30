@@ -4,6 +4,7 @@ const log = std.log;
 const build_opts = @import("build_opts");
 const dwmz = @import("app.zig");
 const drw = @import("drw.zig").drw;
+const structs = @import("structs.zig");
 
 // X11 stuff.
 const x = @import("c_lib.zig").x;
@@ -81,10 +82,11 @@ fn setup() void {
     while (std.c.waitpid(-1, null, std.c.W.NOHANG) > 0) {}
 
     z.screen = x.DefaultScreen(z.dpy);
-    z.sw = x.DisplayWidth(z.dpy, z.screen);
-    z.sh = x.DisplayHeight(z.dpy, z.screen);
+    z.sw = @intCast(x.DisplayWidth(z.dpy, z.screen));
+    z.sh = @intCast(x.DisplayHeight(z.dpy, z.screen));
     log.info("width: {d}, height: {d}", .{ z.sw, z.sh });
     z.root = x.RootWindow(z.dpy, z.screen);
+    z.drw = .init(z.dpy.?, z.screen, z.root, z.sw, z.sh);
     // TODO: continue from here after drw.zig is complete
     // z.drw = drw.drw_create(z.dpy, z.screen, z.root, z.sw, z.sh);
 

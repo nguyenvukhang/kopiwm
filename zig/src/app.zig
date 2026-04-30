@@ -1,7 +1,7 @@
 //! By convention, root.zig is the root source file when making a library.
 const std = @import("std");
 const x = @import("c_lib.zig").x;
-const drw = @import("drw.zig").drw;
+const Drw = @import("structs.zig").Drw;
 
 pub const App = struct {
     // Note to new Zig learners: if we try to deference this, we get "error:
@@ -11,12 +11,12 @@ pub const App = struct {
     screen: c_int,
 
     /// Screen width.
-    sw: c_int,
+    sw: u32,
 
     /// Screen height.
-    sh: c_int,
+    sh: u32,
 
     root: x.Window,
 
-    // drw: *drw.Drw,
+    drw: Drw,
 };
