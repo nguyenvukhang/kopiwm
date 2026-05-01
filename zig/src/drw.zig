@@ -181,4 +181,21 @@ pub const Drw = struct {
             xfontFree(allocator, f);
         }
     }
+
+    /// [dwm] drw_clr_create
+    pub fn clrCreate(self: *Self, dest: *XftColor, color_name: []const u8) void {
+        const result = x.XftColorAllocName(
+            self.dpy,
+            x.DefaultVisual(self.dpy, self.screen),
+            x.DefaultColormap(self.dpy, self.screen),
+            color_name,
+            dest,
+        );
+        if (result == 0) {
+            std.debug.print("error, cannot allocate color '{s}'\n", .{color_name});
+            std.process.exit(1);
+        }
+
+        dest.pixel |= 0xff << 24;
+    }
 };
