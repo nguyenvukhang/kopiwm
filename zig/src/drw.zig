@@ -2,6 +2,7 @@ const std = @import("std");
 const x = @import("c_lib.zig").x;
 const fc = @import("c_lib.zig").fc;
 const mem = std.mem;
+const Allocator = mem.Allocator;
 
 pub const Cursor = x.Cursor;
 pub const Display = x.Display;
@@ -10,11 +11,12 @@ pub const Window = x.Window;
 pub const XftColor = x.XftColor;
 
 // TODO: change this to Font when all is said and done.
+/// This represents a linked list of fonts.
 pub const Fnt = struct {
     dpy: ?*Display,
     h: u16,
     xfont: ?*x.XftFont,
-    pattern: ?*fc.FcPattern,
+    pattern: ?*x.FcPattern,
     next: ?*Fnt,
 };
 
@@ -38,11 +40,11 @@ pub const ColorScheme = struct {
 
 /// [dwm] xfont_create
 fn xfontCreate(
-    allocator: mem.Allocator,
+    allocator: Allocator,
     drw: *Drw,
     fontname: []const u8,
     font_pattern: ?*x.FcPattern,
-) !?*Fnt {
+) error{OutOfMemory}!?*Fnt {
     var xfont: ?*x.XftFont = null;
     var pattern: ?*x.FcPattern = null;
 
@@ -52,12 +54,12 @@ fn xfontCreate(
         // FcNameParse; using the latter results in the desired fallback
         // behaviour whereas the former just results in missing-character
         // rectangles being drawn, at least with some fonts.
-        xfont = x.XftFontOpenName(drw.dpy, drw.screen, fontname);
+        xfont = x.XftFontOpenName(drw.dpy, drw.screen, @ptrCast(fontname));
         if (xfont == null) {
             std.debug.print("error, cannot load font from name: '{s}'\n", .{fontname});
             return null;
         }
-        pattern = x.FcNameParse(fontname);
+        pattern = x.FcNameParse(@ptrCast(fontname));
         if (pattern == null) {
             std.debug.print("error, cannot parse font name to pattern: '{s}'\n", .{fontname});
             x.XftFontClose(drw.dpy, xfont);
@@ -76,10 +78,20 @@ fn xfontCreate(
     var font = try allocator.create(Fnt);
     font.xfont = xfont;
     font.pattern = pattern;
-    font.h = xfont.?.ascent + xfont.?.descent;
+    font.h = @intCast(xfont.?.ascent);
+    font.h += @intCast(xfont.?.descent);
     font.dpy = drw.dpy;
 
     return font;
+}
+
+/// [dwm] xfont_free
+fn xfontFree(allocator: Allocator, font: *Fnt) void {
+    if (font.pattern) |pattern| {
+        x.FcPatternDestroy(pattern);
+    }
+    x.XftFontClose(font.dpy, font.xfont);
+    allocator.destroy(font);
 }
 
 pub const Drw = struct {
@@ -138,24 +150,21 @@ pub const Drw = struct {
     }
 
     /// [dwm] drw_free
-    pub fn deinit(self: *Self) void {
-        x.XFreePixmap(self.dpy, self.drawable);
-        x.XFreeGC(self.dpy, self.gc);
-
-        // TODO:  port this line of C:
-        // drw_fontset_free(drw->fonts);
-
+    pub fn deinit(self: *Self, allocator: Allocator) void {
+        _ = x.XFreePixmap(self.dpy, self.drawable);
+        _ = x.XFreeGC(self.dpy, self.gc);
+        fontsetFree(allocator, self.fonts);
     }
 
     /// [dwm] drw_fontset_create
-    pub fn fontset_create(self: *Self, fonts: [][]const u8) !?*Fnt {
+    pub fn fontsetCreate(self: *Self, alloc: Allocator, fonts: []const []const u8) error{OutOfMemory}!?*Fnt {
         if (fonts.len == 0) {
             return null;
         }
         var cur: ?*Fnt = null;
         var ret: ?*Fnt = null;
         for (fonts) |font| {
-            cur = try xfontCreate(self, font, null);
+            cur = try xfontCreate(alloc, self, font, null);
             if (cur) |cur_| {
                 cur_.next = ret;
                 ret = cur;
@@ -163,5 +172,13 @@ pub const Drw = struct {
         }
         self.fonts = ret;
         return ret;
+    }
+
+    /// [dwm] drw_fontset_free
+    pub fn fontsetFree(allocator: Allocator, set: ?*Fnt) void {
+        if (set) |f| {
+            fontsetFree(allocator, f.next);
+            xfontFree(allocator, f);
+        }
     }
 };

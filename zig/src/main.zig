@@ -4,6 +4,8 @@ const log = std.log;
 const build_opts = @import("build_opts");
 const dwmz = @import("app.zig");
 const drw = @import("drw.zig").drw;
+const cfg = @import("config.zig");
+const Allocator = std.mem.Allocator;
 
 // X11 stuff.
 const x = @import("c_lib.zig").x;
@@ -46,7 +48,7 @@ fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
     _ = _event;
     std.debug.print("dwm: another window manager is already running\n", .{});
-    return -1;
+    std.process.exit(1);
 }
 
 fn xerror(_dpy: ?*Display, _err: [*c]XErrorEvent) callconv(.c) c_int {
@@ -66,7 +68,7 @@ fn check_other_wm() void {
     _ = x.XSync(z.dpy, False);
 }
 
-fn setup() void {
+fn setup(alloc: Allocator) !void {
     // var wa: x.XSetWindowAttributes = undefined;
     // var utf8string: x.Atom = undefined;
     var sa: c.struct_sigaction = undefined;
@@ -86,10 +88,10 @@ fn setup() void {
     log.info("width: {d}, height: {d}", .{ z.sw, z.sh });
     z.root = x.RootWindow(z.dpy, z.screen);
     z.drw = .init(z.dpy.?, z.screen, z.root, z.sw, z.sh);
-    // TODO: continue from here after drw.zig is complete
-    // z.drw = drw.drw_create(z.dpy, z.screen, z.root, z.sw, z.sh);
 
-    // drw = drw_create(dpy, screen, root, sw, sh);
+    _ = try z.drw.fontsetCreate(alloc, &cfg.fonts);
+
+    // TODO: continue from here after drw.zig is complete
     // if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
     //     die("no fonts could be loaded.");
     // lrpad = drw->fonts->h;
@@ -144,7 +146,15 @@ fn setup() void {
     // focus(NULL);
 }
 
+fn cleanup(alloc: Allocator) !void {
+    z.drw.deinit(alloc);
+}
+
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const alloc = gpa.allocator();
+
     const argv = std.os.argv;
     std.log.info("argc = {d}", .{argv.len});
     for (argv[1..]) |arg| {
@@ -170,8 +180,10 @@ pub fn main() !void {
             return try stdout.print("dwm: cannot open display\n", .{});
         };
     }
-    setup();
-    check_other_wm();
+    // TODO: reinstate this check in production.
+    // check_other_wm();
+    try setup(alloc);
+    try cleanup(alloc);
     _ = x.XCloseDisplay(z.dpy);
     log.info("The end!", .{});
 }

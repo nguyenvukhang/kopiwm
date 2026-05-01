@@ -71,9 +71,10 @@ pub fn build(b: *std.Build) void {
     // For X11 things to work.
     exe.linkLibC();
     exe.root_module.linkSystemLibrary("X11", .{});
+    exe.root_module.linkSystemLibrary("Xft", .{});
     exe.root_module.linkSystemLibrary("freetype", .{});
     exe.root_module.linkSystemLibrary("fontconfig", .{});
-    exe.root_module.addSystemIncludePath(b.path("X11"));
+    // exe.root_module.addSystemIncludePath(b.path("X11"));
 
     exe.addIncludePath(b.path("small"));
     exe.addIncludePath(b.path(".."));
