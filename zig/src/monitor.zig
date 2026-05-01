@@ -28,17 +28,17 @@ pub const Monitor = struct {
     // Screen size: y-coordinate.
     my: i32,
     // Screen size: width.
-    mw: i32,
+    mw: u32,
     // Screen size: height.
-    mh: i32,
+    mh: u32,
     // Window area: x-coordinate.
     wx: i32,
     // Window area: y-coordinate.
     wy: i32,
     // Window area: width.
-    ww: i32,
+    ww: u32,
     // Window area: height.
-    wh: i32,
+    wh: u32,
     // Index of selected tags.
     seltags: u16,
     // Index of selected layout.
@@ -47,7 +47,7 @@ pub const Monitor = struct {
     // false means hide bar.
     show_bar: bool,
     // false means bottom bar.
-    topbar: bool,
+    top_bar: bool,
     // Linked list of clients.
     clients: ?*Client,
     // Selected client
@@ -70,8 +70,8 @@ pub const Monitor = struct {
         m.top_bar = cfg.top_bar;
         m.lt[0] = cfg.layouts[0];
         m.lt[1] = cfg.layouts[1 % cfg.layouts.len];
-        // TODO: this might need more attention.
-        @memcpy(m.layout_symbol, cfg.layouts[0].symbol);
+        const n = @min(m.lt[0].symbol.len, m.layout_symbol.len);
+        @memcpy(m.layout_symbol[0..n], m.lt[0].symbol[0..n]);
         return m;
     }
 };

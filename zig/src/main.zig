@@ -72,7 +72,7 @@ fn check_other_wm() void {
 // TODO: return to this after making the monitor struct and porting `createmon`.
 fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
     var dirty = false;
-    var mons = null;
+    var mons: *Monitor = undefined;
     {
         // default monitor setup
         mons = z.mons orelse mons: {
@@ -97,7 +97,7 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
     return dirty;
 }
 
-fn setup(alloc: Allocator) !void {
+fn setup(allocator: Allocator) !void {
     // var wa: x.XSetWindowAttributes = undefined;
     // var utf8string: x.Atom = undefined;
     var sa: c.struct_sigaction = undefined;
@@ -118,7 +118,7 @@ fn setup(alloc: Allocator) !void {
     z.root = x.RootWindow(z.dpy, z.screen);
     z.drw = .init(z.dpy.?, z.screen, z.root, z.sw, z.sh);
     {
-        const f = try z.drw.fontsetCreate(alloc, &cfg.fonts);
+        const f = try z.drw.fontsetCreate(allocator, &cfg.fonts);
         if (f == null) {
             // Empty linked list. No fonts loaded.
             std.debug.print("no fonts could be loaded.\n", .{});
@@ -127,9 +127,9 @@ fn setup(alloc: Allocator) !void {
     }
     z.lrpad = z.drw.fonts.?.h;
     z.bar_height = z.drw.fonts.?.h + 2;
+    _ = try updategeom(allocator);
 
     // TODO: continue from here after drw.zig is complete
-    // updategeom();
     // /* init atoms */
     // utf8string = XInternAtom(dpy, "UTF8_STRING", False);
     // wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
@@ -179,14 +179,14 @@ fn setup(alloc: Allocator) !void {
     // focus(NULL);
 }
 
-fn cleanup(alloc: Allocator) !void {
-    z.drw.deinit(alloc);
+fn cleanup(allocator: Allocator) !void {
+    z.drw.deinit(allocator);
 }
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
-    const alloc = gpa.allocator();
+    const allocator = gpa.allocator();
 
     const argv = std.os.argv;
     std.log.info("argc = {d}", .{argv.len});
@@ -215,8 +215,8 @@ pub fn main() !void {
     }
     // TODO: reinstate this check in production.
     // check_other_wm();
-    try setup(alloc);
-    try cleanup(alloc);
+    try setup(allocator);
+    try cleanup(allocator);
     _ = x.XCloseDisplay(z.dpy);
     log.info("The end!", .{});
 }

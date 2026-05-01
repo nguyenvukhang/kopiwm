@@ -157,14 +157,14 @@ pub const Drw = struct {
     }
 
     /// [dwm] drw_fontset_create
-    pub fn fontsetCreate(self: *Self, alloc: Allocator, fonts: []const []const u8) error{OutOfMemory}!?*Fnt {
+    pub fn fontsetCreate(self: *Self, allocator: Allocator, fonts: []const []const u8) error{OutOfMemory}!?*Fnt {
         if (fonts.len == 0) {
             return null;
         }
         var cur: ?*Fnt = null;
         var ret: ?*Fnt = null;
         for (fonts) |font| {
-            cur = try xfontCreate(alloc, self, font, null);
+            cur = try xfontCreate(allocator, self, font, null);
             if (cur) |cur_| {
                 cur_.next = ret;
                 ret = cur;
