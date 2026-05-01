@@ -1,3 +1,5 @@
+const Layout = @import("layout.zig").Layout;
+
 pub const fonts = [1][]const u8{"monospace:size=10"};
 
 /// Factor of the master area size [0.05...0.95].
@@ -20,3 +22,8 @@ pub const show_bar = true;
 
 // false means bottom bar.
 pub const top_bar = true;
+
+pub const layouts = [2]Layout{
+    .{ .symbol = "[]=" },
+    .{ .symbol = "[M]" },
+};
