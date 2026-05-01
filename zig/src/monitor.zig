@@ -1,16 +1,13 @@
 const std = @import("std");
 const cfg = @import("config.zig");
 
+const Layout = @import("layout.zig").Layout;
 const Client = @import("client.zig").Client;
+
 const x = @import("c_lib.zig").x;
 const Allocator = std.mem.Allocator;
 
 const Window = x.Window;
-
-pub const Layout = struct {
-    symbol: []const u8,
-    arrange: *fn (*Monitor) void,
-};
 
 pub const Monitor = struct {
     const Self = @This();
