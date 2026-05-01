@@ -148,25 +148,20 @@ pub const Drw = struct {
     }
 
     /// [dwm] drw_fontset_create
-    pub fn fontset_create(self: *Self, fonts: [][]const u8) ?*Fnt {
+    pub fn fontset_create(self: *Self, fonts: [][]const u8) !?*Fnt {
         if (fonts.len == 0) {
             return null;
         }
+        var cur: ?*Fnt = null;
+        var ret: ?*Fnt = null;
         for (fonts) |font| {
-            xfontCreate(self, font, null);
+            cur = try xfontCreate(self, font, null);
+            if (cur) |cur_| {
+                cur_.next = ret;
+                ret = cur;
+            }
         }
-
-        return self.fonts;
-
-        // Fnt *cur, *ret = NULL;
-        // size_t i;
-        //
-        // for (i = 1; i <= fontcount; i++) {
-        //     if ((cur = xfont_create(drw, fonts[fontcount - i], NULL))) {
-        //         cur->next = ret;
-        //         ret = cur;
-        //     }
-        // }
-        // return (drw->fonts = ret);
+        self.fonts = ret;
+        return ret;
     }
 };
