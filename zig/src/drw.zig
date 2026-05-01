@@ -87,4 +87,13 @@ pub const Drw = struct {
             @intCast(x.DefaultDepth(self.dpy, self.screen)),
         );
     }
+
+    pub fn deinit(self: *Self) void {
+        x.XFreePixmap(self.dpy, self.drawable);
+        x.XFreeGC(self.dpy, self.gc);
+
+        // TODO:  port this line of C:
+        // drw_fontset_free(drw->fonts);
+
+    }
 };
