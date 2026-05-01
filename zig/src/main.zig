@@ -68,6 +68,27 @@ fn check_other_wm() void {
     _ = x.XSync(z.dpy, False);
 }
 
+// TODO: return to this after making the monitor struct and porting `createmon`.
+fn updategeom() bool {
+    // var dirty = false;
+    // {  /* default monitor setup */
+    //     if (!mons) {
+    //         mons = createmon();
+    //     }
+    //     if (mons->mw != sw || mons->mh != sh) {
+    //         dirty = 1;
+    //         mons->mw = mons->ww = sw;
+    //         mons->mh = mons->wh = sh;
+    //         updatebarpos(mons);
+    //     }
+    // }
+    // if (dirty) {
+    //     selmon = mons;
+    //     selmon = wintomon(root);
+    // }
+    // return dirty;
+}
+
 fn setup(alloc: Allocator) !void {
     // var wa: x.XSetWindowAttributes = undefined;
     // var utf8string: x.Atom = undefined;
