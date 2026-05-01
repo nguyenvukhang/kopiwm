@@ -73,14 +73,13 @@ fn check_other_wm() void {
 fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
     var dirty = false;
     var mons: *Monitor = undefined;
-    std.log.info("Start updategeom", .{});
+    log.info("Start updategeom", .{});
     {
         // default monitor setup
         mons = z.mons orelse m: {
             z.mons = try Monitor.init(allocator);
             break :m z.mons.?;
         };
-        std.log.info("Should have initialized a monitor", .{});
         if (mons.ww != z.sw or mons.mh != z.sh) {
             dirty = true;
             mons.ww = z.sw;
@@ -91,6 +90,7 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
             // updatebarpos(mos)
         }
     }
+    log.info("updategeom.dirty? {}", .{dirty});
     if (dirty) {
         z.selmon = mons;
         // TODO: uncomment this
@@ -179,10 +179,45 @@ fn setup(allocator: Allocator) !void {
     // XSelectInput(dpy, root, wa.event_mask);
     // grabkeys();
     // focus(NULL);
+    log.info("Completed setup()", .{});
 }
 
+/// [dwm] cleanup
+// Continue to build this up as we go.
 fn cleanup(allocator: Allocator) !void {
+    log.info("Start cleanup()", .{});
+    while (z.mons) |mon| {
+        cleanupmon(allocator, mon);
+    }
     z.drw.deinit(allocator);
+}
+
+fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
+    log.info("Start cleanupmon()", .{});
+    const mons: *Monitor = z.mons orelse return;
+    var m: ?*Monitor = null;
+
+    // First, remove `mon` from the linked list that is `z.mons`.
+    if (mon == z.mons) {
+        z.mons = mons.next;
+    } else {
+        m = mons;
+        while (m) |m2| : (m = m2.next) {
+            if (m2.next == mon) {
+                break;
+            }
+        }
+        if (m) |m2| {
+            m2.next = mon.next;
+        }
+    }
+
+    // Then, free the memory allocated to it.
+    // TODO: (or rather, noTODO) this error of BadWindow will fix itself once
+    // updatebars() is written and called.
+    _ = x.XUnmapWindow(z.dpy, mon.barwin);
+    _ = x.XDestroyWindow(z.dpy, mon.barwin);
+    allocator.destroy(mon);
 }
 
 pub fn main() !void {
@@ -191,9 +226,9 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     const argv = std.os.argv;
-    std.log.info("argc = {d}", .{argv.len});
+    log.info("argc = {d}", .{argv.len});
     for (argv[1..]) |arg| {
-        std.log.info("argv = {s}", .{arg});
+        log.info("argv = {s}", .{arg});
     }
 
     {

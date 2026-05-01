@@ -72,6 +72,7 @@ pub const Monitor = struct {
         m.lt[1] = &cfg.layouts[1 % cfg.layouts.len];
         const n = @min(m.lt[0].symbol.len, m.layout_symbol.len);
         @memcpy(m.layout_symbol[0..n], m.lt[0].symbol[0..n]);
+        m.next = null;
         std.log.info("Initialized a monitor!", .{});
         return m;
     }
