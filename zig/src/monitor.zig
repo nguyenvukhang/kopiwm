@@ -1,7 +1,9 @@
 const std = @import("std");
+const mem = std.mem;
 const cfg = @import("config.zig");
 
-const Layout = @import("layout.zig").Layout;
+const lt = @import("layout.zig");
+const Layout = lt.Layout;
 const Client = @import("client.zig").Client;
 
 const x = @import("c_lib.zig").x;
@@ -66,9 +68,10 @@ pub const Monitor = struct {
         m.nmaster = cfg.nmaster;
         m.show_bar = cfg.show_bar;
         m.top_bar = cfg.top_bar;
-        // m->lt[0] = &layouts[0];
-        // m->lt[1] = &layouts[1 % LENGTH(layouts)];
-        // strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
+        m.lt[0] = cfg.layouts[0];
+        m.lt[1] = cfg.layouts[1 % cfg.layouts.len];
+        // TODO: this might need more attention.
+        @memcpy(m.layout_symbol, cfg.layouts[0].symbol);
         return m;
     }
 };

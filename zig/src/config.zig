@@ -1,4 +1,4 @@
-const Layout = @import("layout.zig").Layout;
+const lt = @import("layout.zig");
 
 pub const fonts = [1][]const u8{"monospace:size=10"};
 
@@ -23,7 +23,7 @@ pub const show_bar = true;
 // false means bottom bar.
 pub const top_bar = true;
 
-pub const layouts = [2]Layout{
-    .{ .symbol = "[]=" },
-    .{ .symbol = "[M]" },
+pub const layouts = [2]lt.Layout{
+    .{ .symbol = "[]=", .arrange = lt.tile },
+    .{ .symbol = "[M]", .arrange = lt.monocle },
 };
