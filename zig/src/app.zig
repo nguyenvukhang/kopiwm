@@ -9,28 +9,28 @@ const Window = x.Window;
 pub const App = struct {
     // Note to new Zig learners: if we try to deference this, we get "error:
     // cannot dereference undefined value."
-    dpy: ?*x.Display,
+    dpy: ?*x.Display = null,
 
-    screen: c_int,
+    screen: c_int = undefined,
 
     /// Screen width.
-    sw: u32,
+    sw: u32 = undefined,
 
     /// Screen height.
-    sh: u32,
+    sh: u32 = undefined,
 
-    drw: Drw,
+    drw: Drw = undefined,
 
     /// Left-right padding.
-    lrpad: u16,
+    lrpad: u16 = 0,
 
-    bar_height: u16,
+    bar_height: u16 = 0,
 
-    mons: ?*Monitor,
+    mons: ?*Monitor = null,
 
     /// Selected monitor.
-    selmon: ?*Monitor,
+    selmon: ?*Monitor = null,
 
-    root: Window,
-    wmcheckwin: Window,
+    root: Window = undefined,
+    wmcheckwin: Window = undefined,
 };

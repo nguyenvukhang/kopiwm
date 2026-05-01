@@ -13,7 +13,7 @@ const x = @import("c_lib.zig").x;
 const Display = x.Display;
 const XErrorEvent = x.XErrorEvent;
 
-var z: dwmz.App = undefined;
+var z: dwmz.App = .{};
 
 pub const std_options: std.Options = .{
     .log_level = .debug,
@@ -73,12 +73,14 @@ fn check_other_wm() void {
 fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
     var dirty = false;
     var mons: *Monitor = undefined;
+    std.log.info("Start updategeom", .{});
     {
         // default monitor setup
-        mons = z.mons orelse mons: {
+        mons = z.mons orelse m: {
             z.mons = try Monitor.init(allocator);
-            break :mons z.mons.?;
+            break :m z.mons.?;
         };
+        std.log.info("Should have initialized a monitor", .{});
         if (mons.ww != z.sw or mons.mh != z.sh) {
             dirty = true;
             mons.ww = z.sw;
