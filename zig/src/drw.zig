@@ -198,4 +198,14 @@ pub const Drw = struct {
 
         dest.pixel |= 0xff << 24;
     }
+
+    /// [dwm] drw_clr_free
+    pub fn clrFree(self: *Self, c: *XftColor) void {
+        x.XftColorFree(
+            self.dpy,
+            x.DefaultVisual(self.dpy, self.screen),
+            x.DefaultColormap(self.dpy, self.screen),
+            c,
+        );
+    }
 };
