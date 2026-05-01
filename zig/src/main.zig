@@ -88,14 +88,18 @@ fn setup(alloc: Allocator) !void {
     log.info("width: {d}, height: {d}", .{ z.sw, z.sh });
     z.root = x.RootWindow(z.dpy, z.screen);
     z.drw = .init(z.dpy.?, z.screen, z.root, z.sw, z.sh);
-
-    _ = try z.drw.fontsetCreate(alloc, &cfg.fonts);
+    {
+        const f = try z.drw.fontsetCreate(alloc, &cfg.fonts);
+        if (f == null) {
+            // Empty linked list. No fonts loaded.
+            std.debug.print("no fonts could be loaded.\n", .{});
+            return;
+        }
+    }
+    z.lrpad = z.drw.fonts.?.h;
+    z.bar_height = z.drw.fonts.?.h + 2;
 
     // TODO: continue from here after drw.zig is complete
-    // if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
-    //     die("no fonts could be loaded.");
-    // lrpad = drw->fonts->h;
-    // bh = drw->fonts->h + 2;
     // updategeom();
     // /* init atoms */
     // utf8string = XInternAtom(dpy, "UTF8_STRING", False);

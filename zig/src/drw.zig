@@ -208,4 +208,27 @@ pub const Drw = struct {
             c,
         );
     }
+
+    /// [dwm] drw_scm_create
+    pub fn scmCreate(
+        self: *Self,
+        allocator: Allocator,
+        fg_color_name: []const u8,
+        bg_color_name: []const u8,
+        border_color_name: []const u8,
+    ) error{OutOfMemory}!*XftColor {
+        var ret = try allocator.create(ColorScheme);
+        self.clrCreate(&ret.fg, fg_color_name);
+        self.clrCreate(&ret.bg, bg_color_name);
+        self.clrCreate(&ret.border, border_color_name);
+        return ret;
+    }
+
+    /// [dwm] drw_scm_free
+    pub fn scmFree(self: *Self, allocator: Allocator, scheme: *ColorScheme) void {
+        self.clrFree(scheme.fg);
+        self.clrFree(scheme.bg);
+        self.clrFree(scheme.border);
+        allocator.destroy(scheme);
+    }
 };

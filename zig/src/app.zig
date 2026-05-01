@@ -19,4 +19,9 @@ pub const App = struct {
     root: x.Window,
 
     drw: Drw,
+
+    /// Left-right padding.
+    lrpad: u16,
+
+    bar_height: u16,
 };
