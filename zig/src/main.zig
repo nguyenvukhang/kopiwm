@@ -4,7 +4,6 @@ const log = std.log;
 const build_opts = @import("build_opts");
 const dwmz = @import("app.zig");
 const drw = @import("drw.zig").drw;
-const structs = @import("structs.zig");
 
 // X11 stuff.
 const x = @import("c_lib.zig").x;
