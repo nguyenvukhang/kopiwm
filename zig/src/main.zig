@@ -6,6 +6,7 @@ const dwmz = @import("app.zig");
 const drw = @import("drw.zig").drw;
 const cfg = @import("config.zig");
 const Allocator = std.mem.Allocator;
+const Monitor = @import("monitor.zig").Monitor;
 
 // X11 stuff.
 const x = @import("c_lib.zig").x;
@@ -69,24 +70,31 @@ fn check_other_wm() void {
 }
 
 // TODO: return to this after making the monitor struct and porting `createmon`.
-fn updategeom() bool {
-    // var dirty = false;
-    // {  /* default monitor setup */
-    //     if (!mons) {
-    //         mons = createmon();
-    //     }
-    //     if (mons->mw != sw || mons->mh != sh) {
-    //         dirty = 1;
-    //         mons->mw = mons->ww = sw;
-    //         mons->mh = mons->wh = sh;
-    //         updatebarpos(mons);
-    //     }
-    // }
-    // if (dirty) {
-    //     selmon = mons;
-    //     selmon = wintomon(root);
-    // }
-    // return dirty;
+fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
+    var dirty = false;
+    var mons = null;
+    {
+        // default monitor setup
+        mons = z.mons orelse mons: {
+            z.mons = try Monitor.init(allocator);
+            break :mons z.mons.?;
+        };
+        if (mons.ww != z.sw or mons.mh != z.sh) {
+            dirty = true;
+            mons.ww = z.sw;
+            mons.mw = z.sw;
+            mons.wh = z.sh;
+            mons.mh = z.sh;
+            // TODO: uncomment this
+            // updatebarpos(mos)
+        }
+    }
+    if (dirty) {
+        z.selmon = mons;
+        // TODO: uncomment this
+        // z.selmon = wintomon(z.root)
+    }
+    return dirty;
 }
 
 fn setup(alloc: Allocator) !void {
