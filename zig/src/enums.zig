@@ -18,3 +18,11 @@ pub const Net = enum(u8) {
     WMWindowTypeDialog,
     ClientList,
 };
+
+/// [dwm] Cur* enums.
+/// The different possible states of the mouse cursor.
+pub const Cur = enum {
+    Normal,
+    Resize,
+    Move,
+};

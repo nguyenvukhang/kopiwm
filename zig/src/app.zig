@@ -3,11 +3,14 @@ const std = @import("std");
 const X = @import("c_lib.zig").X;
 const Net = @import("enums.zig").Net;
 const WM = @import("enums.zig").WM;
+const Cur = @import("enums.zig").Cur;
 
 const Drw = @import("drw.zig").Drw;
+const ColorScheme = @import("drw.zig").ColorScheme;
 const Monitor = @import("monitor.zig").Monitor;
 const Window = X.Window;
 const Atom = X.Atom;
+const Cursor = X.Cursor;
 
 pub const App = struct {
     // Note to new Zig learners: if we try to deference this, we get "error:
@@ -39,4 +42,8 @@ pub const App = struct {
 
     wmatom: [std.meta.fields(WM).len]Atom = undefined,
     netatom: [std.meta.fields(Net).len]Atom = undefined,
+
+    cursors: [std.meta.fields(Cur).len]Cursor = undefined,
+
+    scheme: ColorScheme,
 };

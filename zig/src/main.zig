@@ -9,6 +9,7 @@ const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
 const Client = @import("client.zig").Client;
 const WM = @import("enums.zig").WM;
+const Cur = @import("enums.zig").Cur;
 const Net = @import("enums.zig").Net;
 
 // X11 stuff.
@@ -251,7 +252,6 @@ fn setup(allocator: Allocator) !void {
     z.wmatom[@intFromEnum(WM.Delete)] = X.XInternAtom(z.dpy, "WM_DELETE_WINDOW", False);
     z.wmatom[@intFromEnum(WM.State)] = X.XInternAtom(z.dpy, "WM_STATE", False);
     z.wmatom[@intFromEnum(WM.TakeFocus)] = X.XInternAtom(z.dpy, "WM_TAKE_FOCUS", False);
-
     z.netatom[@intFromEnum(Net.ActiveWindow)] = X.XInternAtom(z.dpy, "_NET_ACTIVE_WINDOW", False);
     z.netatom[@intFromEnum(Net.Supported)] = X.XInternAtom(z.dpy, "_NET_SUPPORTED", False);
     z.netatom[@intFromEnum(Net.WMName)] = X.XInternAtom(z.dpy, "_NET_WM_NAME", False);
@@ -263,12 +263,13 @@ fn setup(allocator: Allocator) !void {
     z.netatom[@intFromEnum(Net.ClientList)] = X.XInternAtom(z.dpy, "_NET_CLIENT_LIST", False);
 
     // init cursors
+    z.cursors[@intFromEnum(Cur.Normal)] = z.drw.curCreate(X.XC_left_ptr);
+    z.cursors[@intFromEnum(Cur.Resize)] = z.drw.curCreate(X.XC_sizing);
+    z.cursors[@intFromEnum(Cur.Move)] = z.drw.curCreate(X.XC_fleur);
+
+    // init appearance
 
     // TODO: continue from here after drw.zig is complete
-    // cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
-    // cursor[CurResize] = drw_cur_create(drw, XC_sizing);
-    // cursor[CurMove] = drw_cur_create(drw, XC_fleur);
-    // /* init appearance */
     // scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
     // for (i = 0; i < LENGTH(colors); i++)
     //     scheme[i] = drw_scm_create(drw, colors[i], 3);

@@ -233,4 +233,14 @@ pub const Drw = struct {
         self.clrFree(scheme.border);
         allocator.destroy(scheme);
     }
+
+    /// [dwm] drw_cur_create
+    pub fn curCreate(self: *Self, shape: c_int) Cursor {
+        return X.XCreateFontCursor(self.dpy, shape);
+    }
+
+    /// [dwm] drw_cur_free
+    pub fn curFree(self: *Self, cursor: Cursor) void {
+        X.XFreeCursor(self.dpy, cursor);
+    }
 };
