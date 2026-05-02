@@ -9,9 +9,9 @@ const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
 
 // X11 stuff.
-const x = @import("c_lib.zig").x;
-const Display = x.Display;
-const XErrorEvent = x.XErrorEvent;
+const X = @import("c_lib.zig").X;
+const Display = X.Display;
+const XErrorEvent = X.XErrorEvent;
 
 var z: dwmz.App = .{};
 
@@ -61,12 +61,12 @@ fn xerror(_dpy: ?*Display, _err: [*c]XErrorEvent) callconv(.c) c_int {
 var xerrorlib: ?*const fn (?*Display, [*c]XErrorEvent) callconv(.c) c_int = null;
 
 fn check_other_wm() void {
-    xerrorlib = x.XSetErrorHandler(xerrorstart);
+    xerrorlib = X.XSetErrorHandler(xerrorstart);
     // this causes an error if some other window manager is running
-    _ = x.XSelectInput(z.dpy, x.DefaultRootWindow(z.dpy), x.SubstructureRedirectMask);
-    _ = x.XSync(z.dpy, False);
-    _ = x.XSetErrorHandler(xerror);
-    _ = x.XSync(z.dpy, False);
+    _ = X.XSelectInput(z.dpy, X.DefaultRootWindow(z.dpy), X.SubstructureRedirectMask);
+    _ = X.XSync(z.dpy, False);
+    _ = X.XSetErrorHandler(xerror);
+    _ = X.XSync(z.dpy, False);
 }
 
 /// [dwm] updatebarpos
@@ -80,6 +80,61 @@ fn updatebarpos(m: *Monitor) void {
     } else {
         m.by = -z.bar_height;
     }
+}
+
+/// [dwm] getrootptr
+fn getrootptr(x: *c_int, y: *c_int) c_int {
+    // dummy variables.
+    var d: X.Window = undefined;
+    var d_int: c_int = undefined;
+    var d_uint: c_uint = undefined;
+    return X.XQueryPointer(z.dpy, z.root, &d, &d, x, y, &d_int, &d_int, &d_uint);
+}
+
+/// [dwm] INTERSECT
+fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
+    return @max(0, @min(x + w, m.wx + m.ww) - @max(x, m.wx)) *
+        @max(0, @min(y + h, m.wy + m.wh) - @max(y, m.wy));
+}
+
+/// [dwm] recttomon
+/// Selects the monitor with the greatest area intersection with the bounding
+/// rectangle given.
+fn recttomon(x: i32, y: i32, w: i32, h: i32) ?*Monitor {
+    var r = z.selmon;
+    var max_area: i32 = 0;
+    var a: i32 = 0;
+    var m_opt = z.mons;
+    while (m_opt) |m| : (m_opt = m.next) {
+        a = intersect(x, y, w, h, m);
+        if (a > max_area) {
+            max_area = a;
+            r = m;
+        }
+    }
+    return r;
+}
+
+/// TODO: get back here after recttomon and wintoclient.
+/// [dwm] wintomon
+fn wintomon(w: X.Window) ?*Monitor {
+    // TODO: get back here after getrootptr
+    var x: c_int = undefined;
+    var y: c_int = undefined;
+    if (w == z.root and getrootptr(&x, &y) != 0) {
+        return recttomon(x, y, 1, 1);
+    }
+    var m_opt = z.mons;
+    while (m_opt) |m| : (m_opt = m.next) {
+        if (w == m.barwin) {
+            return m;
+        }
+    }
+    //     if ((c = wintoclient(w))) {
+    //         return c->mon;
+    //     }
+    //     return selmon;
+    return null;
 }
 
 // TODO: return to this after making the monitor struct and porting `createmon`.
@@ -112,8 +167,8 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
 }
 
 fn setup(allocator: Allocator) !void {
-    // var wa: x.XSetWindowAttributes = undefined;
-    // var utf8string: x.Atom = undefined;
+    // var wa: X.XSetWindowAttributes = undefined;
+    // var utf8string: X.Atom = undefined;
     var sa: c.struct_sigaction = undefined;
 
     // do not transform children into zombies when they terminate
@@ -125,11 +180,11 @@ fn setup(allocator: Allocator) !void {
     // clean up any zombies (inherited from .xinitrc etc) immediately
     while (std.c.waitpid(-1, null, std.c.W.NOHANG) > 0) {}
 
-    z.screen = x.DefaultScreen(z.dpy);
-    z.sw = @intCast(x.DisplayWidth(z.dpy, z.screen));
-    z.sh = @intCast(x.DisplayHeight(z.dpy, z.screen));
+    z.screen = X.DefaultScreen(z.dpy);
+    z.sw = @intCast(X.DisplayWidth(z.dpy, z.screen));
+    z.sh = @intCast(X.DisplayHeight(z.dpy, z.screen));
     log.info("width: {d}, height: {d}", .{ z.sw, z.sh });
-    z.root = x.RootWindow(z.dpy, z.screen);
+    z.root = X.RootWindow(z.dpy, z.screen);
     z.drw = .init(z.dpy.?, z.screen, z.root, z.sw, z.sh);
     {
         const f = try z.drw.fontsetCreate(allocator, &cfg.fonts);
@@ -228,25 +283,25 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
     // Then, free the memory allocated to it.
     // TODO: (or rather, noTODO) this error of BadWindow will fix itself once
     // updatebars() is written and called.
-    _ = x.XUnmapWindow(z.dpy, mon.barwin);
-    _ = x.XDestroyWindow(z.dpy, mon.barwin);
+    _ = X.XUnmapWindow(z.dpy, mon.barwin);
+    _ = X.XDestroyWindow(z.dpy, mon.barwin);
     allocator.destroy(mon);
 }
 
 /// [dwm] updatebars
 fn updatebars() void {
-    const wa: x.XSetWindowAttributes = .{
+    const wa: X.XSetWindowAttributes = .{
         .override_redirect = true,
-        .background_pixmap = x.ParentRelative,
-        .event_mask = x.ButtonPressMask | x.ExposureMask,
+        .background_pixmap = X.ParentRelative,
+        .event_mask = X.ButtonPressMask | X.ExposureMask,
     };
-    const ch: x.XClassHint = .{ .res_class = "dwm", .res_name = "dwm" };
+    const ch: X.XClassHint = .{ .res_class = "dwm", .res_name = "dwm" };
     var m_cursor = z.mons;
     while (m_cursor) |m| : (m_cursor = m.next) {
         if (m.barwin == 0) {
             continue;
         }
-        m.barwin = x.XCreateWindow(
+        m.barwin = X.XCreateWindow(
             z.dpy,
             z.root,
             m.wx,
@@ -254,16 +309,16 @@ fn updatebars() void {
             m.ww,
             z.bar_height,
             0,
-            x.DefaultDepth(z.dpy, z.screen),
-            x.CopyFromParent,
-            x.DefaultVisual(z.dpy, z.screen),
-            x.CWOverrideRedirect | x.CWBackPixmap | x.CWEventMask,
+            X.DefaultDepth(z.dpy, z.screen),
+            X.CopyFromParent,
+            X.DefaultVisual(z.dpy, z.screen),
+            X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
             &wa,
         );
         // TODO: get back to translating this
-        // x.XDefineCursor(z.dpy, m.barwin, cursor[CurNormal]->cursor);
-        x.XMapRaised(z.dpy, m.barwin);
-        x.XSetClassHint(z.dpy, m.barwin, &ch);
+        // X.XDefineCursor(z.dpy, m.barwin, cursor[CurNormal]->cursor);
+        X.XMapRaised(z.dpy, m.barwin);
+        X.XSetClassHint(z.dpy, m.barwin, &ch);
     }
 }
 
@@ -290,10 +345,10 @@ pub fn main() !void {
         } else if (argv.len != 1) {
             return try stdout.print("usage: {s} [-v]\n", .{build_opts.name});
         }
-        if (c.setlocale(c.LC_CTYPE, "") == null or x.XSupportsLocale() == 0) {
+        if (c.setlocale(c.LC_CTYPE, "") == null or X.XSupportsLocale() == 0) {
             try stderr.print("warning: no locale support\n", .{});
         }
-        z.dpy = x.XOpenDisplay(null) orelse {
+        z.dpy = X.XOpenDisplay(null) orelse {
             return try stdout.print("dwm: cannot open display\n", .{});
         };
     }
@@ -305,7 +360,7 @@ pub fn main() !void {
     log.info("Start cleanup()", .{});
     try cleanup(allocator);
     log.info("Completed cleanup()", .{});
-    _ = x.XCloseDisplay(z.dpy);
+    _ = X.XCloseDisplay(z.dpy);
     log.info("The end!", .{});
 }
 
