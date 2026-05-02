@@ -45,5 +45,5 @@ pub const App = struct {
 
     cursors: [std.meta.fields(Cur).len]Cursor = undefined,
 
-    scheme: []ColorScheme = undefined,
+    scheme: []*ColorScheme = undefined,
 };

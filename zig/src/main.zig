@@ -272,10 +272,19 @@ fn setup(allocator: Allocator) !void {
     z.cursors[@intFromEnum(Cur.Move)] = z.drw.curCreate(X.XC_fleur);
 
     // init appearance
-    z.scheme = try allocator.alloc(ColorScheme, N(SchemeState));
-    for (cfg.colors) |scheme| {
-        _ = try z.drw.scmCreate(allocator, scheme);
+    z.scheme = try allocator.alloc(*ColorScheme, cfg.colors.len);
+    for (z.scheme, cfg.colors) |*out, scheme| {
+        out.* = try z.drw.scmCreate(allocator, scheme);
     }
+    for (z.scheme) |s| {
+        log.info("fg: {x}, bg: {x}, border: {x}", .{ s.fg.pixel, s.bg.pixel, s.border.pixel });
+    }
+    // for (0..cfg.colors.len) |i| {
+    //     z.scheme[i] = try z.drw.scmCreate(allocator, cfg.colors[i]);
+    // }
+    // for (cfg.colors) |scheme| {
+    //     _ = try z.drw.scmCreate(allocator, scheme);
+    // }
 
     // TODO: continue from here after drw.zig is complete
     // scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
