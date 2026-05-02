@@ -32,12 +32,7 @@ pub const ColorSchemeIdx = enum(u8) {
 };
 
 pub const ColorScheme = struct {
-    /// Foreground color.
-    fg: XftColor,
-    /// Background color.
-    bg: XftColor,
-    /// Border color.
-    border: XftColor,
+    data: [std.meta.fields(ColorSchemeIdx).len]XftColor,
 };
 
 /// [dwm] xfont_create
@@ -220,22 +215,22 @@ pub const Drw = struct {
         border_color_name: []const u8,
     ) error{OutOfMemory}!*XftColor {
         var ret = try allocator.create(ColorScheme);
-        self.clrCreate(&ret.fg, fg_color_name);
-        self.clrCreate(&ret.bg, bg_color_name);
-        self.clrCreate(&ret.border, border_color_name);
+        self.clrCreate(&ret.data[@intFromEnum(ColorSchemeIdx.Fg)], fg_color_name);
+        self.clrCreate(&ret.data[@intFromEnum(ColorSchemeIdx.Bg)], bg_color_name);
+        self.clrCreate(&ret.data[@intFromEnum(ColorSchemeIdx.Border)], border_color_name);
         return ret;
     }
 
     /// [dwm] drw_scm_free
     pub fn scmFree(self: *Self, allocator: Allocator, scheme: *ColorScheme) void {
-        self.clrFree(scheme.fg);
-        self.clrFree(scheme.bg);
-        self.clrFree(scheme.border);
+        for (0..scheme.data.len) |i| {
+            self.clrFree(&scheme.data[i]);
+        }
         allocator.destroy(scheme);
     }
 
     /// [dwm] drw_cur_create
-    pub fn curCreate(self: *Self, shape: c_int) Cursor {
+    pub fn curCreate(self: *Self, shape: c_uint) Cursor {
         return X.XCreateFontCursor(self.dpy, shape);
     }
 
