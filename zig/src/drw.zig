@@ -1,22 +1,24 @@
 const std = @import("std");
-const x = @import("c_lib.zig").x;
+const X = @import("c_lib.zig").X;
 const fc = @import("c_lib.zig").fc;
 const mem = std.mem;
 const Allocator = mem.Allocator;
 
-pub const Cursor = x.Cursor;
-pub const Display = x.Display;
-pub const Drawable = x.Drawable;
-pub const Window = x.Window;
-pub const XftColor = x.XftColor;
+pub const Cursor = X.Cursor;
+pub const Display = X.Display;
+pub const Drawable = X.Drawable;
+pub const Window = X.Window;
+pub const XftColor = X.XftColor;
+pub const XftFont = X.XftFont;
+pub const FcPattern = X.FcPattern;
 
 // TODO: change this to Font when all is said and done.
 /// This represents a linked list of fonts.
 pub const Fnt = struct {
     dpy: ?*Display,
     h: u16,
-    xfont: ?*x.XftFont,
-    pattern: ?*x.FcPattern,
+    xfont: ?*XftFont,
+    pattern: ?*FcPattern,
     next: ?*Fnt,
 };
 
@@ -43,10 +45,10 @@ fn xfontCreate(
     allocator: Allocator,
     drw: *Drw,
     fontname: []const u8,
-    font_pattern: ?*x.FcPattern,
+    font_pattern: ?*FcPattern,
 ) error{OutOfMemory}!?*Fnt {
-    var xfont: ?*x.XftFont = null;
-    var pattern: ?*x.FcPattern = null;
+    var xfont: ?*XftFont = null;
+    var pattern: ?*FcPattern = null;
 
     if (fontname.len > 0) {
         // Using the pattern found at font->xfont->pattern does not yield the
@@ -54,19 +56,19 @@ fn xfontCreate(
         // FcNameParse; using the latter results in the desired fallback
         // behaviour whereas the former just results in missing-character
         // rectangles being drawn, at least with some fonts.
-        xfont = x.XftFontOpenName(drw.dpy, drw.screen, @ptrCast(fontname));
+        xfont = X.XftFontOpenName(drw.dpy, drw.screen, @ptrCast(fontname));
         if (xfont == null) {
             std.debug.print("error, cannot load font from name: '{s}'\n", .{fontname});
             return null;
         }
-        pattern = x.FcNameParse(@ptrCast(fontname));
+        pattern = X.FcNameParse(@ptrCast(fontname));
         if (pattern == null) {
             std.debug.print("error, cannot parse font name to pattern: '{s}'\n", .{fontname});
-            x.XftFontClose(drw.dpy, xfont);
+            X.XftFontClose(drw.dpy, xfont);
             return null;
         }
     } else if (font_pattern) |fp| {
-        xfont = x.XftFontOpenPattern(drw.dpy, fp);
+        xfont = X.XftFontOpenPattern(drw.dpy, fp);
         if (xfont == null) {
             std.debug.print("error, cannot load font from pattern\n", .{});
             return null;
@@ -88,9 +90,9 @@ fn xfontCreate(
 /// [dwm] xfont_free
 fn xfontFree(allocator: Allocator, font: *Fnt) void {
     if (font.pattern) |pattern| {
-        x.FcPatternDestroy(pattern);
+        X.FcPatternDestroy(pattern);
     }
-    x.XftFontClose(font.dpy, font.xfont);
+    X.XftFontClose(font.dpy, font.xfont);
     allocator.destroy(font);
 }
 
@@ -105,7 +107,7 @@ pub const Drw = struct {
     screen: c_int,
     root: Window,
     drawable: Drawable,
-    gc: x.GC,
+    gc: X.GC,
     scheme: ?ColorScheme = null,
     /// A linked list of fonts.
     fonts: ?*Fnt = null,
@@ -126,10 +128,10 @@ pub const Drw = struct {
             .dpy = dpy,
             .screen = screen,
             .root = window,
-            .drawable = x.XCreatePixmap(dpy, window, w, h, @intCast(x.DefaultDepth(dpy, screen))),
-            .gc = x.XCreateGC(dpy, window, 0, null),
+            .drawable = X.XCreatePixmap(dpy, window, w, h, @intCast(X.DefaultDepth(dpy, screen))),
+            .gc = X.XCreateGC(dpy, window, 0, null),
         };
-        _ = x.XSetLineAttributes(dpy, drw.gc, 1, x.LineSolid, x.CapButt, x.JoinMiter);
+        _ = X.XSetLineAttributes(dpy, drw.gc, 1, X.LineSolid, X.CapButt, X.JoinMiter);
         return drw;
     }
 
@@ -138,21 +140,21 @@ pub const Drw = struct {
         self.w = w;
         self.h = h;
         if (self.drawable) {
-            x.XFreePixmap(self.dpy, self.drawable);
+            X.XFreePixmap(self.dpy, self.drawable);
         }
-        self.drawable = x.XCreatePixmap(
+        self.drawable = X.XCreatePixmap(
             self.dpy,
             self.window,
             w,
             h,
-            @intCast(x.DefaultDepth(self.dpy, self.screen)),
+            @intCast(X.DefaultDepth(self.dpy, self.screen)),
         );
     }
 
     /// [dwm] drw_free
     pub fn deinit(self: *Self, allocator: Allocator) void {
-        _ = x.XFreePixmap(self.dpy, self.drawable);
-        _ = x.XFreeGC(self.dpy, self.gc);
+        _ = X.XFreePixmap(self.dpy, self.drawable);
+        _ = X.XFreeGC(self.dpy, self.gc);
         fontsetFree(allocator, self.fonts);
     }
 
@@ -184,10 +186,10 @@ pub const Drw = struct {
 
     /// [dwm] drw_clr_create
     pub fn clrCreate(self: *Self, dest: *XftColor, color_name: []const u8) void {
-        const result = x.XftColorAllocName(
+        const result = X.XftColorAllocName(
             self.dpy,
-            x.DefaultVisual(self.dpy, self.screen),
-            x.DefaultColormap(self.dpy, self.screen),
+            X.DefaultVisual(self.dpy, self.screen),
+            X.DefaultColormap(self.dpy, self.screen),
             color_name,
             dest,
         );
@@ -201,10 +203,10 @@ pub const Drw = struct {
 
     /// [dwm] drw_clr_free
     pub fn clrFree(self: *Self, c: *XftColor) void {
-        x.XftColorFree(
+        X.XftColorFree(
             self.dpy,
-            x.DefaultVisual(self.dpy, self.screen),
-            x.DefaultColormap(self.dpy, self.screen),
+            X.DefaultVisual(self.dpy, self.screen),
+            X.DefaultColormap(self.dpy, self.screen),
             c,
         );
     }

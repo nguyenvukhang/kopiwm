@@ -7,9 +7,11 @@ const drw = @import("drw.zig").drw;
 const cfg = @import("config.zig");
 const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
+const Client = @import("client.zig").Client;
 
 // X11 stuff.
 const X = @import("c_lib.zig").X;
+const Window = X.Window;
 const Display = X.Display;
 const XErrorEvent = X.XErrorEvent;
 
@@ -85,7 +87,7 @@ fn updatebarpos(m: *Monitor) void {
 /// [dwm] getrootptr
 fn getrootptr(x: *c_int, y: *c_int) c_int {
     // dummy variables.
-    var d: X.Window = undefined;
+    var d: Window = undefined;
     var d_int: c_int = undefined;
     var d_uint: c_uint = undefined;
     return X.XQueryPointer(z.dpy, z.root, &d, &d, x, y, &d_int, &d_int, &d_uint);
@@ -115,9 +117,31 @@ fn recttomon(x: i32, y: i32, w: i32, h: i32) ?*Monitor {
     return r;
 }
 
+fn wintoclient(m: Window) ?*Client {
+    var m_opt = z.mons;
+    var c_opt: ?*Client = null;
+    while (m_opt) |m| : (m_opt = m.next) {
+        c_opt = m.clients;
+    }
+    return null;
+}
+// Client *wintoclient(Window w) {
+//     Client *c;
+//     Monitor *m;
+//
+//     for (m = mons; m; m = m->next) {
+//         for (c = m->clients; c; c = c->next) {
+//             if (c->win == w) {
+//                 return c;
+//             }
+//         }
+//     }
+//     return NULL;
+// }
+
 /// TODO: get back here after recttomon and wintoclient.
 /// [dwm] wintomon
-fn wintomon(w: X.Window) ?*Monitor {
+fn wintomon(w: Window) ?*Monitor {
     // TODO: get back here after getrootptr
     var x: c_int = undefined;
     var y: c_int = undefined;

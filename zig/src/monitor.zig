@@ -6,10 +6,10 @@ const lt = @import("layout.zig");
 const Layout = lt.Layout;
 const Client = @import("client.zig").Client;
 
-const x = @import("c_lib.zig").x;
+const X = @import("c_lib.zig").X;
 const Allocator = std.mem.Allocator;
 
-const Window = x.Window;
+const Window = X.Window;
 
 pub const Monitor = struct {
     const Self = @This();
