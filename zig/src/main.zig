@@ -69,6 +69,7 @@ fn check_other_wm() void {
     _ = x.XSync(z.dpy, False);
 }
 
+/// [dwm] updatebarpos
 fn updatebarpos(m: *Monitor) void {
     m.wy = m.my;
     m.wh = m.mh;
@@ -190,7 +191,6 @@ fn setup(allocator: Allocator) !void {
     // XSelectInput(dpy, root, wa.event_mask);
     // grabkeys();
     // focus(NULL);
-    log.info("Completed setup()", .{});
 }
 
 /// [dwm] cleanup
@@ -299,8 +299,12 @@ pub fn main() !void {
     }
     // TODO: reinstate this check in production.
     // check_other_wm();
+    log.info("Start setup()", .{});
     try setup(allocator);
+    log.info("Completed setup()", .{});
+    log.info("Start cleanup()", .{});
     try cleanup(allocator);
+    log.info("Completed cleanup()", .{});
     _ = x.XCloseDisplay(z.dpy);
     log.info("The end!", .{});
 }
