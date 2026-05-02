@@ -155,7 +155,6 @@ fn wintomon(w: Window) ?*Monitor {
     return z.selmon;
 }
 
-// TODO: return to this after making the monitor struct and porting `createmon`.
 fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
     var dirty = false;
     var mons: *Monitor = undefined;
@@ -279,27 +278,22 @@ fn cleanup(allocator: Allocator) !void {
 fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
     log.info("Start cleanupmon()", .{});
     const mons: *Monitor = z.mons orelse return;
-    var m: ?*Monitor = null;
+    var m_opt: ?*Monitor = null;
 
     // First, remove `mon` from the linked list that is `z.mons`.
     if (mon == z.mons) {
         z.mons = mons.next;
     } else {
-        // TODO: replace this with the general iterator.
-        m = mons;
-        while (m) |m2| : (m = m2.next) {
-            if (m2.next == mon) {
+        m_opt = mons;
+        while (m_opt) |m| : (m_opt = m.next) {
+            if (m.next == mon) {
                 break;
             }
         }
-        if (m) |m2| {
-            m2.next = mon.next;
+        if (m_opt) |m| {
+            m.next = mon.next;
         }
     }
-
-    // Then, free the memory allocated to it.
-    // TODO: (or rather, noTODO) this error of BadWindow will fix itself once
-    // updatebars() is written and called.
     _ = X.XUnmapWindow(z.dpy, mon.barwin);
     _ = X.XDestroyWindow(z.dpy, mon.barwin);
     allocator.destroy(mon);
