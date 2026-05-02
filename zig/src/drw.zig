@@ -23,16 +23,6 @@ pub const Fnt = struct {
     next: ?*Fnt,
 };
 
-/// Index within a color scheme.
-pub const SchemeIdx = enum(u8) {
-    /// Foreground color.
-    Fg = 0,
-    /// Background color.
-    Bg = 1,
-    /// Border color.
-    Border = 2,
-};
-
 pub fn Scheme(comptime T: type) type {
     return struct {
         const Self = @This();
