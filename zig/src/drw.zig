@@ -105,7 +105,7 @@ pub const Drw = struct {
     root: Window,
     drawable: Drawable,
     gc: X.GC,
-    scheme: ?ColorScheme = null,
+    scheme: ?*ColorScheme = null,
     /// A linked list of fonts.
     fonts: ?*Fnt = null,
 
@@ -238,4 +238,253 @@ pub const Drw = struct {
     pub fn curFree(self: *Self, cursor: Cursor) void {
         _ = X.XFreeCursor(self.dpy, cursor);
     }
+
+    /// [dwm] drw_setscheme
+    pub fn setScheme(self: *Self, scheme: *ColorScheme) void {
+        self.scheme = scheme;
+    }
+
+    /// [dwm] drw_setfontset
+    pub fn setFontSet(self: *Self, set: *Fnt) void {
+        self.fonts = set;
+    }
+
+    // #define TEXTW(X) (drw_fontset_getwidth(drw, (X)) + lrpad)
+
+    /// [dwm] drw_text
+    pub fn drawText(
+        self: *Self,
+        x_coord: i32,
+        y_coord: i32,
+        width: u32,
+        height: u32,
+        lpad: u32,
+        text: []const u8,
+        invert: u32,
+    ) i32 {
+        var x = x_coord;
+        const y = y_coord;
+        var w = width;
+        const h = height;
+        if (text.len == 0) {
+            return 0;
+        }
+        const fonts = self.fonts orelse return 0;
+        // TODO: figure out why dwm requires x and y to be non-zero.
+        const render: bool = x != 0 or y != 0 or w != 0 or h != 0;
+        if (render and (self.scheme == null or w == 0)) {
+            return 0;
+        }
+        const invert_ = invert != 0; // just the boolean version of `invert`.
+
+        var d: ?*X.XftDraw = null;
+        if (!render) {
+            w = if (invert == 0) ~invert else invert;
+        } else {
+            const color = if (invert_) self.scheme.?.fg else self.scheme.?.bg;
+            _ = X.XSetForeground(self.dpy, self.gc, color.pixel);
+            _ = X.XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
+            if (w < lpad) {
+                return x + @as(i32, @intCast(w));
+            }
+            d = X.XftDrawCreate(
+                self.dpy,
+                self.drawable,
+                X.DefaultVisual(self.dpy, self.screen),
+                X.DefaultColormap(self.dpy, self.screen),
+            );
+            x += @intCast(lpad);
+            w -= lpad;
+        }
+        _ = fonts;
+
+        // int ty, ellipsis_x = 0;
+        // unsigned int tmpw, ew, ellipsis_w = 0, ellipsis_len, hash, h0, h1;
+        // XftDraw *d = NULL;
+        // Fnt *usedfont, *curfont, *nextfont;
+        // int utf8strlen, utf8charlen, utf8err, render = x || y || w || h;
+        // long utf8codepoint = 0;
+        // const char *utf8str;
+        // FcCharSet *fccharset;
+        // FcPattern *fcpattern;
+        // FcPattern *match;
+        // XftResult result;
+        // int charexists = 0, overflow = 0;
+
+        // keep track of a couple codepoints for which we have no match.
+        // static unsigned int nomatches[128], ellipsis_width, invalid_width;
+        // static const char invalid[] = "�";
+
+        // if (!render) {
+        //     w = invert ? invert : ~invert;
+        // } else {
+        //     XSetForeground(drw->dpy, drw->gc,
+        //                    drw->scheme[invert ? ColFg : ColBg].pixel);
+        //     XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
+        //     if (w < lpad) {
+        //         return x + w;
+        //     }
+        //     d = XftDrawCreate(drw->dpy, drw->drawable,
+        //                       DefaultVisual(drw->dpy, drw->screen),
+        //                       DefaultColormap(drw->dpy, drw->screen));
+        //     x += lpad;
+        //     w -= lpad;
+        // }
+        //
+        // usedfont = drw->fonts;
+        // if (!ellipsis_width && render) {
+        //     ellipsis_width = drw_fontset_getwidth(drw, "...");
+        // }
+        // if (!invalid_width && render) {
+        //     invalid_width = drw_fontset_getwidth(drw, invalid);
+        // }
+        // while (1) {
+        //     ew = ellipsis_len = utf8err = utf8charlen = utf8strlen = 0;
+        //     utf8str = text;
+        //     nextfont = NULL;
+        //     while (*text) {
+        //         utf8charlen = utf8decode(text, &utf8codepoint, &utf8err);
+        //         for (curfont = drw->fonts; curfont; curfont = curfont->next) {
+        //             charexists =
+        //                 charexists ||
+        //                 XftCharExists(drw->dpy, curfont->xfont, utf8codepoint);
+        //             if (charexists) {
+        //                 drw_font_getexts(curfont, text, utf8charlen, &tmpw, NULL);
+        //                 if (ew + ellipsis_width <= w) {
+        //                     /* keep track where the ellipsis still fits */
+        //                     ellipsis_x = x + ew;
+        //                     ellipsis_w = w - ew;
+        //                     ellipsis_len = utf8strlen;
+        //                 }
+        //
+        //                 if (ew + tmpw > w) {
+        //                     overflow = 1;
+        //                     /* called from drw_fontset_getwidth_clamp():
+        //                      * it wants the width AFTER the overflow
+        //                      */
+        //                     if (!render) {
+        //                         x += tmpw;
+        //                     } else {
+        //                         utf8strlen = ellipsis_len;
+        //                     }
+        //                 } else if (curfont == usedfont) {
+        //                     text += utf8charlen;
+        //                     utf8strlen += utf8err ? 0 : utf8charlen;
+        //                     ew += utf8err ? 0 : tmpw;
+        //                 } else {
+        //                     nextfont = curfont;
+        //                 }
+        //                 break;
+        //             }
+        //         }
+        //
+        //         if (overflow || !charexists || nextfont || utf8err) {
+        //             break;
+        //         } else {
+        //             charexists = 0;
+        //         }
+        //     }
+        //
+        //     if (utf8strlen) {
+        //         if (render) {
+        //             ty = y + (h - usedfont->h) / 2 + usedfont->xfont->ascent;
+        //             XftDrawStringUtf8(d, &drw->scheme[invert ? ColBg : ColFg],
+        //                               usedfont->xfont, x, ty, (XftChar8 *)utf8str,
+        //                               utf8strlen);
+        //         }
+        //         x += ew;
+        //         w -= ew;
+        //     }
+        //     if (utf8err && (!render || invalid_width < w)) {
+        //         if (render) {
+        //             drw_text(drw, x, y, w, h, 0, invalid, invert);
+        //         }
+        //         x += invalid_width;
+        //         w -= invalid_width;
+        //     }
+        //     if (render && overflow) {
+        //         drw_text(drw, ellipsis_x, y, ellipsis_w, h, 0, "...", invert);
+        //     }
+        //
+        //     if (!*text || overflow) {
+        //         break;
+        //     } else if (nextfont) {
+        //         charexists = 0;
+        //         usedfont = nextfont;
+        //     } else {
+        //         /* Regardless of whether or not a fallback font is found, the
+        //          * character must be drawn. */
+        //         charexists = 1;
+        //
+        //         hash = (unsigned int)utf8codepoint;
+        //         hash = ((hash >> 16) ^ hash) * 0x21F0AAAD;
+        //         hash = ((hash >> 15) ^ hash) * 0xD35A2D97;
+        //         h0 = ((hash >> 15) ^ hash) % LENGTH(nomatches);
+        //         h1 = (hash >> 17) % LENGTH(nomatches);
+        //         /* avoid expensive XftFontMatch call when we know we won't find a
+        //          * match */
+        //         if (nomatches[h0] == utf8codepoint ||
+        //             nomatches[h1] == utf8codepoint) {
+        //             goto no_match;
+        //         }
+        //
+        //         fccharset = FcCharSetCreate();
+        //         FcCharSetAddChar(fccharset, utf8codepoint);
+        //
+        //         if (!drw->fonts->pattern) {
+        //             /* Refer to the comment in xfont_create for more information. */
+        //             die("the first font in the cache must be loaded from a font "
+        //                 "string.");
+        //         }
+        //
+        //         fcpattern = FcPatternDuplicate(drw->fonts->pattern);
+        //         FcPatternAddCharSet(fcpattern, FC_CHARSET, fccharset);
+        //         FcPatternAddBool(fcpattern, FC_SCALABLE, FcTrue);
+        //
+        //         FcConfigSubstitute(NULL, fcpattern, FcMatchPattern);
+        //         FcDefaultSubstitute(fcpattern);
+        //         match = XftFontMatch(drw->dpy, drw->screen, fcpattern, &result);
+        //
+        //         FcCharSetDestroy(fccharset);
+        //         FcPatternDestroy(fcpattern);
+        //
+        //         if (match) {
+        //             usedfont = xfont_create(drw, NULL, match);
+        //             if (usedfont &&
+        //                 XftCharExists(drw->dpy, usedfont->xfont, utf8codepoint)) {
+        //                 for (curfont = drw->fonts; curfont->next;
+        //                      curfont = curfont->next); /* NOP */
+        //                 curfont->next = usedfont;
+        //             } else {
+        //                 xfont_free(usedfont);
+        //                 nomatches[nomatches[h0] ? h1 : h0] = utf8codepoint;
+        //             no_match:
+        //                 usedfont = drw->fonts;
+        //             }
+        //         }
+        //     }
+        // }
+        // if (d) {
+        //     XftDrawDestroy(d);
+        // }
+        //
+        // return x + (render ? w : 0);
+
+        return 0;
+    }
+
+    /// [dwm] drw_fontset_getwidth
+    pub fn fontSetGetWidth(self: *Self, text: []const u8) u32 {
+        if (self.fonts == null or text.len == 0) {
+            return 0;
+        }
+        return @intCast(self.drawText(0, 0, 0, 0, 0, text, 0));
+    }
+    // unsigned int drw_fontset_getwidth(Drw *drw, const char *text) {
+    // if (!drw || !drw->fonts || !text) {
+    //     return 0;
+    // }
+    // return drw_text(drw, 0, 0, 0, 0, 0, text, 0);
+    // }
+
 };

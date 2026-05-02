@@ -30,7 +30,7 @@ pub const App = struct {
     drw: Drw = undefined,
 
     /// Left-right padding.
-    lrpad: u16 = 0,
+    lrpad: u32 = 0,
 
     bar_height: u32 = 0,
 
@@ -54,4 +54,9 @@ pub const App = struct {
 
     /// Status bar text.
     stext: [256]u8 = undefined,
+
+    /// [dwm] TEXTW
+    pub fn TEXTW(self: *Self, text: []const u8) u32 {
+        return self.drw.fontSetGetWidth(text) + self.lrpad;
+    }
 };

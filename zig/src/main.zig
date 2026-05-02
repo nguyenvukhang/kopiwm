@@ -427,8 +427,7 @@ fn updatestatus() void {
         const n = @min(x.len, z.stext.len);
         @memcpy(z.stext[0..n], x[0..n]);
     }
-    // TODO: return to this after drawbar.
-    // drawbar(selmon);
+    if (z.selmon) |m| drawbar(m);
 }
 
 fn drawbar(m: *Monitor) void {
@@ -438,7 +437,7 @@ fn drawbar(m: *Monitor) void {
 
     // var x = 0;
     // var w = 0;
-    // var tw = 0;
+    var tw: u32 = 0;
     // var boxs = z.drw.fonts.?.h / 9;
     // var boxw = z.drw.fonts.?.h / 6 + 2;
     // var i = 0;
@@ -450,6 +449,8 @@ fn drawbar(m: *Monitor) void {
     // draw status first so it can be overdrawn by tags later
 
     if (m == z.selmon) { // status is only drawn on selected monitor
+        z.drw.setScheme(z.scheme[@intFromEnum(SchemeState.Normal)]);
+        tw = z.TEXTW(&z.stext);
     }
 
     // if (m == selmon) { /* status is only drawn on selected monitor */
