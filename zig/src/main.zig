@@ -192,6 +192,7 @@ fn cleanup(allocator: Allocator) !void {
     z.drw.deinit(allocator);
 }
 
+/// [dwm] cleanupmon
 fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
     log.info("Start cleanupmon()", .{});
     const mons: *Monitor = z.mons orelse return;
@@ -201,6 +202,7 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
     if (mon == z.mons) {
         z.mons = mons.next;
     } else {
+        // TODO: replace this with the general iterator.
         m = mons;
         while (m) |m2| : (m = m2.next) {
             if (m2.next == mon) {
@@ -218,6 +220,40 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
     _ = x.XUnmapWindow(z.dpy, mon.barwin);
     _ = x.XDestroyWindow(z.dpy, mon.barwin);
     allocator.destroy(mon);
+}
+
+/// [dwm] updatebars
+fn updatebars() void {
+    const wa: x.XSetWindowAttributes = .{
+        .override_redirect = true,
+        .background_pixmap = x.ParentRelative,
+        .event_mask = x.ButtonPressMask | x.ExposureMask,
+    };
+    const ch: x.XClassHint = .{ .res_class = "dwm", .res_name = "dwm" };
+    var m_cursor = z.mons;
+    while (m_cursor) |m| : (m_cursor = m.next) {
+        if (m.barwin == 0) {
+            continue;
+        }
+        m.barwin = x.XCreateWindow(
+            z.dpy,
+            z.root,
+            m.wx,
+            m.by,
+            m.ww,
+            z.bh,
+            0,
+            x.DefaultDepth(z.dpy, z.screen),
+            x.CopyFromParent,
+            x.DefaultVisual(z.dpy, z.screen),
+            x.CWOverrideRedirect | x.CWBackPixmap | x.CWEventMask,
+            &wa,
+        );
+        // TODO: get back to translating this
+        // x.XDefineCursor(z.dpy, m.barwin, cursor[CurNormal]->cursor);
+        x.XMapRaised(z.dpy, m.barwin);
+        x.XSetClassHint(z.dpy, m.barwin, &ch);
+    }
 }
 
 pub fn main() !void {
