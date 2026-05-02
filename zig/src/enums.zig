@@ -1,3 +1,8 @@
+/// Count the number of enum variants that exist.
+pub fn N(comptime T: type) usize {
+    return @import("std").meta.fields(T).len;
+}
+
 /// [dwm] WM* atoms.
 pub const WM = enum(u8) {
     Protocols,
@@ -25,4 +30,11 @@ pub const Cur = enum {
     Normal,
     Resize,
     Move,
+};
+
+/// Represents a possible which one might be in that warrants a unique color scheme.
+pub const SchemeState = enum {
+    Normal,
+    Selected,
+    Bar,
 };

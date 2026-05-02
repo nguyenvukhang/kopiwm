@@ -1,5 +1,6 @@
 const std = @import("std");
 const mem = std.mem;
+const meta = std.meta;
 const log = std.log;
 const build_opts = @import("build_opts");
 const dwmz = @import("app.zig");
@@ -11,6 +12,9 @@ const Client = @import("client.zig").Client;
 const WM = @import("enums.zig").WM;
 const Cur = @import("enums.zig").Cur;
 const Net = @import("enums.zig").Net;
+const SchemeState = @import("enums.zig").SchemeState;
+const ColorScheme = @import("drw.zig").ColorScheme;
+const N = @import("enums.zig").N;
 
 // X11 stuff.
 const X = @import("c_lib.zig").X;
@@ -268,6 +272,10 @@ fn setup(allocator: Allocator) !void {
     z.cursors[@intFromEnum(Cur.Move)] = z.drw.curCreate(X.XC_fleur);
 
     // init appearance
+    z.scheme = try allocator.alloc(ColorScheme, N(SchemeState));
+    for (cfg.colors) |scheme| {
+        _ = try z.drw.scmCreate(allocator, scheme);
+    }
 
     // TODO: continue from here after drw.zig is complete
     // scheme = ecalloc(LENGTH(colors), sizeof(Clr *));

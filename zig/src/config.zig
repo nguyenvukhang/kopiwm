@@ -1,4 +1,9 @@
+const std = @import("std");
+const meta = std.meta;
 const lt = @import("layout.zig");
+const SchemeState = @import("enums.zig").SchemeState;
+const N = @import("enums.zig").N;
+const Scheme = @import("drw.zig").Scheme;
 
 pub const fonts = [1][]const u8{"monospace:size=10"};
 
@@ -26,4 +31,17 @@ pub const top_bar = true;
 pub const layouts = [2]lt.Layout{
     .{ .symbol = "[]=", .arrange = lt.tile },
     .{ .symbol = "[M]", .arrange = lt.monocle },
+};
+
+const col_gray1: []const u8 = "#222222";
+const col_gray2: []const u8 = "#444444";
+const col_gray3: []const u8 = "#bbbbbb";
+const col_gray4: []const u8 = "#eeeeee";
+const col_accent_400: []const u8 = "#d8b4fe";
+const col_accent_900: []const u8 = "#581c87";
+
+pub const colors = [N(SchemeState)]Scheme([]const u8){
+    .{ .fg = col_gray3, .bg = col_gray1, .border = col_gray2 },
+    .{ .fg = col_gray1, .bg = col_accent_400, .border = col_accent_900 },
+    .{ .fg = col_gray3, .bg = col_gray2, .border = col_gray2 },
 };

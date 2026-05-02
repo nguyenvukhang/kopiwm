@@ -22,7 +22,8 @@ pub const Fnt = struct {
     next: ?*Fnt,
 };
 
-pub const ColorSchemeIdx = enum(u8) {
+/// Index within a color scheme.
+pub const SchemeIdx = enum(u8) {
     /// Foreground color.
     Fg = 0,
     /// Background color.
@@ -31,9 +32,18 @@ pub const ColorSchemeIdx = enum(u8) {
     Border = 2,
 };
 
-pub const ColorScheme = struct {
-    data: [std.meta.fields(ColorSchemeIdx).len]XftColor,
-};
+pub fn Scheme(comptime T: type) type {
+    return struct {
+        /// Foreground color.
+        fg: T,
+        /// Background color.
+        bg: T,
+        /// Border color.
+        border: T,
+    };
+}
+
+pub const ColorScheme = Scheme(XftColor);
 
 /// [dwm] xfont_create
 fn xfontCreate(
@@ -185,7 +195,7 @@ pub const Drw = struct {
             self.dpy,
             X.DefaultVisual(self.dpy, self.screen),
             X.DefaultColormap(self.dpy, self.screen),
-            color_name,
+            color_name.ptr,
             dest,
         );
         if (result == 0) {
@@ -210,14 +220,12 @@ pub const Drw = struct {
     pub fn scmCreate(
         self: *Self,
         allocator: Allocator,
-        fg_color_name: []const u8,
-        bg_color_name: []const u8,
-        border_color_name: []const u8,
-    ) error{OutOfMemory}!*XftColor {
+        scheme: Scheme([]const u8),
+    ) error{OutOfMemory}!*ColorScheme {
         var ret = try allocator.create(ColorScheme);
-        self.clrCreate(&ret.data[@intFromEnum(ColorSchemeIdx.Fg)], fg_color_name);
-        self.clrCreate(&ret.data[@intFromEnum(ColorSchemeIdx.Bg)], bg_color_name);
-        self.clrCreate(&ret.data[@intFromEnum(ColorSchemeIdx.Border)], border_color_name);
+        self.clrCreate(&ret.fg, scheme.fg);
+        self.clrCreate(&ret.bg, scheme.bg);
+        self.clrCreate(&ret.border, scheme.border);
         return ret;
     }
 
