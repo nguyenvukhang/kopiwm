@@ -24,7 +24,7 @@ pub const App = struct {
     /// Left-right padding.
     lrpad: u16 = 0,
 
-    bar_height: u16 = 0,
+    bar_height: i32 = 0,
 
     mons: ?*Monitor = null,
 

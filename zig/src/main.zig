@@ -69,6 +69,18 @@ fn check_other_wm() void {
     _ = x.XSync(z.dpy, False);
 }
 
+fn updatebarpos(m: *Monitor) void {
+    m.wy = m.my;
+    m.wh = m.mh;
+    if (m.show_bar) {
+        m.wh -= @intCast(z.bar_height);
+        m.by = if (m.top_bar) m.wy else m.wy + @as(i32, @intCast(m.wh));
+        m.wy = if (m.top_bar) m.wy + z.bar_height else m.wy;
+    } else {
+        m.by = -z.bar_height;
+    }
+}
+
 // TODO: return to this after making the monitor struct and porting `createmon`.
 fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
     var dirty = false;
@@ -86,8 +98,7 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
             mons.mw = z.sw;
             mons.wh = z.sh;
             mons.mh = z.sh;
-            // TODO: uncomment this
-            // updatebarpos(mos)
+            updatebarpos(mons);
         }
     }
     log.info("updategeom.dirty? {}", .{dirty});
@@ -241,7 +252,7 @@ fn updatebars() void {
             m.wx,
             m.by,
             m.ww,
-            z.bh,
+            z.bar_height,
             0,
             x.DefaultDepth(z.dpy, z.screen),
             x.CopyFromParent,
