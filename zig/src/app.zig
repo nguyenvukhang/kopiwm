@@ -51,4 +51,7 @@ pub const App = struct {
 
     /// The only purpose for this is to patch for `updatebars`.
     updatebars_buffer: [16]u8 = undefined,
+
+    /// Status bar text.
+    stext: [256]u8 = undefined,
 };

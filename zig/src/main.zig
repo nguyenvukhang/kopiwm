@@ -61,7 +61,7 @@ fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
     log.info("(xerrorstart)", .{});
     _ = _dpy;
     _ = _event;
-    std.debug.print("dwm: another window manager is already running\n", .{});
+    std.debug.print(build_opts.name ++ ": another window manager is already running\n", .{});
     std.process.exit(1);
 }
 
@@ -69,7 +69,7 @@ fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
 fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
     if (err_event == null) {
-        std.debug.print("dwm: called xerror with null XErrorEvent value\n", .{});
+        std.debug.print(build_opts.name ++ ": called xerror with null XErrorEvent value\n", .{});
         if (xerrorlib) |f| {
             return f(z.dpy, err_event);
         }
@@ -90,7 +90,7 @@ fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     {
         return 0;
     }
-    std.debug.print("dwm: fatal error: request code={d}, error code={d}\n", .{ rc, ec });
+    std.debug.print(build_opts.name ++ ": fatal error: request code={d}, error code={d}\n", .{ rc, ec });
     if (xerrorlib) |f| {
         return f(z.dpy, err_event);
     }
@@ -285,10 +285,9 @@ fn setup(allocator: Allocator) !void {
 
     // init bars
     updatebars();
+    updatestatus();
 
     // TODO: continue from here after drw.zig is complete
-    // updatebars();
-    // updatestatus();
     // /* supporting window for NetWMCheck */
     // wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
     // XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32,
@@ -391,6 +390,47 @@ fn updatebars() void {
     }
 }
 
+/// Gets the property of a window in text form, and writes it to `buffer`.
+/// Returns true if there is valid information written to the buffer.
+/// [dwm] gettextprop
+fn gettextprop(w: Window, atom: X.Atom, buffer: []u8) bool {
+    if (buffer.len == 0) {
+        return false;
+    }
+    var tp: X.XTextProperty = undefined;
+    if (X.XGetTextProperty(z.dpy, w, &tp, atom) == 0 or tp.nitems == 0) {
+        return false;
+    }
+    if (tp.encoding == X.XA_STRING) {
+        const value: []const u8 = mem.span(tp.value);
+        const l = @min(value.len, buffer.len);
+        @memcpy(buffer[0..l], value[0..l]);
+    } else {
+        var list: [*c][*c]u8 = undefined;
+        var n: c_int = undefined;
+        const res = X.XmbTextPropertyToTextList(z.dpy, &tp, &list, &n);
+        if (res >= X.Success and n > 0 and list != null) {
+            const value: []const u8 = mem.span(list[0]);
+            const l = @min(value.len, buffer.len);
+            @memcpy(buffer[0..l], value[0..l]);
+            X.XFreeStringList(list);
+        }
+    }
+    _ = X.XFree(tp.value);
+    return true;
+}
+
+/// [dwm] updatestatus
+fn updatestatus() void {
+    if (!gettextprop(z.root, X.XA_WM_NAME, &z.stext)) {
+        const x: []const u8 = build_opts.name ++ "-" ++ build_opts.version;
+        const n = @min(x.len, z.stext.len);
+        @memcpy(z.stext[0..n], x[0..n]);
+    }
+    // TODO: return to this after drawbar.
+    // drawbar(selmon);
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -418,7 +458,7 @@ pub fn main() !void {
             try stderr.print("warning: no locale support\n", .{});
         }
         z.dpy = X.XOpenDisplay(null) orelse {
-            return try stdout.print("dwm: cannot open display\n", .{});
+            return try stdout.print(build_opts.name ++ ": cannot open display\n", .{});
         };
     }
     if (SAID_AND_DONE) check_other_wm();
