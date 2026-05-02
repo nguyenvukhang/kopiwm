@@ -3,6 +3,7 @@ const X = @import("c_lib.zig").X;
 const fc = @import("c_lib.zig").fc;
 const mem = std.mem;
 const Allocator = mem.Allocator;
+const log = std.log;
 
 pub const Cursor = X.Cursor;
 pub const Display = X.Display;
@@ -202,8 +203,8 @@ pub const Drw = struct {
             std.debug.print("error, cannot allocate color '{s}'\n", .{color_name});
             std.process.exit(1);
         }
-
         dest.pixel |= 0xff << 24;
+        log.info("clrCreate({s}) --> {x}", .{ color_name, dest.pixel });
     }
 
     /// [dwm] drw_clr_free
