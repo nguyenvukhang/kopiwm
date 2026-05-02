@@ -46,6 +46,7 @@ pub const QuickWrite = struct {
     }
 };
 
+/// [dwm] xerrorstart
 fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
     log.info("(xerrorstart)", .{});
     _ = _dpy;
@@ -54,10 +55,36 @@ fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
     std.process.exit(1);
 }
 
-fn xerror(_dpy: ?*Display, _err: [*c]XErrorEvent) callconv(.c) c_int {
+/// [dwm] xerror
+fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
-    _ = _err;
-    @panic("TODO");
+    if (err_event == null) {
+        std.debug.print("dwm: called xerror with null XErrorEvent value\n", .{});
+        if (xerrorlib) |f| {
+            return f(z.dpy, err_event);
+        }
+        @panic("xerror called but xerrorlib not defined yet.");
+    }
+    const e = err_event.*;
+    const rc = e.request_code;
+    const ec = e.error_code;
+    if (ec == X.BadWindow or
+        (rc == X.X_SetInputFocus and ec == X.BadMatch) or
+        (rc == X.X_PolyText8 and ec == X.BadDrawable) or
+        (rc == X.X_PolyFillRectangle and ec == X.BadDrawable) or
+        (rc == X.X_PolySegment and ec == X.BadDrawable) or
+        (rc == X.X_ConfigureWindow and ec == X.BadMatch) or
+        (rc == X.X_GrabButton and ec == X.BadAccess) or
+        (rc == X.X_GrabKey and ec == X.BadAccess) or
+        (rc == X.X_CopyArea and ec == X.BadDrawable))
+    {
+        return 0;
+    }
+    std.debug.print("dwm: fatal error: request code={d}, error code={d}\n", .{ rc, ec });
+    if (xerrorlib) |f| {
+        return f(z.dpy, err_event);
+    }
+    @panic("xerror called but xerrorlib not defined yet.");
 }
 
 var xerrorlib: ?*const fn (?*Display, [*c]XErrorEvent) callconv(.c) c_int = null;
@@ -155,6 +182,7 @@ fn wintomon(w: Window) ?*Monitor {
     return z.selmon;
 }
 
+/// [dwm] updategeom
 fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
     var dirty = false;
     var mons: *Monitor = undefined;
@@ -182,6 +210,7 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
     return dirty;
 }
 
+/// [dwm] setup
 fn setup(allocator: Allocator) !void {
     // var wa: X.XSetWindowAttributes = undefined;
     // var utf8string: X.Atom = undefined;
