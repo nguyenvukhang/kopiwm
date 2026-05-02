@@ -22,7 +22,7 @@ pub const std_options: std.Options = .{
     .logFn = @import("logger.zig").customLog,
 };
 
-const c = @cImport({
+const C = @cImport({
     @cInclude("locale.h");
     @cInclude("signal.h");
 });
@@ -95,8 +95,8 @@ fn getrootptr(x: *c_int, y: *c_int) c_int {
 
 /// [dwm] INTERSECT
 fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
-    return @max(0, @min(x + w, m.wx + m.ww) - @max(x, m.wx)) *
-        @max(0, @min(y + h, m.wy + m.wh) - @max(y, m.wy));
+    return @max(0, @min(x + w, m.wx + @as(i32, @intCast(m.ww))) - @max(x, m.wx)) *
+        @max(0, @min(y + h, m.wy + @as(i32, @intCast(m.wh))) - @max(y, m.wy));
 }
 
 /// [dwm] recttomon
@@ -117,32 +117,27 @@ fn recttomon(x: i32, y: i32, w: i32, h: i32) ?*Monitor {
     return r;
 }
 
-fn wintoclient(m: Window) ?*Client {
+/// [dwm] wintoclient
+/// Searches all the monitors and all of their clients for one that matches
+/// the window search query. Returns the first hit.
+fn wintoclient(w: Window) ?*Client {
     var m_opt = z.mons;
     var c_opt: ?*Client = null;
     while (m_opt) |m| : (m_opt = m.next) {
         c_opt = m.clients;
+        while (c_opt) |c| : (c_opt = c.next) {
+            if (c.win == w) {
+                return c;
+            }
+        }
     }
     return null;
 }
-// Client *wintoclient(Window w) {
-//     Client *c;
-//     Monitor *m;
-//
-//     for (m = mons; m; m = m->next) {
-//         for (c = m->clients; c; c = c->next) {
-//             if (c->win == w) {
-//                 return c;
-//             }
-//         }
-//     }
-//     return NULL;
-// }
 
-/// TODO: get back here after recttomon and wintoclient.
 /// [dwm] wintomon
+/// TODO: revist this after all is said and done and see if we can guarantee
+/// non-null. That all depends on if selmon is always non-null.
 fn wintomon(w: Window) ?*Monitor {
-    // TODO: get back here after getrootptr
     var x: c_int = undefined;
     var y: c_int = undefined;
     if (w == z.root and getrootptr(&x, &y) != 0) {
@@ -154,11 +149,10 @@ fn wintomon(w: Window) ?*Monitor {
             return m;
         }
     }
-    //     if ((c = wintoclient(w))) {
-    //         return c->mon;
-    //     }
-    //     return selmon;
-    return null;
+    if (wintoclient(w)) |client| {
+        return client.mon;
+    }
+    return z.selmon;
 }
 
 // TODO: return to this after making the monitor struct and porting `createmon`.
@@ -184,8 +178,7 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
     log.info("updategeom.dirty? {}", .{dirty});
     if (dirty) {
         z.selmon = mons;
-        // TODO: uncomment this
-        // z.selmon = wintomon(z.root)
+        z.selmon = wintomon(z.root);
     }
     return dirty;
 }
@@ -193,13 +186,13 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
 fn setup(allocator: Allocator) !void {
     // var wa: X.XSetWindowAttributes = undefined;
     // var utf8string: X.Atom = undefined;
-    var sa: c.struct_sigaction = undefined;
+    var sa: C.struct_sigaction = undefined;
 
     // do not transform children into zombies when they terminate
-    _ = c.sigemptyset(&sa.sa_mask);
-    sa.sa_flags = c.SA_NOCLDSTOP | c.SA_NOCLDWAIT | c.SA_RESTART;
-    sa.__sigaction_handler.sa_handler = c.SIG_IGN;
-    _ = c.sigaction(c.SIGCHLD, &sa, null);
+    _ = C.sigemptyset(&sa.sa_mask);
+    sa.sa_flags = C.SA_NOCLDSTOP | C.SA_NOCLDWAIT | C.SA_RESTART;
+    sa.__sigaction_handler.sa_handler = C.SIG_IGN;
+    _ = C.sigaction(C.SIGCHLD, &sa, null);
 
     // clean up any zombies (inherited from .xinitrc etc) immediately
     while (std.c.waitpid(-1, null, std.c.W.NOHANG) > 0) {}
@@ -369,7 +362,7 @@ pub fn main() !void {
         } else if (argv.len != 1) {
             return try stdout.print("usage: {s} [-v]\n", .{build_opts.name});
         }
-        if (c.setlocale(c.LC_CTYPE, "") == null or X.XSupportsLocale() == 0) {
+        if (C.setlocale(C.LC_CTYPE, "") == null or X.XSupportsLocale() == 0) {
             try stderr.print("warning: no locale support\n", .{});
         }
         z.dpy = X.XOpenDisplay(null) orelse {
