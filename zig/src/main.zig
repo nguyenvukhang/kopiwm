@@ -8,6 +8,8 @@ const cfg = @import("config.zig");
 const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
 const Client = @import("client.zig").Client;
+const WM = @import("enums.zig").WM;
+const Net = @import("enums.zig").Net;
 
 // X11 stuff.
 const X = @import("c_lib.zig").X;
@@ -213,7 +215,7 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
 /// [dwm] setup
 fn setup(allocator: Allocator) !void {
     // var wa: X.XSetWindowAttributes = undefined;
-    // var utf8string: X.Atom = undefined;
+    var utf8string: X.Atom = undefined;
     var sa: C.struct_sigaction = undefined;
 
     // do not transform children into zombies when they terminate
@@ -243,23 +245,26 @@ fn setup(allocator: Allocator) !void {
     z.bar_height = z.drw.fonts.?.h + 2;
     _ = try updategeom(allocator);
 
+    // init atoms
+    utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", False);
+    z.wmatom[@intFromEnum(WM.Protocols)] = X.XInternAtom(z.dpy, "WM_PROTOCOLS", False);
+    z.wmatom[@intFromEnum(WM.Delete)] = X.XInternAtom(z.dpy, "WM_DELETE_WINDOW", False);
+    z.wmatom[@intFromEnum(WM.State)] = X.XInternAtom(z.dpy, "WM_STATE", False);
+    z.wmatom[@intFromEnum(WM.TakeFocus)] = X.XInternAtom(z.dpy, "WM_TAKE_FOCUS", False);
+
+    z.netatom[@intFromEnum(Net.ActiveWindow)] = X.XInternAtom(z.dpy, "_NET_ACTIVE_WINDOW", False);
+    z.netatom[@intFromEnum(Net.Supported)] = X.XInternAtom(z.dpy, "_NET_SUPPORTED", False);
+    z.netatom[@intFromEnum(Net.WMName)] = X.XInternAtom(z.dpy, "_NET_WM_NAME", False);
+    z.netatom[@intFromEnum(Net.WMState)] = X.XInternAtom(z.dpy, "_NET_WM_STATE", False);
+    z.netatom[@intFromEnum(Net.WMCheck)] = X.XInternAtom(z.dpy, "_NET_SUPPORTING_WM_CHECK", False);
+    z.netatom[@intFromEnum(Net.WMFullscreen)] = X.XInternAtom(z.dpy, "_NET_WM_STATE_FULLSCREEN", False);
+    z.netatom[@intFromEnum(Net.WMWindowType)] = X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE", False);
+    z.netatom[@intFromEnum(Net.WMWindowTypeDialog)] = X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+    z.netatom[@intFromEnum(Net.ClientList)] = X.XInternAtom(z.dpy, "_NET_CLIENT_LIST", False);
+
+    // init cursors
+
     // TODO: continue from here after drw.zig is complete
-    // /* init atoms */
-    // utf8string = XInternAtom(dpy, "UTF8_STRING", False);
-    // wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
-    // wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
-    // wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
-    // wmatom[WMTakeFocus] = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
-    // netatom[NetActiveWindow] = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
-    // netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
-    // netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
-    // netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
-    // netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
-    // netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-    // netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
-    // netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
-    // netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
-    // /* init cursors */
     // cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
     // cursor[CurResize] = drw_cur_create(drw, XC_sizing);
     // cursor[CurMove] = drw_cur_create(drw, XC_fleur);

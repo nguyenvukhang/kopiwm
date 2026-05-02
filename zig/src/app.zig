@@ -1,10 +1,13 @@
 //! By convention, root.zig is the root source file when making a library.
 const std = @import("std");
 const X = @import("c_lib.zig").X;
+const Net = @import("enums.zig").Net;
+const WM = @import("enums.zig").WM;
 
 const Drw = @import("drw.zig").Drw;
 const Monitor = @import("monitor.zig").Monitor;
 const Window = X.Window;
+const Atom = X.Atom;
 
 pub const App = struct {
     // Note to new Zig learners: if we try to deference this, we get "error:
@@ -33,4 +36,7 @@ pub const App = struct {
 
     root: Window = undefined,
     wmcheckwin: Window = undefined,
+
+    wmatom: [std.meta.fields(WM).len]Atom = undefined,
+    netatom: [std.meta.fields(Net).len]Atom = undefined,
 };
