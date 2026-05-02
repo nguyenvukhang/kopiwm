@@ -115,9 +115,9 @@ fn updatebarpos(m: *Monitor) void {
     if (m.show_bar) {
         m.wh -= @intCast(z.bar_height);
         m.by = if (m.top_bar) m.wy else m.wy + @as(i32, @intCast(m.wh));
-        m.wy = if (m.top_bar) m.wy + z.bar_height else m.wy;
+        m.wy = if (m.top_bar) m.wy + @as(i32, @intCast(z.bar_height)) else m.wy;
     } else {
-        m.by = -z.bar_height;
+        m.by = -@as(i32, @intCast(z.bar_height));
     }
 }
 
@@ -283,11 +283,10 @@ fn setup(allocator: Allocator) !void {
         log.info("fg: {x}, bg: {x}, border: {x}", .{ s.fg.pixel, s.bg.pixel, s.border.pixel });
     }
 
+    // init bars
+    updatebars();
+
     // TODO: continue from here after drw.zig is complete
-    // scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
-    // for (i = 0; i < LENGTH(colors); i++)
-    //     scheme[i] = drw_scm_create(drw, colors[i], 3);
-    // /* init bars */
     // updatebars();
     // updatestatus();
     // /* supporting window for NetWMCheck */
@@ -357,14 +356,18 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
 
 /// [dwm] updatebars
 fn updatebars() void {
-    const wa: X.XSetWindowAttributes = .{
-        .override_redirect = true,
+    var wa: X.XSetWindowAttributes = .{
+        .override_redirect = True,
         .background_pixmap = X.ParentRelative,
         .event_mask = X.ButtonPressMask | X.ExposureMask,
     };
-    const ch: X.XClassHint = .{ .res_class = "dwm", .res_name = "dwm" };
-    var m_cursor = z.mons;
-    while (m_cursor) |m| : (m_cursor = m.next) {
+    {
+        const n = @min(build_opts.name.len, z.updatebars_buffer.len);
+        @memcpy(z.updatebars_buffer[0..n], build_opts.name[0..n]);
+    }
+    var ch: X.XClassHint = .{ .res_class = &z.updatebars_buffer, .res_name = &z.updatebars_buffer };
+    var m_opt = z.mons;
+    while (m_opt) |m| : (m_opt = m.next) {
         if (m.barwin == 0) {
             continue;
         }
@@ -382,10 +385,9 @@ fn updatebars() void {
             X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
             &wa,
         );
-        // TODO: get back to translating this
-        // X.XDefineCursor(z.dpy, m.barwin, cursor[CurNormal]->cursor);
-        X.XMapRaised(z.dpy, m.barwin);
-        X.XSetClassHint(z.dpy, m.barwin, &ch);
+        _ = X.XDefineCursor(z.dpy, m.barwin, z.cursors[@intFromEnum(Cur.Normal)]);
+        _ = X.XMapRaised(z.dpy, m.barwin);
+        _ = X.XSetClassHint(z.dpy, m.barwin, &ch);
     }
 }
 

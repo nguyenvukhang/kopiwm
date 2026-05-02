@@ -13,6 +13,8 @@ const Atom = X.Atom;
 const Cursor = X.Cursor;
 
 pub const App = struct {
+    const Self = @This();
+
     // Note to new Zig learners: if we try to deference this, we get "error:
     // cannot dereference undefined value."
     dpy: ?*X.Display = null,
@@ -30,7 +32,7 @@ pub const App = struct {
     /// Left-right padding.
     lrpad: u16 = 0,
 
-    bar_height: i32 = 0,
+    bar_height: u32 = 0,
 
     mons: ?*Monitor = null,
 
@@ -46,4 +48,7 @@ pub const App = struct {
     cursors: [std.meta.fields(Cur).len]Cursor = undefined,
 
     scheme: []*ColorScheme = undefined,
+
+    /// The only purpose for this is to patch for `updatebars`.
+    updatebars_buffer: [16]u8 = undefined,
 };
