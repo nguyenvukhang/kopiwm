@@ -35,6 +35,7 @@ pub const SchemeIdx = enum(u8) {
 
 pub fn Scheme(comptime T: type) type {
     return struct {
+        const Self = @This();
         /// Foreground color.
         fg: T,
         /// Background color.
@@ -232,9 +233,9 @@ pub const Drw = struct {
 
     /// [dwm] drw_scm_free
     pub fn scmFree(self: *Self, allocator: Allocator, scheme: *ColorScheme) void {
-        for (0..scheme.data.len) |i| {
-            self.clrFree(&scheme.data[i]);
-        }
+        self.clrFree(&scheme.fg);
+        self.clrFree(&scheme.bg);
+        self.clrFree(&scheme.border);
         allocator.destroy(scheme);
     }
 
@@ -245,6 +246,6 @@ pub const Drw = struct {
 
     /// [dwm] drw_cur_free
     pub fn curFree(self: *Self, cursor: Cursor) void {
-        X.XFreeCursor(self.dpy, cursor);
+        _ = X.XFreeCursor(self.dpy, cursor);
     }
 };

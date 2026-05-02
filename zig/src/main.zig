@@ -16,6 +16,9 @@ const SchemeState = @import("enums.zig").SchemeState;
 const ColorScheme = @import("drw.zig").ColorScheme;
 const N = @import("enums.zig").N;
 
+// TODO: re-enable this in production.
+const SAID_AND_DONE = false;
+
 // X11 stuff.
 const X = @import("c_lib.zig").X;
 const Window = X.Window;
@@ -279,12 +282,6 @@ fn setup(allocator: Allocator) !void {
     for (z.scheme) |s| {
         log.info("fg: {x}, bg: {x}, border: {x}", .{ s.fg.pixel, s.bg.pixel, s.border.pixel });
     }
-    // for (0..cfg.colors.len) |i| {
-    //     z.scheme[i] = try z.drw.scmCreate(allocator, cfg.colors[i]);
-    // }
-    // for (cfg.colors) |scheme| {
-    //     _ = try z.drw.scmCreate(allocator, scheme);
-    // }
 
     // TODO: continue from here after drw.zig is complete
     // scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
@@ -323,6 +320,13 @@ fn cleanup(allocator: Allocator) !void {
     while (z.mons) |mon| {
         cleanupmon(allocator, mon);
     }
+    for (z.cursors) |cursor| {
+        z.drw.curFree(cursor);
+    }
+    for (z.scheme) |scheme| {
+        z.drw.scmFree(allocator, scheme);
+    }
+    allocator.free(z.scheme);
     z.drw.deinit(allocator);
 }
 
@@ -415,15 +419,14 @@ pub fn main() !void {
             return try stdout.print("dwm: cannot open display\n", .{});
         };
     }
-    // TODO: reinstate this check in production.
-    // check_other_wm();
+    if (SAID_AND_DONE) check_other_wm();
     log.info("Start setup()", .{});
     try setup(allocator);
     log.info("Completed setup()", .{});
     log.info("Start cleanup()", .{});
     try cleanup(allocator);
     log.info("Completed cleanup()", .{});
-    _ = X.XCloseDisplay(z.dpy);
+    if (SAID_AND_DONE) _ = X.XCloseDisplay(z.dpy);
     log.info("The end!", .{});
 }
 
