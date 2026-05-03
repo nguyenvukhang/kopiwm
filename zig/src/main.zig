@@ -268,18 +268,35 @@ fn setup(allocator: Allocator) !void {
     updatebars();
     updatestatus(allocator);
 
+    // supporting window for NetWMCheck
+    z.wmcheckwin = X.XCreateSimpleWindow(z.dpy, z.root, 0, 0, 1, 1, 0, 0, 0);
+    _ = X.XChangeProperty(
+        z.dpy,
+        z.wmcheckwin,
+        z.netatom[@intFromEnum(Net.WMCheck)],
+        X.XA_WINDOW,
+        32,
+        X.PropModeReplace,
+        // This is hella sus from dwm. This is supposed to be a const char* in C.
+        @ptrCast(&z.wmcheckwin),
+        1,
+    );
+    _ = X.XChangeProperty(
+        z.dpy,
+        z.wmcheckwin,
+        z.netatom[@intFromEnum(Net.WMName)],
+        utf8string,
+        8,
+        X.PropModeReplace,
+        "dwm",
+        3,
+    );
+
     // TODO: continue from here after drw.zig is complete
-    // /* supporting window for NetWMCheck */
-    // wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
-    // XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32,
-    //     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
-    // XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], utf8string, 8,
-    //     PropModeReplace, (unsigned char *) "dwm", 3);
-    // XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32,
-    //     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
+    // XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], utf8string, 8, PropModeReplace, (unsigned char *) "dwm", 3);
+    // XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32, PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     // /* EWMH support per view */
-    // XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32,
-    //     PropModeReplace, (unsigned char *) netatom, NetLast);
+    // XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32, PropModeReplace, (unsigned char *) netatom, NetLast);
     // XDeleteProperty(dpy, root, netatom[NetClientList]);
     // /* select events */
     // wa.cursor = cursor[CurNormal]->cursor;
