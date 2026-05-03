@@ -508,8 +508,8 @@ pub const Drw = struct {
                 X.FcPatternDestroy(fcpattern);
 
                 if (match_opt) |match| {
+                    const j = if (state.nomatches[h0] > 0) h1 else h0;
                     usedfont = xfontCreate(allocator, self, "", match) catch {
-                        const j = if (state.nomatches[h0] > 0) h1 else h0;
                         state.nomatches[j] = utf8codepoint;
                         continue;
                     };
@@ -517,13 +517,14 @@ pub const Drw = struct {
                         var curfont: *Fnt = self.fonts;
                         while (curfont.next) |next| : (curfont = next) {}
                         curfont.next = usedfont;
+                    } else {
+                        state.nomatches[j] = utf8codepoint;
+                        xfontFree(allocator, usedfont);
                     }
                 }
             }
         }
-        if (d) |draw| {
-            X.XftDrawDestroy(draw);
-        }
+        if (d) |draw| X.XftDrawDestroy(draw);
         return x + if (render) @as(i32, @intCast(w)) else 0;
     }
 
