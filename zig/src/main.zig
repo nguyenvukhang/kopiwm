@@ -546,6 +546,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 }
 
 pub fn main() !void {
+    log.info("STARTED EXECUTION OF DWMZ", .{});
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
