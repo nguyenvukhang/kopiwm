@@ -328,7 +328,7 @@ pub const Drw = struct {
             return 0;
         }
 
-        const usedfont = self.fonts orelse return 0;
+        var usedfont = self.fonts orelse return 0;
 
         // TODO: figure out why dwm requires x and y to be non-zero.
         const render: bool = x != 0 or y != 0 or w != 0 or h != 0;
@@ -340,6 +340,7 @@ pub const Drw = struct {
         const state = struct {
             var ellipsis_width: ?u32 = null;
             var invalid_width: ?u32 = null;
+            var nomatches: [128]u32 = undefined;
         };
 
         const invert_ = invert != 0; // just the boolean version of `invert`.
@@ -382,6 +383,7 @@ pub const Drw = struct {
         var overflow: bool = false;
         var utf8str: []const u8 = undefined;
         var ty: i32 = 0;
+        var charexists = false;
 
         // Main loop for printing text to completion. Breaks only when text runs
         // out or if there is overflow.
@@ -392,7 +394,7 @@ pub const Drw = struct {
             while (text.len > 0) {
                 const utf8charlen = utf8decode(text, &utf8codepoint, &utf8err);
                 var curfont_opt = self.fonts;
-                var charexists = false;
+                charexists = false;
                 var tmpw: u32 = undefined;
                 while (curfont_opt) |curfont| : (curfont_opt = curfont.next) {
                     charexists |= X.XftCharExists(self.dpy, curfont.xfont, @intCast(utf8codepoint)) != 0;
@@ -452,6 +454,37 @@ pub const Drw = struct {
                 }
                 x += @intCast(state.invalid_width orelse 0);
                 w -= state.invalid_width orelse 0;
+            }
+
+            if (render and overflow) {
+                _ = self.drawText(.{ .x = ellipsis_x, .y = y, .w = ellipsis_w, .h = h }, 0, "...", invert);
+            }
+
+            if (text.len == 0 or overflow) {
+                break;
+            } else if (nextfont) |f| {
+                charexists = false;
+                usedfont = f;
+            } else {
+                // Regardless of whether or not a fallback font is found, the
+                // character must be drawn.
+                charexists = true;
+                var hash = utf8codepoint;
+                hash = ((hash >> 16) ^ hash) *% 0x21F0AAAD;
+                hash = ((hash >> 15) ^ hash) *% 0xD35A2D97;
+                const l = state.nomatches.len;
+                const h0: usize = @intCast(((hash >> 15) ^ hash) % l);
+                const h1: usize = @intCast((hash >> 17) % l);
+                // avoid expensive XftFontMatch call when we know we won't find
+                // a match
+                if (state.nomatches[h0] == utf8codepoint or state.nomatches[h1] == utf8codepoint) {
+                    // TODO: figure out the `orelse unreachable` branch. That
+                    // wasn't accounted for in dwm.
+                    usedfont = self.fonts orelse unreachable;
+                    continue;
+                }
+                const fccharset = X.FcCharSetCreate();
+                _ = X.FcCharSetAddChar(fccharset, @intCast(utf8codepoint));
             }
 
             break;
