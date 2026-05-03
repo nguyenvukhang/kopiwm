@@ -1,10 +1,12 @@
 //! By convention, root.zig is the root source file when making a library.
 const std = @import("std");
+const build_opts = @import("build_opts");
 const X = @import("c_lib.zig").X;
 const Net = @import("enums.zig").Net;
 const WM = @import("enums.zig").WM;
 const SchemeState = @import("enums.zig").SchemeState;
 const Cur = @import("enums.zig").Cur;
+const fstr = @import("fstr.zig").fstr;
 const Allocator = std.mem.Allocator;
 const EnumArray = std.enums.EnumArray;
 
@@ -56,8 +58,14 @@ pub const App = struct {
     updatebars_buffer: [16]u8 = undefined,
 
     /// Status bar text.
-    stext_buf: [256]u8 = undefined,
-    stext: []const u8 = undefined,
+    stext: fstr(256) = undefined,
+
+    pub fn init() Self {
+        var z = Self{};
+        const n = @min(build_opts.name.len, z.updatebars_buffer.len);
+        @memcpy(z.updatebars_buffer[0..n], build_opts.name[0..n]);
+        return z;
+    }
 
     /// [dwm] TEXTW
     pub fn TEXTW(self: *Self, allocator: Allocator, text: []const u8) u32 {
@@ -68,5 +76,12 @@ pub const App = struct {
         const n = @min(text.len, self.stext_buf.len);
         @memcpy(self.stext_buf[0..n], text[0..n]);
         self.stext = self.stext_buf[0..n];
+    }
+
+    pub fn classHint(self: *Self) X.XClassHint {
+        return .{
+            .res_class = &self.updatebars_buffer,
+            .res_name = &self.updatebars_buffer,
+        };
     }
 };

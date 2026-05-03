@@ -1,11 +1,12 @@
 const Monitor = @import("monitor.zig").Monitor;
 const X = @import("c_lib.zig").X;
 const Window = X.Window;
+const fstr = @import("fstr.zig").fstr;
 
 pub const Client = struct {
     const Self = @This();
 
-    name: [256]u8,
+    name: fstr(256),
     mina: f32,
     maxa: f32,
     x: i32,

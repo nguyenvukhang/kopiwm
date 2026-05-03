@@ -26,7 +26,7 @@ const Window = X.Window;
 const Display = X.Display;
 const XErrorEvent = X.XErrorEvent;
 
-var z: dwmz.App = .{};
+var z: dwmz.App = .init();
 
 pub const std_options: std.Options = .{
     .log_level = .debug,
@@ -340,11 +340,7 @@ fn updatebars() void {
         .background_pixmap = X.ParentRelative,
         .event_mask = X.ButtonPressMask | X.ExposureMask,
     };
-    {
-        const n = @min(build_opts.name.len, z.updatebars_buffer.len);
-        @memcpy(z.updatebars_buffer[0..n], build_opts.name[0..n]);
-    }
-    var ch: X.XClassHint = .{ .res_class = &z.updatebars_buffer, .res_name = &z.updatebars_buffer };
+    var ch = z.classHint();
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
         if (m.barwin == 0) {
@@ -403,11 +399,11 @@ fn gettextprop(w: Window, atom: X.Atom, buffer: []u8) usize {
 
 /// [dwm] updatestatus
 fn updatestatus(allocator: Allocator) void {
-    const b = gettextprop(z.root, X.XA_WM_NAME, &z.stext_buf);
+    const b = gettextprop(z.root, X.XA_WM_NAME, &z.stext.buffer);
     if (b == 0) {
-        z.setStatusText(build_opts.name ++ "-" ++ build_opts.version);
+        z.stext.set(build_opts.name ++ "-" ++ build_opts.version);
     } else {
-        z.stext = z.stext_buf[0..b];
+        z.stext.len = b;
     }
     if (z.selmon) |m| drawbar(allocator, m);
 }
@@ -426,13 +422,13 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     // draw status first so it can be overdrawn by tags later
     if (m == z.selmon) { // status is only drawn on selected monitor
         z.drw.setScheme(z.scheme.get(.Normal));
-        tw = z.TEXTW(allocator, z.stext);
+        tw = z.TEXTW(allocator, z.stext.get());
         _ = z.drw.drawText(allocator, .{
             .x = @as(i32, @intCast(m.ww)) - @as(i32, @intCast(tw)),
             .y = 0,
             .w = tw,
             .h = z.bar_height,
-        }, 0, z.stext, 0);
+        }, 0, z.stext.get(), 0);
     }
 
     var c_opt = m.clients;
@@ -489,7 +485,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
                 .{ .x = x, .y = 0, .w = w, .h = z.bar_height },
                 z.lrpad / 2,
                 // TODO: replace all strings in a custom struct.
-                &selected_client.name,
+                selected_client.name.get(),
                 0,
             );
         } else {}
