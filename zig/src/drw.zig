@@ -321,6 +321,7 @@ pub const Drw = struct {
         text_to_draw: []const u8,
         invert: u32,
     ) i32 {
+        log.info("called drawText(\"{s}\")", .{text_to_draw});
         const INVALID = "�";
         var text: []const u8 = text_to_draw;
         var x = rect.x;
@@ -465,7 +466,7 @@ pub const Drw = struct {
                 _ = self.drawText(allocator, .{ .x = ellipsis_x, .y = y, .w = ellipsis_w, .h = h }, 0, "...", invert);
             }
 
-            if (text.len == 0 or overflow) {
+            if (text.len == 0 or text[0] == '0' or overflow) {
                 break;
             } else if (nextfont) |f| {
                 charexists = false;
@@ -474,6 +475,8 @@ pub const Drw = struct {
                 // Regardless of whether or not a fallback font is found, the
                 // character must be drawn.
                 charexists = true;
+
+                log.info("Fallback drawText", .{});
 
                 var hash: usize = @intCast(utf8codepoint);
                 hash = ((hash >> 16) ^ hash) *% 0x21F0AAAD;
