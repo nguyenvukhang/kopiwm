@@ -434,12 +434,13 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     if (m == z.selmon) { // status is only drawn on selected monitor
         z.drw.setScheme(z.scheme[@intFromEnum(SchemeState.Normal)]);
         tw = z.TEXTW(allocator, &z.stext);
-        _ = z.drw.drawText(allocator, .{
-            .x = @as(i32, @intCast(m.ww)) - @as(i32, @intCast(tw)),
-            .y = 0,
-            .w = tw,
-            .h = z.bar_height,
-        }, 0, &z.stext, 0);
+        if (false)
+            _ = z.drw.drawText(allocator, .{
+                .x = @as(i32, @intCast(m.ww)) - @as(i32, @intCast(tw)),
+                .y = 0,
+                .w = tw,
+                .h = z.bar_height,
+            }, 0, &z.stext, 0);
     }
 
     // if (m == selmon) { /* status is only drawn on selected monitor */

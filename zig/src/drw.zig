@@ -390,15 +390,23 @@ pub const Drw = struct {
         var charexists = false;
         var match_opt: ?*X.FcPattern = null;
         var result: X.XftResult = undefined;
+        var utf8charlen: u3 = undefined;
+        var ew: u32 = undefined;
+        var utf8strlen: u32 = undefined;
 
         // Main loop for printing text to completion. Breaks only when text runs
         // out or if there is overflow.
-        while (true) {
+        for (0..1000) |i| {
+            log.debug("Outer loop [{d}]", .{i});
+            utf8err = false;
+            ellipsis_len = 0;
+            utf8charlen = 0;
+            utf8strlen = 0;
+            ew = 0;
             utf8str = text;
-            var utf8strlen: u32 = 0;
-            var ew: u32 = 0;
             while (text.len > 0) {
-                const utf8charlen = utf8decode(text, &utf8codepoint, &utf8err);
+                log.debug("Inner loop: {s}", .{text});
+                utf8charlen = utf8decode(text, &utf8codepoint, &utf8err);
                 var curfont_opt: ?*Fnt = self.fonts;
                 charexists = false;
                 var tmpw: u32 = undefined;
@@ -472,11 +480,10 @@ pub const Drw = struct {
                 charexists = false;
                 usedfont = f;
             } else {
+                log.err("Fallback", .{});
                 // Regardless of whether or not a fallback font is found, the
                 // character must be drawn.
                 charexists = true;
-
-                log.info("Fallback drawText", .{});
 
                 var hash: usize = @intCast(utf8codepoint);
                 hash = ((hash >> 16) ^ hash) *% 0x21F0AAAD;
@@ -533,6 +540,7 @@ pub const Drw = struct {
 
     /// [dwm] drw_fontset_getwidth
     pub fn fontSetGetWidth(self: *Self, allocator: Allocator, text: []const u8) u32 {
+        log.info("called fontSetGetWidth", .{});
         if (text.len == 0) {
             return 0;
         }
