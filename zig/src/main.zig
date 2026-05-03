@@ -270,34 +270,16 @@ fn setup(allocator: Allocator) !void {
 
     // supporting window for NetWMCheck
     z.wmcheckwin = X.XCreateSimpleWindow(z.dpy, z.root, 0, 0, 1, 1, 0, 0, 0);
-    _ = X.XChangeProperty(
-        z.dpy,
-        z.wmcheckwin,
-        z.netatom.get(.WMCheck),
-        X.XA_WINDOW,
-        32,
-        X.PropModeReplace,
-        // This is hella sus from dwm. This is supposed to be a const char* in C.
-        @ptrCast(&z.wmcheckwin),
-        1,
-    );
-    _ = X.XChangeProperty(
-        z.dpy,
-        z.wmcheckwin,
-        z.netatom.get(.WMName),
-        utf8string,
-        8,
-        X.PropModeReplace,
-        "dwm",
-        3,
-    );
+    // The @ptrCast is hella sus from dwm. This is supposed to be a const char* in C.
+    _ = X.XChangeProperty(z.dpy, z.wmcheckwin, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(&z.wmcheckwin), 1);
+    _ = X.XChangeProperty(z.dpy, z.wmcheckwin, z.netatom.get(.WMName), utf8string, 8, X.PropModeReplace, "dwm", 3);
+    _ = X.XChangeProperty(z.dpy, z.root, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(&z.wmcheckwin), 1);
+
+    // EWMH support per view
+    _ = X.XChangeProperty(z.dpy, z.root, z.netatom.get(.Supported), X.XA_ATOM, 32, X.PropModeReplace, @ptrCast(&z.netatom.values), @intCast(N(Net)));
+    _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ClientList));
 
     // TODO: continue from here after drw.zig is complete
-    // XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], utf8string, 8, PropModeReplace, (unsigned char *) "dwm", 3);
-    // XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32, PropModeReplace, (unsigned char *) &wmcheckwin, 1);
-    // /* EWMH support per view */
-    // XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32, PropModeReplace, (unsigned char *) netatom, NetLast);
-    // XDeleteProperty(dpy, root, netatom[NetClientList]);
     // /* select events */
     // wa.cursor = cursor[CurNormal]->cursor;
     // wa.event_mask = SubstructureRedirectMask|SubstructureNotifyMask
