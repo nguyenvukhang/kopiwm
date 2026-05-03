@@ -19,7 +19,7 @@ pub const FcPattern = X.FcPattern;
 pub const Fnt = struct {
     dpy: ?*Display,
     h: u16,
-    xfont: ?*XftFont,
+    xfont: *XftFont,
     pattern: ?*FcPattern,
     next: ?*Fnt,
 };
@@ -76,7 +76,7 @@ fn xfontCreate(
     }
 
     var font = try allocator.create(Fnt);
-    font.xfont = xfont;
+    font.xfont = xfont orelse unreachable;
     font.pattern = pattern;
     font.h = @intCast(xfont.?.ascent);
     font.h += @intCast(xfont.?.descent);
@@ -360,6 +360,12 @@ pub const Drw = struct {
         while (true) {
             while (text.len > 0) {
                 _ = utf8decode(text, &utf8codepoint, &utf8err);
+                var curfont_opt = self.fonts;
+                var charexists = false;
+                while (curfont_opt) |curfont| : (curfont_opt = curfont.next) {
+                    charexists |= X.XftCharExists(self.dpy, curfont.xfont, @intCast(utf8codepoint)) != 0;
+                    break;
+                }
                 break;
             }
             break;
