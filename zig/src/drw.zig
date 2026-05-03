@@ -312,7 +312,32 @@ pub const Drw = struct {
         self.fonts = set;
     }
 
+    /// [dwm] drw_rect
+    pub fn drawRect(self: *Self, rect: Rect, filled: bool, invert: bool) void {
+        const scheme = self.scheme orelse return;
+        _ = X.XSetForeground(self.dpy, self.gc, if (invert) scheme.bg.pixel else scheme.fg.pixel);
+        if (filled) {
+            _ = X.XFillRectangle(self.dpy, self.drawable, self.gc, rect.x, rect.y, rect.w, rect.h);
+        } else {
+            _ = X.XDrawRectangle(self.dpy, self.drawable, self.gc, rect.x, rect.y, rect.w - 1, rect.h - 1);
+        }
+    }
+
+    //     void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h,
+    //               int filled, int invert) {
+    //     XSetForeground(drw->dpy, drw->gc,
+    //                    invert ? drw->scheme[ColBg].pixel
+    //                           : drw->scheme[ColFg].pixel);
+    //     if (filled) {
+    //         XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
+    //     } else {
+    //         XDrawRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w - 1, h - 1);
+    //     }
+    // }
+
     /// [dwm] drw_text
+    /// Question: Is `invert` a bitmask? or a boolean? or a numerical value?
+    /// Because based on dwm's source code all three cases kinda doesn't fit.
     pub fn drawText(
         self: *Self,
         allocator: Allocator,
@@ -351,7 +376,9 @@ pub const Drw = struct {
 
         var d: ?*X.XftDraw = null;
         if (!render) {
-            w = if (invert == 0) ~invert else invert;
+            // When NOT rendering, treat `invert` as a different kind of value
+            // altogether.
+            w = if (invert_) invert else ~invert;
         } else {
             const color = if (invert_) &self.scheme.?.fg else &self.scheme.?.bg;
             _ = X.XSetForeground(self.dpy, self.gc, color.pixel);

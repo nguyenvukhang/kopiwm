@@ -21,38 +21,39 @@ pub const Monitor = struct {
     nmaster: i32,
 
     num: i32,
-    // Bar geometry.
+    /// Bar geometry.
     by: i32,
-    // Screen size: x-coordinate.
+    /// Screen size: x-coordinate.
     mx: i32,
-    // Screen size: y-coordinate.
+    /// Screen size: y-coordinate.
     my: i32,
-    // Screen size: width.
+    /// Screen size: width.
     mw: u32,
-    // Screen size: height.
+    /// Screen size: height.
     mh: u32,
-    // Window area: x-coordinate.
+    /// Window area: x-coordinate.
     wx: i32,
-    // Window area: y-coordinate.
+    /// Window area: y-coordinate.
     wy: i32,
-    // Window area: width.
+    /// Window area: width.
     ww: u32,
-    // Window area: height.
+    /// Window area: height.
     wh: u32,
-    // Index of selected tags.
-    seltags: u16,
-    // Index of selected layout.
+    /// Index of selected tags.
+    seltags: u1,
+    /// Index of selected layout.
     sellt: usize,
-    tagset: [2]usize,
-    // false means hide bar.
+    /// A couple of bitmasks, only ever to be indexed by `seltags`.
+    tagset: [2]u32,
+    /// false means hide bar.
     show_bar: bool,
-    // false means bottom bar.
+    /// false means bottom bar.
     top_bar: bool,
-    // Linked list of clients.
+    /// Linked list of clients.
     clients: ?*Client,
-    // Selected client
+    /// Selected client
     sel: ?*Client,
-    // Clients ordered by stack.
+    /// Clients ordered by stack.
     stack: ?*Client,
 
     next: ?*Self,
@@ -64,6 +65,7 @@ pub const Monitor = struct {
         var m = try allocator.create(Self);
         m.tagset[0] = 1;
         m.tagset[1] = 1;
+        m.seltags = 0;
         m.mfact = cfg.mfact;
         m.nmaster = cfg.nmaster;
         m.show_bar = cfg.show_bar;
