@@ -418,8 +418,8 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     }
 
     var tw: u32 = 0;
-    const boxs = z.drw.fonts.?.h / 9;
-    const boxw = z.drw.fonts.?.h / 6 + 2;
+    const boxs = z.drw.fonts.h / 9;
+    const boxw = z.drw.fonts.h / 6 + 2;
     var occ: u32 = 0; // it's a bitmask.
     var urg: u32 = 0; // it's a bitmask.
 
@@ -456,37 +456,44 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
             urg & tag_mask,
         );
         if ((occ & tag_mask) != 0) {
-            // if (z.selmon) |selmon| {
-            const filled = m == z.selmon and z.selmon.?.sel != null;
-            // TODO: RESUME HERE
-            // }
+            z.drw.drawRect(
+                .{ .x = x + boxs, .y = boxs, .w = boxw, .h = boxw },
+                filled: {
+                    const selmon = z.selmon orelse break :filled false;
+                    const client = selmon.sel orelse break :filled false;
+                    break :filled m == selmon and (client.tags & tag_mask) != 0;
+                },
+                (urg & tag_mask) != 0,
+            );
         }
-        //     const filled = (if (z.selmon) |sm| m == sm else false) and ;
-        //     z.drw.drawRect(.{ .x = x + boxs, .y = boxs, .w = boxw, .h = boxw },
-        //
-        //         //                  m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
-        //         (urg & tag_mask) != 0);
-        // }
         x += @intCast(w);
     }
 
-    // for (i = 0; i < LENGTH(tags); i++) {
-    //     w = TEXTW(tags[i]);
-    //     drw_setscheme(
-    //         drw,
-    //         scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
-    //     drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
-    //     if (occ & 1 << i) {
-    //         drw_rect(drw, x + boxs, boxs, boxw, boxw,
-    //                  m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
-    //                  urg & 1 << i);
-    //     }
-    //     x += w;
-    // }
-    // w = TEXTW(m->ltsymbol);
-    // drw_setscheme(drw, scheme[SchemeNorm]);
-    // x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
-    //
+    w = z.TEXTW(allocator, m.layout_symbol);
+    z.drw.setScheme(z.scheme.get(.Normal));
+    x = z.drw.drawText(
+        allocator,
+        .{ .x = x, .y = 0, .w = w, .h = z.bar_height },
+        z.lrpad / 2,
+        m.layout_symbol,
+        0,
+    );
+
+    // TODO: what if tw > m.ww?
+    w = m.ww - tw - @as(u32, @intCast(x));
+    if (w > z.bar_height) {
+        if (m.sel) |selected_client| {
+            z.drw.setScheme(z.scheme.get(if (m == z.selmon) .Bar else .Normal));
+            _ = z.drw.drawText(
+                allocator,
+                .{ .x = x, .y = 0, .w = w, .h = z.bar_height },
+                z.lrpad / 2,
+                // TODO: replace all strings in a custom struct.
+                &selected_client.name,
+                0,
+            );
+        } else {}
+    }
     // if ((w = m->ww - tw - x) > bh) {
     //     if (m->sel) {
     //         drw_setscheme(drw, scheme[m == selmon ? SchemeBar : SchemeNorm]);
