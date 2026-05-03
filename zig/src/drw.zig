@@ -347,7 +347,7 @@ pub const Drw = struct {
         if (!render) {
             w = if (invert == 0) ~invert else invert;
         } else {
-            const color = if (invert_) self.scheme.?.fg else self.scheme.?.bg;
+            const color = if (invert_) &self.scheme.?.fg else &self.scheme.?.bg;
             _ = X.XSetForeground(self.dpy, self.gc, color.pixel);
             _ = X.XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
             if (w < lpad) {
@@ -379,10 +379,13 @@ pub const Drw = struct {
         var ellipsis_len: u32 = undefined;
         var ellipsis_w: u32 = 0;
         var overflow: bool = false;
+        var utf8str: []const u8 = undefined;
+        var ty: i32 = 0;
 
         // Main loop for printing text to completion. Breaks only when text runs
         // out or if there is overflow.
         while (true) {
+            utf8str = text;
             var utf8strlen: u32 = 0;
             var ew: u32 = 0;
             while (text.len > 0) {
@@ -431,6 +434,17 @@ pub const Drw = struct {
                     charexists = false;
                 }
             }
+
+            if (utf8strlen > 0) {
+                if (render) {
+                    ty = y + @divTrunc(@as(i32, @intCast(h - usedfont.h)), 2) + usedfont.xfont.ascent;
+                    const color = if (invert_) &self.scheme.?.bg else &self.scheme.?.fg;
+                    X.XftDrawStringUtf8(d, color, usedfont.xfont, x, ty, utf8str.ptr, @intCast(utf8strlen));
+                }
+                x += @intCast(ew);
+                w -= ew;
+            }
+
             break;
         }
 
