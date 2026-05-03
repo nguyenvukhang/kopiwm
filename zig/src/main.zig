@@ -547,6 +547,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 
 pub fn main() !void {
     log.info("STARTED EXECUTION OF DWMZ", .{});
+    defer @import("logger.zig").logfile.close();
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
