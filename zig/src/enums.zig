@@ -40,3 +40,21 @@ pub const SchemeState = enum {
     Selected,
     Bar,
 };
+
+pub const ArgTag = enum {
+    /// Integer.
+    i,
+    /// Unsigned integer.
+    ui,
+    /// Float.
+    f,
+    /// Strings. (used for cli args.)
+    s,
+};
+
+pub const Arg = union(ArgTag) {
+    i: i32,
+    ui: u32,
+    f: f32,
+    s: []const u8,
+};
