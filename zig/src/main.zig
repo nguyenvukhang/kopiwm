@@ -204,17 +204,16 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
 
 /// [dwm] setup
 fn setup(allocator: Allocator) !void {
-    // var wa: X.XSetWindowAttributes = undefined;
     var utf8string: X.Atom = undefined;
     var sa: C.struct_sigaction = undefined;
 
-    // do not transform children into zombies when they terminate
+    // Do not transform children into zombies when they terminate.
     _ = C.sigemptyset(&sa.sa_mask);
     sa.sa_flags = C.SA_NOCLDSTOP | C.SA_NOCLDWAIT | C.SA_RESTART;
     sa.__sigaction_handler.sa_handler = C.SIG_IGN;
     _ = C.sigaction(C.SIGCHLD, &sa, null);
 
-    // clean up any zombies (inherited from .xinitrc etc) immediately
+    // Clean up any zombies (inherited from .xinitrc etc) immediately.
     while (std.c.waitpid(-1, null, std.c.W.NOHANG) > 0) {}
 
     z.screen = X.DefaultScreen(z.dpy);
@@ -235,7 +234,7 @@ fn setup(allocator: Allocator) !void {
     z.bar_height = z.drw.fonts.h + 2;
     _ = try updategeom(allocator);
 
-    // init atoms
+    // Initialize atoms.
     utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", False);
     z.wmatom.set(.Protocols, X.XInternAtom(z.dpy, "WM_PROTOCOLS", False));
     z.wmatom.set(.Delete, X.XInternAtom(z.dpy, "WM_DELETE_WINDOW", False));
@@ -252,41 +251,47 @@ fn setup(allocator: Allocator) !void {
     z.netatom.set(.WMWindowTypeDialog, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False));
     z.netatom.set(.ClientList, X.XInternAtom(z.dpy, "_NET_CLIENT_LIST", False));
 
-    // init cursors
+    // Initialize cursors.
     z.cursors.set(.Normal, z.drw.curCreate(X.XC_left_ptr));
     z.cursors.set(.Resize, z.drw.curCreate(X.XC_sizing));
     z.cursors.set(.Move, z.drw.curCreate(X.XC_fleur));
 
-    // init appearance
+    // Initialize appearance.
     for (std.enums.values(SchemeState)) |ss| {
         const s = z.scheme.getPtr(ss);
         s.* = try z.drw.scmCreate(allocator, cfg.colors.get(ss));
         log.info("fg: {x}, bg: {x}, border: {x}", .{ s.*.fg.pixel, s.*.bg.pixel, s.*.border.pixel });
     }
 
-    // init bars
+    // Initialize bars.
     updatebars();
     updatestatus(allocator);
 
-    // supporting window for NetWMCheck
+    // Supporting window for NetWMCheck.
     z.wmcheckwin = X.XCreateSimpleWindow(z.dpy, z.root, 0, 0, 1, 1, 0, 0, 0);
     // The @ptrCast is hella sus from dwm. This is supposed to be a const char* in C.
     _ = X.XChangeProperty(z.dpy, z.wmcheckwin, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(&z.wmcheckwin), 1);
     _ = X.XChangeProperty(z.dpy, z.wmcheckwin, z.netatom.get(.WMName), utf8string, 8, X.PropModeReplace, "dwm", 3);
     _ = X.XChangeProperty(z.dpy, z.root, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(&z.wmcheckwin), 1);
 
-    // EWMH support per view
+    // EWMH support per view.
+    // https://specifications.freedesktop.org/wm/latest/
     _ = X.XChangeProperty(z.dpy, z.root, z.netatom.get(.Supported), X.XA_ATOM, 32, X.PropModeReplace, @ptrCast(&z.netatom.values), @intCast(N(Net)));
     _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ClientList));
 
+    // Select events.
+    {
+        var wa: X.XSetWindowAttributes = .{
+            .cursor = z.cursors.get(.Normal),
+            .event_mask = X.SubstructureRedirectMask | X.SubstructureNotifyMask //
+            | X.ButtonPressMask | X.PointerMotionMask | X.EnterWindowMask //
+            | X.LeaveWindowMask | X.StructureNotifyMask | X.PropertyChangeMask,
+        };
+        _ = X.XChangeWindowAttributes(z.dpy, z.root, X.CWEventMask | X.CWCursor, &wa);
+        _ = X.XSelectInput(z.dpy, z.root, wa.event_mask);
+    }
+
     // TODO: continue from here after drw.zig is complete
-    // /* select events */
-    // wa.cursor = cursor[CurNormal]->cursor;
-    // wa.event_mask = SubstructureRedirectMask|SubstructureNotifyMask
-    //     |ButtonPressMask|PointerMotionMask|EnterWindowMask
-    //     |LeaveWindowMask|StructureNotifyMask|PropertyChangeMask;
-    // XChangeWindowAttributes(dpy, root, CWEventMask|CWCursor, &wa);
-    // XSelectInput(dpy, root, wa.event_mask);
     // grabkeys();
     // focus(NULL);
 }
