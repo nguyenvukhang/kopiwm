@@ -370,11 +370,11 @@ pub const Drw = struct {
 
         if (state.ellipsis_width == null and render) {
             log.info("Get ellipsis width!", .{});
-            state.ellipsis_width = self.fontSetGetWidth("...");
+            state.ellipsis_width = self.fontSetGetWidth(allocator, "...");
         }
         if (state.invalid_width == null and render) {
             log.info("Get invalid character width!", .{});
-            state.invalid_width = self.fontSetGetWidth(INVALID);
+            state.invalid_width = self.fontSetGetWidth(allocator, INVALID);
         }
 
         var nextfont: ?*Fnt = null;
@@ -511,10 +511,11 @@ pub const Drw = struct {
                     usedfont = xfontCreate(allocator, self, "", match) catch {
                         const j = if (state.nomatches[h0] > 0) h1 else h0;
                         state.nomatches[j] = utf8codepoint;
+                        continue;
                     };
-                    if (X.XftCharExists(self.dpy, usedfont.xfont, utf8codepoint) != 0) {
+                    if (X.XftCharExists(self.dpy, usedfont.xfont, @intCast(utf8codepoint)) != 0) {
                         var curfont: *Fnt = self.fonts;
-                        while (curfont.next) : (curfont = curfont.next) {}
+                        while (curfont.next) |next| : (curfont = next) {}
                         curfont.next = usedfont;
                     }
                 }

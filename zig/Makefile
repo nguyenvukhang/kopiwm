@@ -3,7 +3,7 @@ GDB_COMMAND_FILE := debug.gdb
 current: run
 
 run:
-	zig build run -- -v
+	# zig build run -- -v
 	#=============================================================================
 	zig build run
 
