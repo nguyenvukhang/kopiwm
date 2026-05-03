@@ -374,41 +374,43 @@ fn updatebars() void {
 }
 
 /// Gets the property of a window in text form, and writes it to `buffer`.
-/// Returns true if there is valid information written to the buffer.
+/// Returns the number of valid bytes written to the buffer.
 /// [dwm] gettextprop
-fn gettextprop(w: Window, atom: X.Atom, buffer: []u8) bool {
+fn gettextprop(w: Window, atom: X.Atom, buffer: []u8) usize {
     if (buffer.len == 0) {
-        return false;
+        return 0;
     }
     var tp: X.XTextProperty = undefined;
     if (X.XGetTextProperty(z.dpy, w, &tp, atom) == 0 or tp.nitems == 0) {
-        return false;
+        return 0;
     }
+    var l: ?usize = null;
     if (tp.encoding == X.XA_STRING) {
         const value: []const u8 = mem.span(tp.value);
-        const l = @min(value.len, buffer.len);
-        @memcpy(buffer[0..l], value[0..l]);
+        l = @min(value.len, buffer.len);
+        @memcpy(buffer[0..l.?], value[0..l.?]);
     } else {
         var list: [*c][*c]u8 = undefined;
         var n: c_int = undefined;
         const res = X.XmbTextPropertyToTextList(z.dpy, &tp, &list, &n);
         if (res >= X.Success and n > 0 and list != null) {
             const value: []const u8 = mem.span(list[0]);
-            const l = @min(value.len, buffer.len);
-            @memcpy(buffer[0..l], value[0..l]);
-            X.XFreeStringList(list);
+            l = @min(value.len, buffer.len);
+            @memcpy(buffer[0..l.?], value[0..l.?]);
         }
+        X.XFreeStringList(list);
     }
     _ = X.XFree(tp.value);
-    return true;
+    return l orelse 0;
 }
 
 /// [dwm] updatestatus
 fn updatestatus(allocator: Allocator) void {
-    if (!gettextprop(z.root, X.XA_WM_NAME, &z.stext)) {
-        const x: []const u8 = build_opts.name ++ "-" ++ build_opts.version;
-        const n = @min(x.len, z.stext.len);
-        @memcpy(z.stext[0..n], x[0..n]);
+    const b = gettextprop(z.root, X.XA_WM_NAME, &z.stext_buf);
+    if (b == 0) {
+        z.setStatusText(build_opts.name ++ "-" ++ build_opts.version);
+    } else {
+        z.stext = z.stext_buf[0..b];
     }
     if (z.selmon) |m| drawbar(allocator, m);
 }
@@ -430,17 +432,15 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     // var c: *Client = undefined;
 
     // draw status first so it can be overdrawn by tags later
-
     if (m == z.selmon) { // status is only drawn on selected monitor
         z.drw.setScheme(z.scheme[@intFromEnum(SchemeState.Normal)]);
-        tw = z.TEXTW(allocator, &z.stext);
-        if (false)
-            _ = z.drw.drawText(allocator, .{
-                .x = @as(i32, @intCast(m.ww)) - @as(i32, @intCast(tw)),
-                .y = 0,
-                .w = tw,
-                .h = z.bar_height,
-            }, 0, &z.stext, 0);
+        tw = z.TEXTW(allocator, z.stext);
+        _ = z.drw.drawText(allocator, .{
+            .x = @as(i32, @intCast(m.ww)) - @as(i32, @intCast(tw)),
+            .y = 0,
+            .w = tw,
+            .h = z.bar_height,
+        }, 0, z.stext, 0);
     }
 
     // if (m == selmon) { /* status is only drawn on selected monitor */

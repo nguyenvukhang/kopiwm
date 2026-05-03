@@ -54,10 +54,17 @@ pub const App = struct {
     updatebars_buffer: [16]u8 = undefined,
 
     /// Status bar text.
-    stext: [256]u8 = undefined,
+    stext_buf: [256]u8 = undefined,
+    stext: []const u8 = undefined,
 
     /// [dwm] TEXTW
     pub fn TEXTW(self: *Self, allocator: Allocator, text: []const u8) u32 {
         return self.drw.fontSetGetWidth(allocator, text) + self.lrpad;
+    }
+
+    pub fn setStatusText(self: *Self, text: []const u8) void {
+        const n = @min(text.len, self.stext_buf.len);
+        @memcpy(self.stext_buf[0..n], text[0..n]);
+        self.stext = self.stext_buf[0..n];
     }
 };

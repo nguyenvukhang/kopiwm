@@ -396,8 +396,7 @@ pub const Drw = struct {
 
         // Main loop for printing text to completion. Breaks only when text runs
         // out or if there is overflow.
-        for (0..1000) |i| {
-            log.debug("Outer loop [{d}]", .{i});
+        while (true) {
             utf8err = false;
             ellipsis_len = 0;
             utf8charlen = 0;
@@ -405,7 +404,6 @@ pub const Drw = struct {
             ew = 0;
             utf8str = text;
             while (text.len > 0) {
-                log.debug("Inner loop: {s}", .{text});
                 utf8charlen = utf8decode(text, &utf8codepoint, &utf8err);
                 var curfont_opt: ?*Fnt = self.fonts;
                 charexists = false;
@@ -474,13 +472,13 @@ pub const Drw = struct {
                 _ = self.drawText(allocator, .{ .x = ellipsis_x, .y = y, .w = ellipsis_w, .h = h }, 0, "...", invert);
             }
 
-            if (text.len == 0 or text[0] == '0' or overflow) {
+            if (text.len == 0 or overflow) {
                 break;
             } else if (nextfont) |f| {
                 charexists = false;
                 usedfont = f;
             } else {
-                log.err("Fallback", .{});
+                log.warn("Using fallback font", .{});
                 // Regardless of whether or not a fallback font is found, the
                 // character must be drawn.
                 charexists = true;
