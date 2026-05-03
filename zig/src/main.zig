@@ -478,30 +478,16 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     // TODO: what if tw > m.ww?
     w = m.ww - tw - @as(u32, @intCast(x));
     if (w > z.bar_height) {
-        if (m.sel) |selected_client| {
+        if (m.sel) |c| {
+            const name = c.name.get();
+            const r = Rect{ .x = x, .y = 0, .w = w, .h = z.bar_height };
             z.drw.setScheme(z.scheme.get(if (m == z.selmon) .Bar else .Normal));
-            _ = z.drw.drawText(
-                allocator,
-                .{ .x = x, .y = 0, .w = w, .h = z.bar_height },
-                z.lrpad / 2,
-                // TODO: replace all strings in a custom struct.
-                selected_client.name.get(),
-                0,
-            );
-        } else {}
+            _ = z.drw.drawText(allocator, r, z.lrpad / 2, name, 0);
+        } else {
+            z.drw.setScheme(z.scheme.get(.Normal));
+            z.drw.drawRect(.{ .x = x, .y = 0, .w = w, .h = z.bar_height }, true, true);
+        }
     }
-    // if ((w = m->ww - tw - x) > bh) {
-    //     if (m->sel) {
-    //         drw_setscheme(drw, scheme[m == selmon ? SchemeBar : SchemeNorm]);
-    //         drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
-    //         if (m->sel->isfloating) {
-    //             drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
-    //         }
-    //     } else {
-    //         drw_setscheme(drw, scheme[SchemeNorm]);
-    //         drw_rect(drw, x, 0, w, bh, 1, 1);
-    //     }
-    // }
     // drw_map(drw, m->barwin, 0, 0, m->ww, bh);
 
 }
