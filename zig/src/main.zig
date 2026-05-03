@@ -17,7 +17,7 @@ const ColorScheme = @import("drw.zig").ColorScheme;
 const N = @import("enums.zig").N;
 
 // TODO: re-enable this in production.
-const SAID_AND_DONE = false;
+const SAID_AND_DONE = true;
 
 // X11 stuff.
 const X = @import("c_lib.zig").X;
