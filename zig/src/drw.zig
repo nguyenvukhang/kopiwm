@@ -318,6 +318,7 @@ pub const Drw = struct {
         text_to_draw: []const u8,
         invert: u32,
     ) i32 {
+        const INVALID = "�";
         var text: []const u8 = text_to_draw;
         var x = rect.x;
         const y = rect.y;
@@ -369,7 +370,7 @@ pub const Drw = struct {
         }
         if (state.invalid_width == null and render) {
             log.info("Get invalid character width!", .{});
-            state.invalid_width = self.fontSetGetWidth("�");
+            state.invalid_width = self.fontSetGetWidth(INVALID);
         }
 
         var nextfont: ?*Fnt = null;
@@ -443,6 +444,14 @@ pub const Drw = struct {
                 }
                 x += @intCast(ew);
                 w -= ew;
+            }
+
+            if (utf8err and (!render or (state.invalid_width orelse w) < w)) {
+                if (render) {
+                    _ = self.drawText(.{ .x = x, .y = y, .w = w, .h = h }, 0, INVALID, invert);
+                }
+                x += @intCast(state.invalid_width orelse 0);
+                w -= state.invalid_width orelse 0;
             }
 
             break;
