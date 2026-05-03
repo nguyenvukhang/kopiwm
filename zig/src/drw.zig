@@ -94,6 +94,45 @@ fn xfontFree(allocator: Allocator, font: *Fnt) void {
     allocator.destroy(font);
 }
 
+/// [dwm] utf8decode
+fn utf8decode(s: []const u8, codepoint: *u64, err: *bool) u32 {
+    const UTF_INVALID: u32 = 0xFFFD;
+    const leading_mask: [4]u8 = .{ 0x7F, 0x1F, 0x0F, 0x07 };
+    const overlong: [4]u32 = .{ 0x0, 0x80, 0x0800, 0x10000 };
+    const len: u3 = switch (s[0] >> 3) {
+        0b00000...0b01111 => 1, // 0XXXX
+        0b10000...0b10111 => 0, // 10XXX (invalid)
+        0b11000...0b11011 => 2, // 110XX
+        0b11100...0b11101 => 3, // 110XX
+        0b11110 => 4,
+        0b11111 => 0, // (invalid)
+        else => unreachable, // because s[0] is 8 bits, so the switch input is 5 bits.
+    };
+    codepoint.* = UTF_INVALID;
+    err.* = true;
+    if (len == 0) {
+        return 1;
+    }
+
+    // Codepoint
+    var cp: u64 = s[0] & leading_mask[len - 1];
+
+    for (1..len) |i| {
+        if (s[i] == 0 or (s[i] & 0xC0) != 0x80) {
+            return @intCast(i);
+        }
+        cp = (cp << 6) | (s[i] & 0x3F);
+    }
+
+    // out of range, surrogate, overlong encoding
+    if (cp > 0x10FFFF or (cp >> 11) == 0x1B or cp < overlong[len - 1]) {
+        return len;
+    }
+    err.* = false;
+    codepoint.* = cp;
+    return len;
+}
+
 pub const Drw = struct {
     const Self = @This();
 
@@ -267,12 +306,21 @@ pub const Drw = struct {
         if (text.len == 0) {
             return 0;
         }
-        const fonts = self.fonts orelse return 0;
+
+        // var usedfont = self.fonts orelse return 0;
+
         // TODO: figure out why dwm requires x and y to be non-zero.
         const render: bool = x != 0 or y != 0 or w != 0 or h != 0;
+
         if (render and (self.scheme == null or w == 0)) {
             return 0;
         }
+
+        const state = struct {
+            var ellipsis_width: ?u32 = null;
+            var invalid_width: ?u32 = null;
+        };
+
         const invert_ = invert != 0; // just the boolean version of `invert`.
 
         var d: ?*X.XftDraw = null;
@@ -294,7 +342,28 @@ pub const Drw = struct {
             x += @intCast(lpad);
             w -= lpad;
         }
-        _ = fonts;
+
+        if (state.ellipsis_width == null and render) {
+            log.info("Get ellipsis width!", .{});
+            state.ellipsis_width = self.fontSetGetWidth("...");
+        }
+        if (state.invalid_width == null and render) {
+            log.info("Get invalid character width!", .{});
+            state.invalid_width = self.fontSetGetWidth("�");
+        }
+
+        var utf8err: bool = undefined;
+        var utf8codepoint: u64 = undefined;
+
+        // Main loop for printing text to completion. Breaks only when text runs
+        // out or if there is overflow.
+        while (true) {
+            while (text.len > 0) {
+                _ = utf8decode(text, &utf8codepoint, &utf8err);
+                break;
+            }
+            break;
+        }
 
         // int ty, ellipsis_x = 0;
         // unsigned int tmpw, ew, ellipsis_w = 0, ellipsis_len, hash, h0, h1;
