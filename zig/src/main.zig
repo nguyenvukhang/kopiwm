@@ -268,7 +268,7 @@ fn setup(allocator: Allocator) !void {
 
     // init bars
     updatebars();
-    updatestatus();
+    updatestatus(allocator);
 
     // TODO: continue from here after drw.zig is complete
     // /* supporting window for NetWMCheck */
@@ -404,16 +404,16 @@ fn gettextprop(w: Window, atom: X.Atom, buffer: []u8) bool {
 }
 
 /// [dwm] updatestatus
-fn updatestatus() void {
+fn updatestatus(allocator: Allocator) void {
     if (!gettextprop(z.root, X.XA_WM_NAME, &z.stext)) {
         const x: []const u8 = build_opts.name ++ "-" ++ build_opts.version;
         const n = @min(x.len, z.stext.len);
         @memcpy(z.stext[0..n], x[0..n]);
     }
-    if (z.selmon) |m| drawbar(m);
+    if (z.selmon) |m| drawbar(allocator, m);
 }
 
-fn drawbar(m: *Monitor) void {
+fn drawbar(allocator: Allocator, m: *Monitor) void {
     if (!m.show_bar) {
         return;
     }
@@ -433,7 +433,7 @@ fn drawbar(m: *Monitor) void {
 
     if (m == z.selmon) { // status is only drawn on selected monitor
         z.drw.setScheme(z.scheme[@intFromEnum(SchemeState.Normal)]);
-        tw = z.TEXTW(&z.stext);
+        tw = z.TEXTW(allocator, &z.stext);
         _ = z.drw.drawText(.{
             .x = @as(i32, @intCast(m.ww)) - @as(i32, @intCast(tw)),
             .y = 0,

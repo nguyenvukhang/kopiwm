@@ -4,6 +4,7 @@ const X = @import("c_lib.zig").X;
 const Net = @import("enums.zig").Net;
 const WM = @import("enums.zig").WM;
 const Cur = @import("enums.zig").Cur;
+const Allocator = std.mem.Allocator;
 
 const Drw = @import("drw.zig").Drw;
 const ColorScheme = @import("drw.zig").ColorScheme;
@@ -56,7 +57,7 @@ pub const App = struct {
     stext: [256]u8 = undefined,
 
     /// [dwm] TEXTW
-    pub fn TEXTW(self: *Self, text: []const u8) u32 {
-        return self.drw.fontSetGetWidth(text) + self.lrpad;
+    pub fn TEXTW(self: *Self, allocator: Allocator, text: []const u8) u32 {
+        return self.drw.fontSetGetWidth(allocator, text) + self.lrpad;
     }
 };
