@@ -571,11 +571,10 @@ pub const Drw = struct {
         }
         return @intCast(self.drawText(allocator, .zero, 0, text, 0));
     }
-    // unsigned int drw_fontset_getwidth(Drw *drw, const char *text) {
-    // if (!drw || !drw->fonts || !text) {
-    //     return 0;
-    // }
-    // return drw_text(drw, 0, 0, 0, 0, 0, text, 0);
-    // }
 
+    /// [dwm] drw_map
+    pub fn map(self: *Self, w: Window, r: Rect) void {
+        _ = X.XCopyArea(self.dpy, self.drawable, w, self.gc, r.x, r.y, r.w, r.h, r.x, r.y);
+        _ = X.XSync(self.dpy, 0);
+    }
 };

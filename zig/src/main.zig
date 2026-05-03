@@ -488,8 +488,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
             z.drw.drawRect(.{ .x = x, .y = 0, .w = w, .h = z.bar_height }, true, true);
         }
     }
-    // drw_map(drw, m->barwin, 0, 0, m->ww, bh);
-
+    z.drw.map(m.barwin, .{ .x = 0, .y = 0, .w = m.ww, .h = z.bar_height });
 }
 
 pub fn main() !void {
