@@ -10,7 +10,6 @@ const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
 const Client = @import("client.zig").Client;
 const WM = @import("enums.zig").WM;
-const Cur = @import("enums.zig").Cur;
 const Net = @import("enums.zig").Net;
 const Rect = @import("rect.zig").Rect;
 const SchemeState = @import("enums.zig").SchemeState;
@@ -238,24 +237,25 @@ fn setup(allocator: Allocator) !void {
 
     // init atoms
     utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", False);
-    z.wmatom[@intFromEnum(WM.Protocols)] = X.XInternAtom(z.dpy, "WM_PROTOCOLS", False);
-    z.wmatom[@intFromEnum(WM.Delete)] = X.XInternAtom(z.dpy, "WM_DELETE_WINDOW", False);
-    z.wmatom[@intFromEnum(WM.State)] = X.XInternAtom(z.dpy, "WM_STATE", False);
-    z.wmatom[@intFromEnum(WM.TakeFocus)] = X.XInternAtom(z.dpy, "WM_TAKE_FOCUS", False);
-    z.netatom[@intFromEnum(Net.ActiveWindow)] = X.XInternAtom(z.dpy, "_NET_ACTIVE_WINDOW", False);
-    z.netatom[@intFromEnum(Net.Supported)] = X.XInternAtom(z.dpy, "_NET_SUPPORTED", False);
-    z.netatom[@intFromEnum(Net.WMName)] = X.XInternAtom(z.dpy, "_NET_WM_NAME", False);
-    z.netatom[@intFromEnum(Net.WMState)] = X.XInternAtom(z.dpy, "_NET_WM_STATE", False);
-    z.netatom[@intFromEnum(Net.WMCheck)] = X.XInternAtom(z.dpy, "_NET_SUPPORTING_WM_CHECK", False);
-    z.netatom[@intFromEnum(Net.WMFullscreen)] = X.XInternAtom(z.dpy, "_NET_WM_STATE_FULLSCREEN", False);
-    z.netatom[@intFromEnum(Net.WMWindowType)] = X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE", False);
-    z.netatom[@intFromEnum(Net.WMWindowTypeDialog)] = X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
-    z.netatom[@intFromEnum(Net.ClientList)] = X.XInternAtom(z.dpy, "_NET_CLIENT_LIST", False);
+    z.wmatom.set(.Protocols, X.XInternAtom(z.dpy, "WM_PROTOCOLS", False));
+    z.wmatom.set(.Delete, X.XInternAtom(z.dpy, "WM_DELETE_WINDOW", False));
+    z.wmatom.set(.State, X.XInternAtom(z.dpy, "WM_STATE", False));
+    z.wmatom.set(.TakeFocus, X.XInternAtom(z.dpy, "WM_TAKE_FOCUS", False));
+
+    z.netatom.set(.ActiveWindow, X.XInternAtom(z.dpy, "_NET_ACTIVE_WINDOW", False));
+    z.netatom.set(.Supported, X.XInternAtom(z.dpy, "_NET_SUPPORTED", False));
+    z.netatom.set(.WMName, X.XInternAtom(z.dpy, "_NET_WM_NAME", False));
+    z.netatom.set(.WMState, X.XInternAtom(z.dpy, "_NET_WM_STATE", False));
+    z.netatom.set(.WMCheck, X.XInternAtom(z.dpy, "_NET_SUPPORTING_WM_CHECK", False));
+    z.netatom.set(.WMFullscreen, X.XInternAtom(z.dpy, "_NET_WM_STATE_FULLSCREEN", False));
+    z.netatom.set(.WMWindowType, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE", False));
+    z.netatom.set(.WMWindowTypeDialog, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False));
+    z.netatom.set(.ClientList, X.XInternAtom(z.dpy, "_NET_CLIENT_LIST", False));
 
     // init cursors
-    z.cursors[@intFromEnum(Cur.Normal)] = z.drw.curCreate(X.XC_left_ptr);
-    z.cursors[@intFromEnum(Cur.Resize)] = z.drw.curCreate(X.XC_sizing);
-    z.cursors[@intFromEnum(Cur.Move)] = z.drw.curCreate(X.XC_fleur);
+    z.cursors.set(.Normal, z.drw.curCreate(X.XC_left_ptr));
+    z.cursors.set(.Resize, z.drw.curCreate(X.XC_sizing));
+    z.cursors.set(.Move, z.drw.curCreate(X.XC_fleur));
 
     // init appearance
     for (std.enums.values(SchemeState)) |ss| {
@@ -273,7 +273,7 @@ fn setup(allocator: Allocator) !void {
     _ = X.XChangeProperty(
         z.dpy,
         z.wmcheckwin,
-        z.netatom[@intFromEnum(Net.WMCheck)],
+        z.netatom.get(.WMCheck),
         X.XA_WINDOW,
         32,
         X.PropModeReplace,
@@ -284,7 +284,7 @@ fn setup(allocator: Allocator) !void {
     _ = X.XChangeProperty(
         z.dpy,
         z.wmcheckwin,
-        z.netatom[@intFromEnum(Net.WMName)],
+        z.netatom.get(.WMName),
         utf8string,
         8,
         X.PropModeReplace,
@@ -316,7 +316,7 @@ fn cleanup(allocator: Allocator) !void {
     while (z.mons) |mon| {
         cleanupmon(allocator, mon);
     }
-    for (z.cursors) |cursor| {
+    for (z.cursors.values) |cursor| {
         z.drw.curFree(cursor);
     }
     for (std.enums.values(SchemeState)) |ss| {
@@ -377,7 +377,7 @@ fn updatebars() void {
             X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
             &wa,
         );
-        _ = X.XDefineCursor(z.dpy, m.barwin, z.cursors[@intFromEnum(Cur.Normal)]);
+        _ = X.XDefineCursor(z.dpy, m.barwin, z.cursors.get(.Normal));
         _ = X.XMapRaised(z.dpy, m.barwin);
         _ = X.XSetClassHint(z.dpy, m.barwin, &ch);
     }

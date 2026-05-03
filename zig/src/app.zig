@@ -5,7 +5,7 @@ const X = @import("c_lib.zig").X;
 const Net = @import("enums.zig").Net;
 const WM = @import("enums.zig").WM;
 const SchemeState = @import("enums.zig").SchemeState;
-const Cur = @import("enums.zig").Cur;
+const CursorState = @import("enums.zig").CursorState;
 const fstr = @import("fstr.zig").fstr;
 const Allocator = std.mem.Allocator;
 const EnumArray = std.enums.EnumArray;
@@ -47,10 +47,10 @@ pub const App = struct {
     root: Window = undefined,
     wmcheckwin: Window = undefined,
 
-    wmatom: [std.meta.fields(WM).len]Atom = undefined,
-    netatom: [std.meta.fields(Net).len]Atom = undefined,
+    wmatom: EnumArray(WM, Atom) = undefined,
+    netatom: EnumArray(Net, Atom) = undefined,
 
-    cursors: [std.meta.fields(Cur).len]Cursor = undefined,
+    cursors: EnumArray(CursorState, Cursor) = undefined,
 
     scheme: EnumArray(SchemeState, *ColorScheme) = undefined,
 

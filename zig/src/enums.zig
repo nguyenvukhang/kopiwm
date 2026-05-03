@@ -26,7 +26,7 @@ pub const Net = enum(u8) {
 
 /// [dwm] Cur* enums.
 /// The different possible states of the mouse cursor.
-pub const Cur = enum {
+pub const CursorState = enum {
     Normal,
     Resize,
     Move,
