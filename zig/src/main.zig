@@ -291,9 +291,59 @@ fn setup(allocator: Allocator) !void {
         _ = X.XSelectInput(z.dpy, z.root, wa.event_mask);
     }
 
+    grabkeys();
+
     // TODO: continue from here after drw.zig is complete
-    // grabkeys();
     // focus(NULL);
+}
+
+fn grabkeys() void {
+    updatenumlockmask();
+    // unsigned int i, j, k;
+    // unsigned int modifiers[] = {0, LockMask, numlockmask,
+    //                             numlockmask | LockMask};
+    // int start, end, skip;
+    // KeySym *syms;
+    //
+    _ = X.XUngrabKey(z.dpy, X.AnyKey, X.AnyModifier, z.root);
+    // XDisplayKeycodes(dpy, &start, &end);
+    // syms = XGetKeyboardMapping(dpy, start, end - start + 1, &skip);
+    // if (!syms) {
+    //     return;
+    // }
+    // for (k = start; k <= end; k++) {
+    //     for (i = 0; i < LENGTH(keys); i++) {
+    //         /* skip modifier codes, we do that ourselves */
+    //         if (keys[i].keysym == syms[(k - start) * skip]) {
+    //             for (j = 0; j < LENGTH(modifiers); j++) {
+    //                 XGrabKey(dpy, k, keys[i].mod | modifiers[j], root, True,
+    //                          GrabModeAsync, GrabModeAsync);
+    //             }
+    //         }
+    //     }
+    // }
+    // XFree(syms);
+
+}
+
+/// [dwm] updatenumlockmask
+fn updatenumlockmask() void {
+    log.info("Called updatenumlockmask", .{});
+    z.numlockmask = 0;
+    const modmap = X.XGetModifierMapping(z.dpy);
+    if (modmap == null) {
+        return;
+    }
+    defer _ = X.XFreeModifiermap(modmap);
+    const mkpm: usize = @intCast(modmap.*.max_keypermod);
+    for (0..8) |i| {
+        for (0..mkpm) |j| {
+            const keycode = modmap.*.modifiermap[i * mkpm + j];
+            if (keycode == X.XKeysymToKeycode(z.dpy, X.XK_Num_Lock)) {
+                z.numlockmask = @as(u32, 1) << @intCast(i);
+            }
+        }
+    }
 }
 
 /// [dwm] cleanup

@@ -60,6 +60,8 @@ pub const App = struct {
     /// Status bar text.
     stext: fstr(256) = undefined,
 
+    numlockmask: u32 = undefined,
+
     pub fn init() Self {
         var z = Self{};
         const n = @min(build_opts.name.len, z.updatebars_buffer.len);
