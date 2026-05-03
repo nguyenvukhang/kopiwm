@@ -1,10 +1,12 @@
 const std = @import("std");
-const meta = std.meta;
+const X = @import("c_lib.zig").X;
 const lt = @import("layout.zig");
 const SchemeState = @import("enums.zig").SchemeState;
 const N = @import("enums.zig").N;
 const Scheme = @import("drw.zig").Scheme;
 const EnumArray = std.enums.EnumArray;
+const Arg = @import("enums.zig").Arg;
+const Key = @import("enums.zig").Key;
 
 pub const tags = [_][]const u8{ "1", "2", "3", "4", "T" };
 pub const fonts = [_][]const u8{"monospace:size=10"};
@@ -53,3 +55,9 @@ pub const colors = EnumArray(SchemeState, Scheme([]const u8)).init(.{
     .Bar      = .{ .fg = col_gray3, .bg = col_gray2,      .border = col_gray2      },
     // zig fmt: on
 });
+
+const Mod4Mask = 1 << 4;
+const MODKEY = Mod4Mask;
+pub const keys = [_]Key{
+    .{ .mod = MODKEY, .key = X.XK_space, .func = undefined, .arg = undefined },
+};

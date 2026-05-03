@@ -1,3 +1,5 @@
+const X = @import("c_lib.zig").X;
+
 /// Count the number of enum variants that exist.
 pub fn N(comptime T: type) usize {
     return @import("std").meta.fields(T).len;
@@ -57,4 +59,14 @@ pub const Arg = union(ArgTag) {
     ui: u32,
     f: f32,
     s: []const u8,
+};
+
+pub const Key = struct {
+    /// Modifier keys, in any.
+    mod: u32,
+    /// X keysym.
+    key: X.KeySym,
+    /// The callback function.
+    func: *const fn (*const Arg) void,
+    arg: Arg,
 };

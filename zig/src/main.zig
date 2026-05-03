@@ -313,6 +313,7 @@ fn grabkeys() void {
     _ = X.XDisplayKeycodes(z.dpy, &start, &end);
     const syms: *X.KeySym = X.XGetKeyboardMapping(z.dpy, @intCast(start), end - start + 1, &skip) orelse return;
     for (@intCast(start)..@intCast(end)) |_| {
+        for (0..cfg.keys.len) |_| {}
         // for (i = 0; i < LENGTH(keys); i++) {
         //     /* skip modifier codes, we do that ourselves */
         //     if (keys[i].keysym == syms[(k - start) * skip]) {
