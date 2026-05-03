@@ -315,9 +315,10 @@ pub const Drw = struct {
         self: *Self,
         rect: Rect,
         lpad: u32,
-        text: []const u8,
+        text_to_draw: []const u8,
         invert: u32,
     ) i32 {
+        var text: []const u8 = text_to_draw;
         var x = rect.x;
         const y = rect.y;
         var w = rect.w;
@@ -326,7 +327,7 @@ pub const Drw = struct {
             return 0;
         }
 
-        // var usedfont = self.fonts orelse return 0;
+        const usedfont = self.fonts orelse return 0;
 
         // TODO: figure out why dwm requires x and y to be non-zero.
         const render: bool = x != 0 or y != 0 or w != 0 or h != 0;
@@ -371,12 +372,19 @@ pub const Drw = struct {
             state.invalid_width = self.fontSetGetWidth("�");
         }
 
+        var nextfont: ?*Fnt = null;
         var utf8err: bool = undefined;
         var utf8codepoint: u64 = undefined;
+        var ellipsis_x: i32 = 0;
+        var ellipsis_len: u32 = undefined;
+        var ellipsis_w: u32 = 0;
+        var overflow: bool = false;
 
         // Main loop for printing text to completion. Breaks only when text runs
         // out or if there is overflow.
         while (true) {
+            var utf8strlen: u32 = 0;
+            var ew: u32 = 0;
             while (text.len > 0) {
                 const utf8charlen = utf8decode(text, &utf8codepoint, &utf8err);
                 var curfont_opt = self.fonts;
@@ -388,9 +396,40 @@ pub const Drw = struct {
                         continue;
                     }
                     curfont.getExts(text[0..utf8charlen], &tmpw, null);
+
+                    // TODO: possible dwm bug here that ellipsis width is not
+                    // initialized yet.
+                    if (ew + (state.ellipsis_width orelse 0) <= w) {
+                        // keep track where the ellipsis still fits
+                        ellipsis_x = x + @as(i32, @intCast(ew));
+                        ellipsis_w = w - ew;
+                        ellipsis_len = utf8strlen;
+                    }
+
+                    if (ew + tmpw > w) {
+                        overflow = true;
+                        // called from drw_fontset_getwidth_clamp():
+                        // it wants the width AFTER the overflow
+                        if (!render) {
+                            x += @intCast(tmpw);
+                        } else {
+                            utf8strlen = ellipsis_len;
+                        }
+                    } else if (curfont == usedfont) {
+                        text = text[utf8charlen..];
+                        utf8strlen += if (utf8err) 0 else utf8charlen;
+                        ew += if (utf8err) 0 else tmpw;
+                    } else {
+                        nextfont = curfont;
+                    }
                     break;
                 }
-                break;
+
+                if (overflow or !charexists or nextfont != null or utf8err) {
+                    break;
+                } else {
+                    charexists = false;
+                }
             }
             break;
         }
