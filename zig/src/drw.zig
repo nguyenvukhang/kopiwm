@@ -1,6 +1,7 @@
 const std = @import("std");
 const X = @import("c_lib.zig").X;
 const fc = @import("c_lib.zig").fc;
+const Rect = @import("rect.zig").Rect;
 const mem = std.mem;
 const Allocator = mem.Allocator;
 const log = std.log;
@@ -254,18 +255,15 @@ pub const Drw = struct {
     /// [dwm] drw_text
     pub fn drawText(
         self: *Self,
-        x_coord: i32,
-        y_coord: i32,
-        width: u32,
-        height: u32,
+        rect: Rect,
         lpad: u32,
         text: []const u8,
         invert: u32,
     ) i32 {
-        var x = x_coord;
-        const y = y_coord;
-        var w = width;
-        const h = height;
+        var x = rect.x;
+        const y = rect.y;
+        var w = rect.w;
+        const h = rect.h;
         if (text.len == 0) {
             return 0;
         }
@@ -478,7 +476,7 @@ pub const Drw = struct {
         if (self.fonts == null or text.len == 0) {
             return 0;
         }
-        return @intCast(self.drawText(0, 0, 0, 0, 0, text, 0));
+        return @intCast(self.drawText(.zero, 0, text, 0));
     }
     // unsigned int drw_fontset_getwidth(Drw *drw, const char *text) {
     // if (!drw || !drw->fonts || !text) {

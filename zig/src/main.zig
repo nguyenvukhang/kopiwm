@@ -12,6 +12,7 @@ const Client = @import("client.zig").Client;
 const WM = @import("enums.zig").WM;
 const Cur = @import("enums.zig").Cur;
 const Net = @import("enums.zig").Net;
+const Rect = @import("rect.zig").Rect;
 const SchemeState = @import("enums.zig").SchemeState;
 const ColorScheme = @import("drw.zig").ColorScheme;
 const N = @import("enums.zig").N;
@@ -136,24 +137,6 @@ fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
         @max(0, @min(y + h, m.wy + @as(i32, @intCast(m.wh))) - @max(y, m.wy));
 }
 
-/// [dwm] recttomon
-/// Selects the monitor with the greatest area intersection with the bounding
-/// rectangle given.
-fn recttomon(x: i32, y: i32, w: i32, h: i32) ?*Monitor {
-    var r = z.selmon;
-    var max_area: i32 = 0;
-    var a: i32 = 0;
-    var m_opt = z.mons;
-    while (m_opt) |m| : (m_opt = m.next) {
-        a = intersect(x, y, w, h, m);
-        if (a > max_area) {
-            max_area = a;
-            r = m;
-        }
-    }
-    return r;
-}
-
 /// [dwm] wintoclient
 /// Searches all the monitors and all of their clients for one that matches
 /// the window search query. Returns the first hit.
@@ -178,7 +161,7 @@ fn wintomon(w: Window) ?*Monitor {
     var x: c_int = undefined;
     var y: c_int = undefined;
     if (w == z.root and getrootptr(&x, &y) != 0) {
-        return recttomon(x, y, 1, 1);
+        return (Rect{ .x = x, .y = y, .w = 1, .h = 1 }).toMonitor(z.selmon, z.mons);
     }
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
@@ -451,6 +434,12 @@ fn drawbar(m: *Monitor) void {
     if (m == z.selmon) { // status is only drawn on selected monitor
         z.drw.setScheme(z.scheme[@intFromEnum(SchemeState.Normal)]);
         tw = z.TEXTW(&z.stext);
+        _ = z.drw.drawText(.{
+            .x = @as(i32, @intCast(m.ww)) - @as(i32, @intCast(tw)),
+            .y = 0,
+            .w = tw,
+            .h = z.bar_height,
+        }, 0, &z.stext, 0);
     }
 
     // if (m == selmon) { /* status is only drawn on selected monitor */
