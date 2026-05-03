@@ -420,14 +420,13 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
         return;
     }
 
-    // var x = 0;
     // var w = 0;
     var tw: u32 = 0;
     // var boxs = z.drw.fonts.?.h / 9;
     // var boxw = z.drw.fonts.?.h / 6 + 2;
     // var i = 0;
-    // var occ = false;
-    // var urg = false;
+    var occ: u32 = 0; // it's a bitmask.
+    var urg: u32 = 0; // it's a bitmask.
 
     // var c: *Client = undefined;
 
@@ -443,19 +442,22 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
         }, 0, z.stext, 0);
     }
 
-    // if (m == selmon) { /* status is only drawn on selected monitor */
-    //     drw_setscheme(drw, scheme[SchemeNorm]);
-    //     tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
-    //     drw_text(drw, m->ww - tw, 0, tw, bh, 0, stext, 0);
-    // }
-    //
-    // for (c = m->clients; c; c = c->next) {
-    //     occ |= c->tags;
-    //     if (c->isurgent) {
-    //         urg |= c->tags;
-    //     }
-    // }
-    // x = 0;
+    var c_opt = m.clients;
+    while (c_opt) |c| : (c_opt = c.next) {
+        occ |= c.tags;
+        if (c.isurgent) urg |= c.tags;
+    }
+
+    // var x: i32 = 0;
+    var w: u32 = 0;
+    for (cfg.tags) |tag| {
+        w = z.TEXTW(allocator, tag);
+
+        //     drw_setscheme(
+        //         drw,
+        //         scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
+    }
+
     // for (i = 0; i < LENGTH(tags); i++) {
     //     w = TEXTW(tags[i]);
     //     drw_setscheme(

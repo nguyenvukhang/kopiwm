@@ -20,27 +20,27 @@ pub const Monitor = struct {
     /// Number of master windows.
     nmaster: i32,
 
-    num: i32 = 0,
+    num: i32,
     // Bar geometry.
-    by: i32 = 0,
+    by: i32,
     // Screen size: x-coordinate.
-    mx: i32 = 0,
+    mx: i32,
     // Screen size: y-coordinate.
-    my: i32 = 0,
+    my: i32,
     // Screen size: width.
-    mw: u32 = 0,
+    mw: u32,
     // Screen size: height.
-    mh: u32 = 0,
+    mh: u32,
     // Window area: x-coordinate.
-    wx: i32 = 0,
+    wx: i32,
     // Window area: y-coordinate.
-    wy: i32 = 0,
+    wy: i32,
     // Window area: width.
-    ww: u32 = 0,
+    ww: u32,
     // Window area: height.
-    wh: u32 = 0,
+    wh: u32,
     // Index of selected tags.
-    seltags: u16 = 0,
+    seltags: u16,
     // Index of selected layout.
     sellt: usize,
     tagset: [2]usize,
@@ -70,6 +70,7 @@ pub const Monitor = struct {
         m.top_bar = cfg.top_bar;
         m.lt[0] = &cfg.layouts[0];
         m.lt[1] = &cfg.layouts[1 % cfg.layouts.len];
+        m.clients = null;
         const n = @min(m.lt[0].symbol.len, m.layout_symbol.len);
         @memcpy(m.layout_symbol[0..n], m.lt[0].symbol[0..n]);
         m.next = null;

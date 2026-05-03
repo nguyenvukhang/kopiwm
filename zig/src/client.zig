@@ -25,22 +25,22 @@ pub const Client = struct {
     minw: i32,
     minh: i32,
     hintsvalid: bool,
-    // Border width.
+    /// Border width.
     bw: i32,
-    // Old border width.
+    /// Old border width.
     oldbw: i32,
-    // Bitmask of active tags.
-    tags: u32,
+    /// Bitmask of active tags.
+    tags: u32 = 0,
     isfixed: bool,
     isfloating: bool,
     isurgent: bool,
     neverfocus: bool,
-    // Old floating state (previous value for `isfloating`).
+    /// Old floating state (previous value for `isfloating`).
     oldstate: bool,
     isfullscreen: bool,
-    // Next client in the linked list of clients.
+    /// Next client in the linked list of clients.
     next: ?*Self,
-    // Next client in the display stack.
+    /// Next client in the display stack.
     snext: ?*Self,
     mon: *Monitor,
     win: Window,

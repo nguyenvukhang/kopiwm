@@ -5,7 +5,8 @@ const SchemeState = @import("enums.zig").SchemeState;
 const N = @import("enums.zig").N;
 const Scheme = @import("drw.zig").Scheme;
 
-pub const fonts = [1][]const u8{"monospace:size=10"};
+pub const tags = [_][]const u8{ "1", "2", "3", "4", "T" };
+pub const fonts = [_][]const u8{"monospace:size=10"};
 
 /// Factor of the master area size [0.05...0.95].
 pub const mfact: f32 = 0.5;
@@ -28,7 +29,7 @@ pub const show_bar = true;
 // false means bottom bar.
 pub const top_bar = true;
 
-pub const layouts = [2]lt.Layout{
+pub const layouts = [_]lt.Layout{
     .{ .symbol = "[]=", .arrange = lt.tile },
     .{ .symbol = "[M]", .arrange = lt.monocle },
 };
