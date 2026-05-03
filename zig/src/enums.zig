@@ -34,6 +34,8 @@ pub const Cur = enum {
 
 /// Represents a possible which one might be in that warrants a unique color scheme.
 pub const SchemeState = enum {
+    const Self = @This();
+
     Normal,
     Selected,
     Bar,

@@ -3,8 +3,10 @@ const std = @import("std");
 const X = @import("c_lib.zig").X;
 const Net = @import("enums.zig").Net;
 const WM = @import("enums.zig").WM;
+const SchemeState = @import("enums.zig").SchemeState;
 const Cur = @import("enums.zig").Cur;
 const Allocator = std.mem.Allocator;
+const EnumArray = std.enums.EnumArray;
 
 const Drw = @import("drw.zig").Drw;
 const ColorScheme = @import("drw.zig").ColorScheme;
@@ -48,7 +50,7 @@ pub const App = struct {
 
     cursors: [std.meta.fields(Cur).len]Cursor = undefined,
 
-    scheme: []*ColorScheme = undefined,
+    scheme: EnumArray(SchemeState, *ColorScheme) = undefined,
 
     /// The only purpose for this is to patch for `updatebars`.
     updatebars_buffer: [16]u8 = undefined,

@@ -258,12 +258,10 @@ fn setup(allocator: Allocator) !void {
     z.cursors[@intFromEnum(Cur.Move)] = z.drw.curCreate(X.XC_fleur);
 
     // init appearance
-    z.scheme = try allocator.alloc(*ColorScheme, cfg.colors.len);
-    for (z.scheme, cfg.colors) |*out, scheme| {
-        out.* = try z.drw.scmCreate(allocator, scheme);
-    }
-    for (z.scheme) |s| {
-        log.info("fg: {x}, bg: {x}, border: {x}", .{ s.fg.pixel, s.bg.pixel, s.border.pixel });
+    for (std.enums.values(SchemeState)) |ss| {
+        const s = z.scheme.getPtr(ss);
+        s.* = try z.drw.scmCreate(allocator, cfg.colors.get(ss));
+        log.info("fg: {x}, bg: {x}, border: {x}", .{ s.*.fg.pixel, s.*.bg.pixel, s.*.border.pixel });
     }
 
     // init bars
@@ -304,10 +302,9 @@ fn cleanup(allocator: Allocator) !void {
     for (z.cursors) |cursor| {
         z.drw.curFree(cursor);
     }
-    for (z.scheme) |scheme| {
-        z.drw.scmFree(allocator, scheme);
+    for (std.enums.values(SchemeState)) |ss| {
+        z.drw.scmFree(allocator, z.scheme.get(ss));
     }
-    allocator.free(z.scheme);
     z.drw.deinit(allocator);
 }
 
@@ -432,7 +429,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 
     // draw status first so it can be overdrawn by tags later
     if (m == z.selmon) { // status is only drawn on selected monitor
-        z.drw.setScheme(z.scheme[@intFromEnum(SchemeState.Normal)]);
+        z.drw.setScheme(z.scheme.get(.Normal));
         tw = z.TEXTW(allocator, z.stext);
         _ = z.drw.drawText(allocator, .{
             .x = @as(i32, @intCast(m.ww)) - @as(i32, @intCast(tw)),
