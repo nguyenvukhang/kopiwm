@@ -16,3 +16,13 @@ test "c nonnull char*" {
     const parsed: []const u8 = std.mem.span(value);
     try std.testing.expect(std.mem.eql(u8, parsed, "the once was a ship that put to sea"));
 }
+
+test "c coerce optional ptr" {
+    const value: ?*u8 = small.get_null_str();
+    try std.testing.expect(value == null);
+}
+
+test "c coerce nonnull optional ptr" {
+    const value: ?*u8 = small.get_nonnull_str();
+    try std.testing.expect(value != null);
+}

@@ -1,5 +1,6 @@
 const std = @import("std");
-pub const logfile = std.fs.createFileAbsolute("/home/khang/.local/share/xorg/dwm.log", .{}) catch unreachable;
+
+const print_colors = false;
 
 /// The default implementation for the log function. Custom log functions may
 /// forward log messages to this function.
@@ -16,7 +17,6 @@ pub fn customLog(
     const prefix2 = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
     var buffer: [64]u8 = undefined;
     const stderr = std.debug.lockStderrWriter(&buffer);
-    const logwriter = logfile.writer(&buffer); // operate within the critical section.
     defer std.debug.unlockStderrWriter();
     const color = switch (message_level) {
         .debug => "\x1b[36m",
@@ -24,8 +24,8 @@ pub fn customLog(
         .warn => "\x1b[33m",
         .err => "\x1b[31m",
     };
-    nosuspend logwriter.interface.print(color ++ level_txt ++ "\x1b[m" ++ prefix2 ++ format ++ "\n", args) catch return;
-    nosuspend stderr.print(color ++ level_txt ++ "\x1b[m" ++ prefix2 ++ format ++ "\n", args) catch return;
+    const level_txt2 = if (print_colors) color ++ level_txt ++ "\x1b[m" else level_txt;
+    nosuspend stderr.print(level_txt2 ++ prefix2 ++ format ++ "\n", args) catch return;
 }
 
 fn num_digits(n: u16) usize {

@@ -304,26 +304,27 @@ fn grabkeys() void {
     //                             numlockmask | LockMask};
     // int start, end, skip;
     // KeySym *syms;
-    //
-    _ = X.XUngrabKey(z.dpy, X.AnyKey, X.AnyModifier, z.root);
-    // XDisplayKeycodes(dpy, &start, &end);
-    // syms = XGetKeyboardMapping(dpy, start, end - start + 1, &skip);
-    // if (!syms) {
-    //     return;
-    // }
-    // for (k = start; k <= end; k++) {
-    //     for (i = 0; i < LENGTH(keys); i++) {
-    //         /* skip modifier codes, we do that ourselves */
-    //         if (keys[i].keysym == syms[(k - start) * skip]) {
-    //             for (j = 0; j < LENGTH(modifiers); j++) {
-    //                 XGrabKey(dpy, k, keys[i].mod | modifiers[j], root, True,
-    //                          GrabModeAsync, GrabModeAsync);
-    //             }
-    //         }
-    //     }
-    // }
-    // XFree(syms);
 
+    var start: c_int = undefined;
+    var end: c_int = undefined;
+    var skip: c_int = undefined;
+
+    _ = X.XUngrabKey(z.dpy, X.AnyKey, X.AnyModifier, z.root);
+    _ = X.XDisplayKeycodes(z.dpy, &start, &end);
+    const syms: *X.KeySym = X.XGetKeyboardMapping(z.dpy, @intCast(start), end - start + 1, &skip) orelse return;
+    for (@intCast(start)..@intCast(end)) |_| {
+        // for (i = 0; i < LENGTH(keys); i++) {
+        //     /* skip modifier codes, we do that ourselves */
+        //     if (keys[i].keysym == syms[(k - start) * skip]) {
+        //         for (j = 0; j < LENGTH(modifiers); j++) {
+        //             XGrabKey(dpy, k, keys[i].mod | modifiers[j], root, True,
+        //                      GrabModeAsync, GrabModeAsync);
+        //         }
+        //     }
+        // }
+    }
+    _ = X.XFree(syms);
+    log.info("grabkeys() finished!", .{});
 }
 
 /// [dwm] updatenumlockmask
@@ -547,7 +548,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 
 pub fn main() !void {
     log.info("STARTED EXECUTION OF DWMZ", .{});
-    defer @import("logger.zig").logfile.close();
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
