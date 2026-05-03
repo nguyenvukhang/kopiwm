@@ -61,7 +61,7 @@ fn xfontCreate(
     drw: *Drw,
     fontname: []const u8,
     font_pattern: ?*FcPattern,
-) error{OutOfMemory}!?*Fnt {
+) error{ OutOfMemory, FontCreateError }!*Fnt {
     var xfont: ?*XftFont = null;
     var pattern: ?*FcPattern = null;
 
@@ -74,22 +74,23 @@ fn xfontCreate(
         xfont = X.XftFontOpenName(drw.dpy, drw.screen, @ptrCast(fontname));
         if (xfont == null) {
             std.debug.print("error, cannot load font from name: '{s}'\n", .{fontname});
-            return null;
+            return error.FontCreateError;
         }
         pattern = X.FcNameParse(@ptrCast(fontname));
         if (pattern == null) {
             std.debug.print("error, cannot parse font name to pattern: '{s}'\n", .{fontname});
             X.XftFontClose(drw.dpy, xfont);
-            return null;
+            return error.FontCreateError;
         }
     } else if (font_pattern) |fp| {
         xfont = X.XftFontOpenPattern(drw.dpy, fp);
         if (xfont == null) {
             std.debug.print("error, cannot load font from pattern\n", .{});
-            return null;
+            return error.FontCreateError;
         }
     } else {
-        @panic("No font specified.");
+        std.debug.print("No font specified.", .{});
+        return error.FontCreateError;
     }
 
     var font = try allocator.create(Fnt);
@@ -165,8 +166,8 @@ pub const Drw = struct {
     drawable: Drawable,
     gc: X.GC,
     scheme: ?*ColorScheme = null,
-    /// A linked list of fonts.
-    fonts: ?*Fnt = null,
+    /// A linked list of fonts. Guaranteed to have at least one.
+    fonts: *Fnt = undefined,
 
     /// [dwm] drw_create
     pub fn init(
@@ -215,20 +216,23 @@ pub const Drw = struct {
     }
 
     /// [dwm] drw_fontset_create
-    pub fn fontsetCreate(self: *Self, allocator: Allocator, fonts: []const []const u8) error{OutOfMemory}!?*Fnt {
+    pub fn fontsetCreate(
+        self: *Self,
+        allocator: Allocator,
+        fonts: []const []const u8,
+    ) error{ OutOfMemory, FontCreateError }!?*Fnt {
         if (fonts.len == 0) {
             return null;
         }
-        var cur: ?*Fnt = null;
         var ret: ?*Fnt = null;
         for (fonts) |font| {
-            cur = try xfontCreate(allocator, self, font, null);
-            if (cur) |cur_| {
-                cur_.next = ret;
-                ret = cur;
-            }
+            const cur = try xfontCreate(allocator, self, font, null);
+            cur.next = ret;
+            ret = cur;
         }
-        self.fonts = ret;
+        self.fonts = ret orelse {
+            @panic("fontsetCreate could not find any viable fonts.");
+        };
         return ret;
     }
 
@@ -328,7 +332,7 @@ pub const Drw = struct {
             return 0;
         }
 
-        var usedfont = self.fonts orelse return 0;
+        var usedfont = self.fonts;
 
         // TODO: figure out why dwm requires x and y to be non-zero.
         const render: bool = x != 0 or y != 0 or w != 0 or h != 0;
@@ -393,7 +397,7 @@ pub const Drw = struct {
             var ew: u32 = 0;
             while (text.len > 0) {
                 const utf8charlen = utf8decode(text, &utf8codepoint, &utf8err);
-                var curfont_opt = self.fonts;
+                var curfont_opt: ?*Fnt = self.fonts;
                 charexists = false;
                 var tmpw: u32 = undefined;
                 while (curfont_opt) |curfont| : (curfont_opt = curfont.next) {
@@ -478,9 +482,7 @@ pub const Drw = struct {
                 // avoid expensive XftFontMatch call when we know we won't find
                 // a match
                 if (state.nomatches[h0] == utf8codepoint or state.nomatches[h1] == utf8codepoint) {
-                    // TODO: figure out the `orelse unreachable` branch. That
-                    // wasn't accounted for in dwm.
-                    usedfont = self.fonts orelse unreachable;
+                    usedfont = self.fonts;
                     continue;
                 }
                 const fccharset = X.FcCharSetCreate();
@@ -667,7 +669,7 @@ pub const Drw = struct {
 
     /// [dwm] drw_fontset_getwidth
     pub fn fontSetGetWidth(self: *Self, text: []const u8) u32 {
-        if (self.fonts == null or text.len == 0) {
+        if (text.len == 0) {
             return 0;
         }
         return @intCast(self.drawText(.zero, 0, text, 0));

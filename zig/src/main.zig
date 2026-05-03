@@ -232,8 +232,8 @@ fn setup(allocator: Allocator) !void {
             return;
         }
     }
-    z.lrpad = z.drw.fonts.?.h;
-    z.bar_height = z.drw.fonts.?.h + 2;
+    z.lrpad = z.drw.fonts.h;
+    z.bar_height = z.drw.fonts.h + 2;
     _ = try updategeom(allocator);
 
     // init atoms
