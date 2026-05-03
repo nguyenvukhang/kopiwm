@@ -17,11 +17,28 @@ pub const FcPattern = X.FcPattern;
 // TODO: change this to Font when all is said and done.
 /// This represents a linked list of fonts.
 pub const Fnt = struct {
+    const Self = @This();
+
     dpy: ?*Display,
     h: u16,
     xfont: *XftFont,
     pattern: ?*FcPattern,
     next: ?*Fnt,
+
+    /// [dwm] drw_font_getexts
+    pub fn getExts(self: *Self, text: []const u8, w: ?*u32, h: ?*u32) void {
+        if (text.len == 0) {
+            return;
+        }
+        var ext: X.XGlyphInfo = undefined;
+        X.XftTextExtentsUtf8(self.dpy, self.xfont, text.ptr, @intCast(text.len), &ext);
+        if (w) |w_ptr| {
+            w_ptr.* = @intCast(ext.xOff);
+        }
+        if (h) |h_ptr| {
+            h_ptr.* = self.h;
+        }
+    }
 };
 
 pub fn Scheme(comptime T: type) type {
@@ -95,7 +112,9 @@ fn xfontFree(allocator: Allocator, font: *Fnt) void {
 }
 
 /// [dwm] utf8decode
-fn utf8decode(s: []const u8, codepoint: *u64, err: *bool) u32 {
+/// Gets the number of bytes required to represent the first utf-8 character in
+/// the string `s` provided.
+fn utf8decode(s: []const u8, codepoint: *u64, err: *bool) u3 {
     const UTF_INVALID: u32 = 0xFFFD;
     const leading_mask: [4]u8 = .{ 0x7F, 0x1F, 0x0F, 0x07 };
     const overlong: [4]u32 = .{ 0x0, 0x80, 0x0800, 0x10000 };
@@ -359,11 +378,16 @@ pub const Drw = struct {
         // out or if there is overflow.
         while (true) {
             while (text.len > 0) {
-                _ = utf8decode(text, &utf8codepoint, &utf8err);
+                const utf8charlen = utf8decode(text, &utf8codepoint, &utf8err);
                 var curfont_opt = self.fonts;
                 var charexists = false;
+                var tmpw: u32 = undefined;
                 while (curfont_opt) |curfont| : (curfont_opt = curfont.next) {
                     charexists |= X.XftCharExists(self.dpy, curfont.xfont, @intCast(utf8codepoint)) != 0;
+                    if (!charexists) {
+                        continue;
+                    }
+                    curfont.getExts(text[0..utf8charlen], &tmpw, null);
                     break;
                 }
                 break;
