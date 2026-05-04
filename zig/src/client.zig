@@ -14,9 +14,11 @@ pub const Client = struct {
     app: *const App,
 
     name: fstr(256) = undefined,
-    /// Minimum aspect ratio.
+    /// Minimum aspect ratio (height / width).
+    /// Note that this is the reciprocal of the conventional notion of the
+    /// aspect ratio because of how we'll be using it.
     mina: f32 = undefined,
-    /// Maximum aspect ratio.
+    /// Maximum aspect ratio (width / height).
     maxa: f32 = undefined,
     /// Position, current and previous.
     pos: toggle(Rect),
@@ -353,47 +355,63 @@ pub const Client = struct {
 
         if (cfg.resizehints or self.isfloating.curr or m.lt[m.sellt].arrange == null) {
             if (!self.hintsvalid) {
-                // updatesizehints(c);
+                self.updateSizeHints();
             }
+            // dwm says: "see last two sentences in ICCCM 4.1.2.3".
+            // Here is the entire last paragraph:
+            // > The min_aspect and max_aspect fields are fractions with the
+            // > numerator first and the denominator second, and they allow a
+            // > client to specify the range of aspect ratios it prefers. Window
+            // > managers that honor aspect ratios should take into account the
+            // > base size in determining the preferred window size. If a base
+            // > size is provided along with the aspect ratio fields, the base
+            // > size should be subtracted from the window size prior to checking
+            // > that the aspect ratio falls in range. If a base size is not
+            // > provided, nothing should be subtracted from the window size.
+            // > (The minimum size is not to be used in place of the base size
+            // > for this purpose.)
+
+            const baseismin = self.basew == self.minw and self.baseh == self.minh;
+            if (!baseismin) { // temporarily remove base dimensions
+                rect.w -= self.basew;
+                rect.h -= self.baseh;
+            }
+            // adjust for aspect limits
+            if (self.mina > 0 and self.maxa > 0) {
+                const w: f32 = @floatFromInt(rect.w);
+                const h: f32 = @floatFromInt(rect.h);
+                // If the aspect ratio is too large (very wide), then we reduce
+                // the width to fix the ratio, and if the aspect ratio is too
+                // small (very narrow), we reduce the height to make fix the
+                // ratio. Both cases, we're making the window smaller.
+                if (self.maxa < w / h) {
+                    rect.w = @intFromFloat(@as(f32, @floatFromInt(self.rect.h)) * self.maxa + 0.5);
+                } else if (self.mina < h / w) {
+                    rect.h = @intFromFloat(@as(f32, @floatFromInt(self.rect.w)) * self.mina + 0.5);
+                }
+            }
+            //     if (baseismin) { /* increment calculation requires this */
+            //         *w -= self.basew;
+            //         *h -= self.baseh;
+            //     }
+            //     /* adjust for increment value */
+            //     if (self.incw) {
+            //         *w -= *w % self.incw;
+            //     }
+            //     if (self.inch) {
+            //         *h -= *h % self.inch;
+            //     }
+            //     /* restore base dimensions */
+            //     *w = MAX(*w + self.basew, self.minw);
+            //     *h = MAX(*h + self.baseh, self.minh);
+            //     if (self.maxw) {
+            //         *w = MIN(*w, self.maxw);
+            //     }
+            //     if (self.maxh) {
+            //         *h = MIN(*h, self.maxh);
+            //     }
         }
 
-        // if (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
-        //     if (!c->hintsvalid) {
-        //     }
-        //     /* see last two sentences in ICCCM 4.1.2.3 */
-        //     baseismin = c->basew == c->minw && c->baseh == c->minh;
-        //     if (!baseismin) { /* temporarily remove base dimensions */
-        //         *w -= c->basew;
-        //         *h -= c->baseh;
-        //     }
-        //     /* adjust for aspect limits */
-        //     if (c->mina > 0 && c->maxa > 0) {
-        //         if (c->maxa < (float)*w / *h) {
-        //             *w = *h * c->maxa + 0.5;
-        //         } else if (c->mina < (float)*h / *w) {
-        //             *h = *w * c->mina + 0.5;
-        //         }
-        //     }
-        //     if (baseismin) { /* increment calculation requires this */
-        //         *w -= c->basew;
-        //         *h -= c->baseh;
-        //     }
-        //     /* adjust for increment value */
-        //     if (c->incw) {
-        //         *w -= *w % c->incw;
-        //     }
-        //     if (c->inch) {
-        //         *h -= *h % c->inch;
-        //     }
-        //     /* restore base dimensions */
-        //     *w = MAX(*w + c->basew, c->minw);
-        //     *h = MAX(*h + c->baseh, c->minh);
-        //     if (c->maxw) {
-        //         *w = MIN(*w, c->maxw);
-        //     }
-        //     if (c->maxh) {
-        //         *h = MIN(*h, c->maxh);
-        //     }
         // }
         // return *x != c->x || *y != c->y || *w != c->w || *h != c->h;
     }
@@ -447,8 +465,12 @@ pub const Client = struct {
         }
 
         if ((size.flags & X.PAspect) != 0) {
-            self.mina = @as(f32, @floatFromInt(size.min_aspect.y)) / @as(f32, @floatFromInt(size.min_aspect.x));
-            self.maxa = @as(f32, @floatFromInt(size.max_aspect.y)) / @as(f32, @floatFromInt(size.max_aspect.x));
+            if (size.min_aspect.y > 0) {
+                self.mina = @as(f32, @floatFromInt(size.min_aspect.y)) / @as(f32, @floatFromInt(size.min_aspect.x));
+            }
+            if (size.max_aspect.y > 0) {
+                self.maxa = @as(f32, @floatFromInt(size.max_aspect.x)) / @as(f32, @floatFromInt(size.max_aspect.y));
+            }
         } else {
             self.mina = 0.0;
             self.maxa = 0.0;
