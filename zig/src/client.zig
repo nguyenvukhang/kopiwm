@@ -312,11 +312,9 @@ pub const Client = struct {
     }
 
     /// [dwm] resize
-    pub fn hintAndResize() void {
-
-        // if (applysizehints(c, &x, &y, &w, &h, interact)) {
-        //     resizeclient(c, x, y, w, h);
-        // }
+    pub fn hintAndResize(self: *Self, target: Rect, interact: bool) void {
+        var t = target;
+        if (self.applySizeHints(&t, interact)) self.resize(t);
     }
 
     /// [dwm] applysizehints
