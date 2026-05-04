@@ -322,12 +322,11 @@ fn focus(allocator: Allocator, client: ?*Client) void {
         c.detachStack();
         c.attachStack();
         grabbuttons(c, true);
-        //     XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
-        //     setfocus(c);
+        _ = X.XSetWindowBorder(z.dpy, c.win, z.scheme.get(.Selected).border.pixel);
+        // setfocus(c);
     } else {
-        //     XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
-        //     XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
-
+        _ = X.XSetInputFocus(z.dpy, z.root, X.RevertToPointerRoot, X.CurrentTime);
+        _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));
     }
     if (z.selmon) |m| m.sel = c_opt;
     drawbars(allocator);

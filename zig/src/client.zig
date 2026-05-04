@@ -1,4 +1,5 @@
 const Monitor = @import("monitor.zig").Monitor;
+const App = @import("app.zig").App;
 const X = @import("c_lib.zig").X;
 const Window = X.Window;
 const fstr = @import("fstr.zig").fstr;
@@ -105,5 +106,56 @@ pub const Client = struct {
                 }
             }
         }
+    }
+
+    /// [dwm] setfocus
+    pub fn setFocus(self: *Self, z: *App) void {
+        if (!self.neverfocus) {
+            _ = X.XSetInputFocus(z.dpy, self.win, X.RevertToPointerRoot, X.CurrentTime);
+        }
+        X.XChangeProperty(
+            z.dpy,
+            z.root,
+            z.netatom.get(.ActiveWindow),
+            X.XA_WINDOW,
+            32,
+            X.PropModeReplace,
+            @ptrCast(self.win),
+            1,
+        );
+        self.sendEvent(z, z.wmatom.get(.TakeFocus));
+    }
+
+    /// [dwm] sendevent
+    /// Returns true upon successful execution.
+    pub fn sendEvent(self: *Self, z: *App, proto: X.Atom) bool {
+        var n: c_int = undefined;
+        // Atom *protocols;
+        // XEvent ev;
+        var protocols: [*c][*c]X.Atom = undefined;
+        var exists = false;
+
+        if (X.XGetWMProtocols(z.dpy, self.win, &protocols, &n) != 0) {
+            while (!exists and n > 0) {
+                n -= 1;
+                exists = protocols[@intCast(n)] == proto;
+            }
+            X.XFree(protocols);
+        }
+        if (exists) {
+            const ev = X.XEvent{
+                .type = X.ClientMessage,
+                .xclient = .{
+                    .window = self.win,
+                    .message_type = z.wmatom.get(.Protocols),
+                    .format = 32,
+                    .data = .{
+                        .l = .{ proto, X.CurrentTime },
+                    },
+                },
+            };
+            _ = X.XSendEvent(z.dpy, self.win, X.False, X.NoEventMask, &ev);
+        }
+        return exists;
     }
 };
