@@ -144,14 +144,6 @@ fn getstate(w: Window) i32 {
     var property: ?[*]u8 = undefined;
     var result: i32 = -1;
 
-    // From X11 docs:
-    // int XGetWindowProperty(Display *display, Window w, Atom property,
-    //                        long long_offset, long long_length, Bool delete,
-    //                        Atom req_type, Atom *actual_type_return,
-    //                        int *actual_format_return,
-    //                        unsigned long *nitems_return,
-    //                        unsigned long *bytes_after_return,
-    //                        unsigned char **prop_return);
     const res = X.XGetWindowProperty(
         z.dpy,
         w,
@@ -166,15 +158,13 @@ fn getstate(w: Window) i32 {
         &extra,
         &property,
     );
-    if (res != X.Success) {
-        return -1;
-    }
+    if (res != X.Success) return -1;
+    defer _ = X.XFree(property);
     if (property) |p| {
         if (n != 0 and format == 32) {
             result = @as([*]i32, @ptrCast(@alignCast(p)))[0];
         }
     }
-    _ = X.XFree(property);
     return result;
 }
 

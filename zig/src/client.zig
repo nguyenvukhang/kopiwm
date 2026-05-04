@@ -5,6 +5,7 @@ const Window = X.Window;
 const fstr = @import("fstr.zig").fstr;
 const Display = X.Display;
 const Rect = @import("rect.zig").Rect;
+const Atom = X.Atom;
 
 pub const Client = struct {
     const Self = @This();
@@ -146,9 +147,9 @@ pub const Client = struct {
 
     /// [dwm] sendevent
     /// Returns true upon successful execution.
-    pub fn sendEvent(self: *Self, z: *App, proto: X.Atom) bool {
+    pub fn sendEvent(self: *Self, z: *App, proto: Atom) bool {
         var n: c_int = undefined;
-        var protocols: ?[*]X.Atom = undefined;
+        var protocols: ?[*]Atom = undefined;
         var exists = false;
 
         if (X.XGetWMProtocols(z.dpy, self.win, &protocols, &n) != 0) {
@@ -202,18 +203,77 @@ pub const Client = struct {
         _ = X.XSendEvent(dpy, self.win, X.False, X.StructureNotifyMask, &event);
     }
 
-    pub fn updateWindowType() void{
+    fn getAtomProp(self: *Self, dpy: ?*Display, prop: Atom) ?Atom {
+        var da: Atom = undefined; // dummy atom.
+        var atom: Atom = undefined;
+        var format: c_int = undefined;
+        var nitems: c_ulong = undefined;
+        var dl: c_ulong = undefined; // dummy long.
+        var property: ?[*]u8 = undefined;
 
+        const res = X.XGetWindowProperty(
+            dpy,
+            self.win,
+            prop,
+            0,
+            @sizeOf(atom),
+            X.False,
+            X.XA_ATOM,
+            &da,
+            &format,
+            &nitems,
+            &dl,
+            &property,
+        );
+        if (res != X.Success) return null;
+        defer _ = X.XFree(property);
+        if (property) |p| {
+            if (nitems > 0 and format == 32) {
+                atom = @as([*]Atom, @ptrCast(@alignCast(p)))[0];
+            }
+        }
+        return atom;
+    }
 
-    // Atom state = getatomprop(c, netatom[NetWMState]);
-    // Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
-    //
-    // if (state == netatom[NetWMFullscreen]) {
-    //     setfullscreen(c, 1);
-    // }
-    // if (wtype == netatom[NetWMWindowTypeDialog]) {
-    //     c->isfloating = 1;
-    // }
+    pub fn setFullscreen(self: *Self, z: *App, fullscreen: bool) void {
+        _ = z;
+        _ = self;
+        _ = fullscreen;
 
+        // if (fullscreen && !c->isfullscreen) {
+        //     XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
+        //                     PropModeReplace,
+        //                     (unsigned char *)&netatom[NetWMFullscreen], 1);
+        //     c->isfullscreen = 1;
+        //     c->oldstate = c->isfloating;
+        //     c->oldbw = c->bw;
+        //     c->bw = 0;
+        //     c->isfloating = 1;
+        //     resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
+        //     XRaiseWindow(dpy, c->win);
+        // } else if (!fullscreen && c->isfullscreen) {
+        //     XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
+        //                     PropModeReplace, (unsigned char *)0, 0);
+        //     c->isfullscreen = 0;
+        //     c->isfloating = c->oldstate;
+        //     c->bw = c->oldbw;
+        //     c->x = c->oldx;
+        //     c->y = c->oldy;
+        //     c->w = c->oldw;
+        //     c->h = c->oldh;
+        //     resizeclient(c, c->x, c->y, c->w, c->h);
+        //     arrange(c->mon);
+        // }
+
+    }
+
+    pub fn updateWindowType(self: *Self, z: *App) void {
+        const net = z.netatom.get;
+        if (self.getAtomProp(net(.WMState)) == net(.WMFullscreen)) {
+            self.setFullscreen(z, true);
+        }
+        if (self.getAtomProp(net(.WMWindowType)) == net(.WMWindowTypeDialog)) {
+            self.isfloating = true;
+        }
     }
 };
