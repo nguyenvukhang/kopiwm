@@ -256,14 +256,13 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     // me: I have no idea why. Looks like we're pushing the window off the screen.
 
     c.setState(X.NormalState);
-    if (c.mon == z.selmon) {}
-    // if (c.mon == selmon) {
-    //     unfocus(selmon->sel, 0);
-    // }
-    // c.mon->sel = c;
-    // arrange(c.mon);
-    // XMapWindow(dpy, c.win);
-    // focus(NULL);
+    if (c.mon == z.selmon) {
+        unfocus(c.mon.sel, false);
+    }
+    c.mon.sel = c;
+    // arrange(c.mon); // TODO: implement arrange
+    _ = X.XMapWindow(z.dpy, c.win);
+    focus(allocator, null);
 }
 
 fn scan(allocator: Allocator) error{OutOfMemory}!void {
