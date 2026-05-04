@@ -484,4 +484,51 @@ pub const Client = struct {
         };
         self.hintsvalid = true;
     }
+
+    /// [dwm] applyrules
+    pub fn applyRules(self: *Self) void {
+
+        // const char *class, *instance;
+        // unsigned int i;
+        // const Rule *r;
+        // Monitor *m;
+        var ch: X.XClassHint = undefined;
+        // XClassHint ch = {NULL, NULL};
+
+        // Rule matching.
+        self.isfloating.set(false);
+        self.tags = 0;
+        _ = X.XGetClassHint(self.app.dpy, self.win, &ch);
+        // const broken1: [*c]const u8 = "broken";
+        // const broken: [*c]const u8 = "broken";
+        // const broken: ?*[]const u8 = "broken";
+        // const class = ch.res_class orelse broken;
+        // _ = class;
+        // ch.res_class
+        // class = ch.res_class ? ch.res_class : broken;
+        // instance = ch.res_name ? ch.res_name : broken;
+        //
+        // for (i = 0; i < LENGTH(rules); i++) {
+        //     r = &rules[i];
+        //     if ((!r->title || strstr(c->name, r->title)) &&
+        //         (!r->class || strstr(class, r->class)) &&
+        //         (!r->instance || strstr(instance, r->instance))) {
+        //         c->isfloating = r->isfloating;
+        //         c->tags |= r->tags;
+        //         for (m = mons; m && m->num != r->monitor; m = m->next);
+        //         if (m) {
+        //             c->mon = m;
+        //         }
+        //     }
+        // }
+        // if (ch.res_class) {
+        //     XFree(ch.res_class);
+        // }
+        // if (ch.res_name) {
+        //     XFree(ch.res_name);
+        // }
+        // c->tags =
+        //     c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
+
+    }
 };

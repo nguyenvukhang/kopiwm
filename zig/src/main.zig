@@ -196,7 +196,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
         c.mon = z.selmon orelse {
             @panic("Tried unwrapping an optional `selmon`.");
         };
-        // applyrules(c);
+        c.applyRules();
     }
     if (X.XGetTransientForHint(z.dpy, w, &trans) == X.True) {}
     var r = &c.*.pos.curr;
