@@ -6,6 +6,7 @@ const N = @import("enums.zig").N;
 const Scheme = @import("drw.zig").Scheme;
 const EnumArray = std.enums.EnumArray;
 const Arg = @import("enums.zig").Arg;
+const BarPosition = @import("enums.zig").BarPosition;
 const Key = @import("enums.zig").Key;
 const Button = @import("enums.zig").Button;
 const F = @import("funcs.zig");
@@ -34,8 +35,7 @@ pub const refreshrate = 60;
 /// false means hide bar.
 pub const show_bar = true;
 
-/// false means bottom bar.
-pub const top_bar = true;
+pub const bar_pos: BarPosition = .top;
 
 pub const layouts = [_]lt.Layout{
     .{ .symbol = "[]=", .arrange = lt.tile },

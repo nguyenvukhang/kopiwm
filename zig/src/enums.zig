@@ -89,3 +89,5 @@ pub const Button = struct {
     func: *const fn (*App, *Arg) void,
     arg: Arg,
 };
+
+pub const BarPosition = enum { top, bottom };

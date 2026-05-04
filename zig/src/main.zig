@@ -104,12 +104,18 @@ fn check_other_wm() void {
 
 /// [dwm] updatebarpos
 fn updatebarpos(m: *Monitor) void {
-    m.wy = m.my;
-    m.wh = m.mh;
+    m.w.y = m.m.y;
+    m.w.h = m.m.h;
     if (m.show_bar) {
-        m.wh -= @intCast(z.bar_height);
-        m.by = if (m.top_bar) m.wy else m.wy + @as(i32, @intCast(m.wh));
-        m.wy = if (m.top_bar) m.wy + @as(i32, @intCast(z.bar_height)) else m.wy;
+        m.w.h -= z.bar_height;
+        m.by = switch (m.bar_pos) {
+            .top => m.w.y,
+            .bottom => m.w.b(),
+        };
+        m.w.y = switch (m.bar_pos) {
+            .top => m.w.y + @as(i32, @intCast(z.bar_height)),
+            .bottom => m.w.y,
+        };
     } else {
         m.by = -@as(i32, @intCast(z.bar_height));
     }
@@ -196,15 +202,15 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     var r = &c.*.pos.curr;
 
     // If client is too far right, shift it left.
-    if (r.x + @as(i32, @intCast(c.width())) > c.mon.wx + @as(i32, @intCast(c.mon.ww))) {
-        r.x = c.mon.wx + @as(i32, @intCast(c.mon.ww)) - @as(i32, @intCast(c.width()));
+    if (r.x + c.width() > c.mon.w.r()) {
+        r.x = c.mon.w.r() - c.width();
     }
     // If client is too far down, shift it up.
-    if (r.y + @as(i32, @intCast(c.height())) > c.mon.wy + @as(i32, @intCast(c.mon.wh))) {
-        r.y = c.mon.wy + @as(i32, @intCast(c.mon.wh)) - @as(i32, @intCast(c.height()));
+    if (r.y + c.height() > c.mon.w.b()) {
+        r.y = c.mon.w.b() - c.height();
     }
-    r.x = @max(r.x, c.mon.wx); // If client is too far left, truncate it.
-    r.y = @max(r.y, c.mon.wy); // If client is too far up, truncate it.
+    r.x = @max(r.x, c.mon.w.x); // If client is too far left, truncate it.
+    r.y = @max(r.y, c.mon.w.y); // If client is too far up, truncate it.
     c.bw.set(cfg.borderpx);
 
     wc.border_width = c.bw.curr;
@@ -341,12 +347,12 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
             z.mons = try Monitor.init(allocator);
             break :m z.mons.?;
         };
-        if (mons.ww != z.sw or mons.mh != z.sh) {
+        if (mons.w.w != z.sw or mons.m.h != z.sh) {
             dirty = true;
-            mons.ww = z.sw;
-            mons.mw = z.sw;
-            mons.wh = z.sh;
-            mons.mh = z.sh;
+            mons.w.w = z.sw;
+            mons.m.w = z.sw;
+            mons.w.h = z.sh;
+            mons.m.h = z.sh;
             updatebarpos(mons);
         }
     }
@@ -657,9 +663,9 @@ fn updatebars() void {
         m.barwin = X.XCreateWindow(
             z.dpy,
             z.root,
-            m.wx,
+            m.w.x,
             m.by,
-            m.ww,
+            m.w.w,
             z.bar_height,
             0,
             X.DefaultDepth(z.dpy, z.screen),
@@ -700,7 +706,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
         z.drw.setScheme(z.scheme.get(.Normal));
         tw = z.TEXTW(allocator, z.stext.get());
         _ = z.drw.drawText(allocator, .{
-            .x = @as(i32, @intCast(m.ww)) - @as(i32, @intCast(tw)),
+            .x = @as(i32, @intCast(m.w.w)) - @as(i32, @intCast(tw)),
             .y = 0,
             .w = tw,
             .h = z.bar_height,
@@ -752,7 +758,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     );
 
     // TODO: what if tw > m.ww?
-    w = m.ww - tw - @as(u32, @intCast(x));
+    w = m.w.w - tw - @as(u32, @intCast(x));
     if (w > z.bar_height) {
         if (m.sel) |c| {
             const name = c.name.get();
@@ -764,7 +770,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
             z.drw.drawRect(.{ .x = x, .y = 0, .w = w, .h = z.bar_height }, true, true);
         }
     }
-    z.drw.map(m.barwin, .{ .x = 0, .y = 0, .w = m.ww, .h = z.bar_height });
+    z.drw.map(m.barwin, .{ .x = 0, .y = 0, .w = m.w.w, .h = z.bar_height });
 }
 
 pub fn main() !void {

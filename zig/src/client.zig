@@ -192,13 +192,13 @@ pub const Client = struct {
     }
 
     /// [dwm] WIDTH
-    pub inline fn width(self: *const Self) u32 {
-        return self.pos.curr.w + 2 * @as(u32, @intCast(self.bw.curr));
+    pub inline fn width(self: *const Self) i32 {
+        return @as(i32, @intCast(self.pos.curr.w)) + 2 * self.bw.curr;
     }
 
     /// [dwm] HEIGHT
-    pub inline fn height(self: *const Self) u32 {
-        return self.pos.curr.h + 2 * @as(u32, @intCast(self.bw.curr));
+    pub inline fn height(self: *const Self) i32 {
+        return @as(i32, @intCast(self.pos.curr.h)) + 2 * self.bw.curr;
     }
 
     /// [dwm] configure
@@ -271,7 +271,7 @@ pub const Client = struct {
             self.isfullscreen = true;
             self.bw.set(0);
             self.isfloating.set(true);
-            self.resize(.{ .x = self.mon.mx, .y = self.mon.my, .w = self.mon.mw, .h = self.mon.mh });
+            self.resize(self.mon.m);
             // XRaiseWindow(dpy, self.win);
         } else if (!fullscreen and self.isfullscreen) {
             _ = X.XChangeProperty(
@@ -342,11 +342,11 @@ pub const Client = struct {
         if (interact) {
             if (rect.x > c.app.sw) {
                 // left-most point is beyond the limits of the current monitor.
-                rect.x = @as(i32, @intCast(c.app.sw)) - @as(i32, @intCast(c.width()));
+                rect.x = @as(i32, @intCast(c.app.sw)) - c.width();
             }
             if (rect.y > c.app.sh) {
                 // top-most point is beyond the limits of the current monitor.
-                rect.y = @as(i32, @intCast(c.app.sh)) - @as(i32, @intCast(c.height()));
+                rect.y = @as(i32, @intCast(c.app.sh)) - c.height();
             }
             if (rect.x + @as(i32, @intCast(rect.w)) + 2 * c.bw.curr < 0) {
                 rect.x = 0;
@@ -355,14 +355,9 @@ pub const Client = struct {
                 rect.y = 0;
             }
         } else {
-            if (rect.x >= m.wx + @as(i32, @intCast(m.ww))) {
-                // if (*x >= m->wx + m->ww) *x = m->wx + m->ww - WIDTH(c);
-                rect.x = m.wx + @as(i32, @intCast(m.ww)) - @as(i32, @intCast(c.width()));
-            }
-            if (rect.y >= m.wy + @as(i32, @intCast(m.wh))) {
-                // if (*y >= m->wy + m->wh) *y = m->wy + m->wh - HEIGHT(c);
-                rect.y = m.wy + @as(i32, @intCast(m.wh)) - @as(i32, @intCast(c.height()));
-            }
+            if (rect.x >= m.w.r()) rect.x = m.w.r() - c.width();
+            if (rect.y >= m.w.b()) rect.y = m.w.b() - c.height();
+
             // if (rect.x >= m.wx + @as(i32, @intCast(m.ww))) {
             //     // if (*x + *w + 2 * c->bw <= m->wx) *x = m->wx;
             //     rect.x = m.wx + @as(i32, @intCast(m.ww)) - @as(i32, @intCast(c.width()));

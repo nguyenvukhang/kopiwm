@@ -3,8 +3,8 @@ const X = @import("c_lib.zig").X;
 
 /// [dwm] INTERSECT
 fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
-    return @max(0, @min(x + w, m.wx + @as(i32, @intCast(m.ww))) - @max(x, m.wx)) *
-        @max(0, @min(y + h, m.wy + @as(i32, @intCast(m.wh))) - @max(y, m.wy));
+    return @max(0, @min(x + w, m.w.x + @as(i32, @intCast(m.w.w))) - @max(x, m.w.x)) *
+        @max(0, @min(y + h, m.w.y + @as(i32, @intCast(m.w.h))) - @max(y, m.w.y));
 }
 
 pub const Rect = struct {
@@ -25,12 +25,12 @@ pub const Rect = struct {
 
     /// Translate from this to an X11 struct. Use keys [x, y, width, height].
     pub fn toX(self: *const Self, comptime T: type) T {
-        var t: T = undefined;
-        t.x = @intCast(self.x);
-        t.y = @intCast(self.y);
-        t.width = @intCast(self.w);
-        t.height = @intCast(self.h);
-        return t;
+        return .{
+            .x = @intCast(self.x),
+            .y = @intCast(self.y),
+            .width = @intCast(self.w),
+            .height = @intCast(self.h),
+        };
     }
 
     /// Translate from an X11 struct to this. Use keys [x, y, width, height].
@@ -39,7 +39,7 @@ pub const Rect = struct {
     }
 
     pub fn toMonitor(self: *const Self, default: ?*Monitor, mons: ?*Monitor) ?*Monitor {
-        var r = default;
+        var ret = default;
         var max_area: i32 = 0;
         var a: i32 = 0;
         var m_opt = mons;
@@ -49,13 +49,33 @@ pub const Rect = struct {
             a = intersect(self.x, self.y, @intCast(self.w), @intCast(self.h), m);
             if (a > max_area) {
                 max_area = a;
-                r = m;
+                ret = m;
             }
         }
-        return r;
+        return ret;
     }
 
     pub fn eq(lhs: *const Self, rhs: *const Self) bool {
         return lhs.x == rhs.x and lhs.y == rhs.y and lhs.w == rhs.w and lhs.h == rhs.h;
+    }
+
+    /// The left-most coordinate. Use `self.x` where it's sufficiently clear.
+    pub inline fn l(self: *const Self) i32 {
+        return self.x;
+    }
+
+    /// The right-most coordinate.
+    pub inline fn r(self: *const Self) i32 {
+        return self.x + @as(@TypeOf(self.x), @intCast(self.w));
+    }
+
+    /// The top-most coordinate. Use `self.y` where it's sufficiently clear.
+    pub inline fn t(self: *const Self) i32 {
+        return self.y;
+    }
+
+    /// The bottom-most coordinate. Use `self.y` where it's sufficiently clear.
+    pub inline fn b(self: *const Self) i32 {
+        return self.y + @as(@TypeOf(self.y), @intCast(self.h));
     }
 };
