@@ -28,7 +28,7 @@ pub const Client = struct {
     /// Border width.
     bw: i32 = undefined,
     /// Old border width.
-    oldbw: i32 = undefined,
+    oldbw: i32,
     /// Bitmask of active tags.
     tags: u32 = 0,
     isfixed: bool = undefined,
@@ -47,7 +47,23 @@ pub const Client = struct {
 
     pub fn init(w: Window, wa: *X.XWindowAttributes) Self {
         const r = Rect.fromXWindowAttributes(wa);
-        return Self{ .win = w, .r = r, .oldr = r };
+        return Self{
+            .win = w,
+            .r = r,
+            .oldr = r,
+            .oldbw = @intCast(wa.border_width),
+        };
+    }
+
+    /// [dwm] updatetitle
+    pub fn updateTitle(self: *Self, z: *App) void {
+        if (z.getTextProp(self.win, z.netatom.get(.WMName), &self.name.buffer)) |len| {
+            self.name.len = len;
+        } else if (z.getTextProp(self.win, X.XA_WM_NAME, &self.name.buffer)) |len| {
+            self.name.len = len;
+        } else {
+            self.name.set("broken");
+        }
     }
 
     /// [dwm] ISVISIBLE

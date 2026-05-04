@@ -180,24 +180,15 @@ fn getstate(w: Window) i32 {
     return result;
 }
 
+/// [dwm] manage
 fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOfMemory}!void {
     const c = try allocator.create(Client);
     c.* = .init(w, wa);
+    // var trans: Window = X.None;
+    // var wc: X.XWindowChanges = undefined;
+    // var t: *Client = undefined;
 
-    // Client *c, *t = NULL;
-    // Window trans = None;
-    // XWindowChanges wc;
-    //
-    // c = ecalloc(1, sizeof(Client));
-    // c->win = w;
-    // /* geometry */
-    // c->x = c->oldx = wa->x;
-    // c->y = c->oldy = wa->y;
-    // c->w = c->oldw = wa->width;
-    // c->h = c->oldh = wa->height;
-    // c->oldbw = wa->border_width;
-    //
-    // updatetitle(c);
+    c.updateTitle(&z);
     // if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
     //     c->mon = t->mon;
     //     c->tags = t->tags;
@@ -674,44 +665,12 @@ fn updatebars() void {
     }
 }
 
-/// Gets the property of a window in text form, and writes it to `buffer`.
-/// Returns the number of valid bytes written to the buffer.
-/// [dwm] gettextprop
-fn gettextprop(w: Window, atom: X.Atom, buffer: []u8) usize {
-    if (buffer.len == 0) {
-        return 0;
-    }
-    var tp: X.XTextProperty = undefined;
-    if (X.XGetTextProperty(z.dpy, w, &tp, atom) == 0 or tp.nitems == 0) {
-        return 0;
-    }
-    var l: ?usize = null;
-    if (tp.encoding == X.XA_STRING) {
-        const value: []const u8 = mem.span(tp.value);
-        l = @min(value.len, buffer.len);
-        @memcpy(buffer[0..l.?], value[0..l.?]);
-    } else {
-        var list: [*c][*c]u8 = undefined;
-        var n: c_int = undefined;
-        const res = X.XmbTextPropertyToTextList(z.dpy, &tp, &list, &n);
-        if (res >= X.Success and n > 0 and list != null) {
-            const value: []const u8 = mem.span(list[0]);
-            l = @min(value.len, buffer.len);
-            @memcpy(buffer[0..l.?], value[0..l.?]);
-        }
-        X.XFreeStringList(list);
-    }
-    _ = X.XFree(tp.value);
-    return l orelse 0;
-}
-
 /// [dwm] updatestatus
 fn updatestatus(allocator: Allocator) void {
-    const b = gettextprop(z.root, X.XA_WM_NAME, &z.stext.buffer);
-    if (b == 0) {
-        z.stext.set(NAME ++ "-" ++ VERSION);
+    if (z.getTextProp(z.root, X.XA_WM_NAME, &z.stext.buffer)) |len| {
+        z.stext.len = len;
     } else {
-        z.stext.len = b;
+        z.stext.set(NAME ++ "-" ++ VERSION);
     }
     if (z.selmon) |m| drawbar(allocator, m);
 }

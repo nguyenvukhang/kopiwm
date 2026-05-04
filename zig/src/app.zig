@@ -97,4 +97,33 @@ pub const App = struct {
         const res: X.Bool = X.XQueryPointer(self.dpy, self.root, &w, &w, x, y, &d_int, &d_int, &d_uint);
         return res == X.True;
     }
+
+    /// Gets the property of a window in text form, and writes it to `buffer`.
+    /// Returns the number of valid bytes written to the buffer.
+    /// [dwm] gettextprop
+    pub fn getTextProp(self: *Self, w: Window, atom: X.Atom, buffer: []u8) ?usize {
+        if (buffer.len == 0) return null;
+        var tp: X.XTextProperty = undefined;
+        if (X.XGetTextProperty(self.dpy, w, &tp, atom) == 0 or tp.nitems == 0) {
+            return null;
+        }
+        var l: ?usize = null;
+        if (tp.encoding == X.XA_STRING) {
+            const value: []const u8 = std.mem.span(tp.value);
+            l = @min(value.len, buffer.len);
+            @memcpy(buffer[0..l.?], value[0..l.?]);
+        } else {
+            var list: [*c][*c]u8 = undefined;
+            var n: c_int = undefined;
+            const res = X.XmbTextPropertyToTextList(self.dpy, &tp, &list, &n);
+            if (res >= X.Success and n > 0 and list != null) {
+                const value: []const u8 = std.mem.span(list[0]);
+                l = @min(value.len, buffer.len);
+                @memcpy(buffer[0..l.?], value[0..l.?]);
+            }
+            X.XFreeStringList(list);
+        }
+        _ = X.XFree(tp.value);
+        return l;
+    }
 };

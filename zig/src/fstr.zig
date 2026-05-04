@@ -2,6 +2,7 @@
 pub fn fstr(comptime N: usize) type {
     return struct {
         const Self = @This();
+        pub const capacity: usize = N;
 
         /// Do not access this directly if possible.
         buffer: [N]u8 = undefined,
