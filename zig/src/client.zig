@@ -44,7 +44,7 @@ pub const Client = struct {
     pub fn init(w: Window, wa: *X.XWindowAttributes) Self {
         return Self{
             .win = w,
-            .pos = .init(.fromXWindowAttributes(wa)),
+            .pos = .init(.fromX(X.XWindowAttributes, wa)),
             .bw = .init(@intCast(wa.border_width)),
             .isfloating = .init(false),
         };
@@ -246,7 +246,7 @@ pub const Client = struct {
             self.isfullscreen = true;
             self.bw.set(0);
             self.isfloating.set(true);
-            // resizeclient(c, self.mon->mx, self.mon->my, self.mon->mw, self.mon->mh);
+            self.resize(z, .{ .x = self.mon.mx, .y = self.mon.my, .w = self.mon.mw, .h = self.mon.mh });
             // XRaiseWindow(dpy, self.win);
         } else if (!fullscreen and self.isfullscreen) {
             _ = X.XChangeProperty(
@@ -263,7 +263,7 @@ pub const Client = struct {
             self.isfloating.revert();
             self.bw.revert();
             self.pos.revert();
-            // resizeclient(c, self.x, self.y, self.w, self.h);
+            self.resize(z, self.pos.curr);
             // arrange(self.mon);
         }
     }
@@ -277,4 +277,20 @@ pub const Client = struct {
             self.isfloating.set(true);
         }
     }
+
+    /// [dwm] resizeclient
+    /// Resize the X window, and also update its border width.
+    pub fn resize(self: *Self, z: *App, rect: Rect) void {
+        var wc = rect.toX(X.XWindowChanges);
+        wc.border_width = self.bw.curr;
+        const flags =
+            X.CWX | X.CWY | X.CWWidth | X.CWHeight | X.CWBorderWidth;
+        _ = X.XConfigureWindow(z.dpy, self.win, flags, &wc);
+        self.pos.set(rect);
+        self.configure(z.dpy);
+        _ = X.XSync(z.dpy, X.False);
+    }
+
+    /// [dwm] resize
+    pub fn hintAndResize() void {}
 };

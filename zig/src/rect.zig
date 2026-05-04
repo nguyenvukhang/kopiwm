@@ -21,8 +21,19 @@ pub const Rect = struct {
 
     pub const zero = Self{ .x = 0, .y = 0, .w = 0, .h = 0 };
 
-    pub fn fromXWindowAttributes(wa: *X.XWindowAttributes) Self {
-        return .{ .x = @intCast(wa.x), .y = @intCast(wa.y), .w = @intCast(wa.width), .h = @intCast(wa.height) };
+    /// Translate from this to an X11 struct. Use keys [x, y, width, height].
+    pub fn toX(self: *const Self, comptime T: type) T {
+        var t: T = undefined;
+        t.x = @intCast(self.x);
+        t.y = @intCast(self.y);
+        t.width = @intCast(self.w);
+        t.height = @intCast(self.h);
+        return t;
+    }
+
+    /// Translate from an X11 struct to this. Use keys [x, y, width, height].
+    pub fn fromX(comptime T: type, z: *T) Self {
+        return .{ .x = @intCast(z.x), .y = @intCast(z.y), .w = @intCast(z.width), .h = @intCast(z.height) };
     }
 
     pub fn toMonitor(self: *const Self, default: ?*Monitor, mons: ?*Monitor) ?*Monitor {
