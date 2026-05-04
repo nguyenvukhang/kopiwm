@@ -86,4 +86,15 @@ pub const App = struct {
             .res_name = &self.updatebars_buffer,
         };
     }
+
+    /// [dwm] getrootptr
+    pub fn getRootPtr(self: *Self, x: *c_int, y: *c_int) bool {
+        var w: Window = undefined;
+        var d_int: c_int = undefined; // dummy c_int.
+        var d_uint: c_uint = undefined; // dummy c_uint.
+        // XQueryPointer returns the root window the pointer is logically on and
+        // the pointer coordinates relative to the root window's origin.
+        const res: X.Bool = X.XQueryPointer(self.dpy, self.root, &w, &w, x, y, &d_int, &d_int, &d_uint);
+        return res == X.True;
+    }
 };

@@ -114,15 +114,6 @@ fn updatebarpos(m: *Monitor) void {
     }
 }
 
-/// [dwm] getrootptr
-fn getrootptr(x: *c_int, y: *c_int) c_int {
-    // dummy variables.
-    var d: Window = undefined;
-    var d_int: c_int = undefined;
-    var d_uint: c_uint = undefined;
-    return X.XQueryPointer(z.dpy, z.root, &d, &d, x, y, &d_int, &d_int, &d_uint);
-}
-
 /// [dwm] INTERSECT
 fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
     return @max(0, @min(x + w, m.wx + @as(i32, @intCast(m.ww))) - @max(x, m.wx)) *
@@ -152,8 +143,9 @@ fn wintoclient(w: Window) ?*Client {
 fn wintomon(w: Window) ?*Monitor {
     var x: c_int = undefined;
     var y: c_int = undefined;
-    if (w == z.root and getrootptr(&x, &y) != 0) {
-        return (Rect{ .x = x, .y = y, .w = 1, .h = 1 }).toMonitor(z.selmon, z.mons);
+    if (w == z.root and z.getRootPtr(&x, &y)) {
+        const r = Rect{ .x = @intCast(x), .y = @intCast(y), .w = 1, .h = 1 };
+        return r.toMonitor(z.selmon, z.mons);
     }
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
