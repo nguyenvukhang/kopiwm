@@ -137,6 +137,53 @@ fn wintoclient(w: Window) ?*Client {
     return null;
 }
 
+fn getstate(w: Window) i32 {
+    var real: X.Atom = undefined;
+    var format: c_int = undefined;
+    var n: c_ulong = undefined;
+    var extra: c_ulong = undefined;
+    var property: ?[*]u8 = undefined;
+    var result: i32 = -1;
+
+    // From X11 docs:
+    // int XGetWindowProperty(Display *display, Window w, Atom property,
+    //                        long long_offset, long long_length, Bool delete,
+    //                        Atom req_type, Atom *actual_type_return,
+    //                        int *actual_format_return,
+    //                        unsigned long *nitems_return,
+    //                        unsigned long *bytes_after_return,
+    //                        unsigned char **prop_return);
+    const res = X.XGetWindowProperty(
+        z.dpy,
+        w,
+        z.wmatom.get(.State),
+        0, // long_offset: Specifies the offset in the specified property (in 32-bit quantities) where the data is to be retrieved.
+        2, // long_length: Specifies the length in 32-bit multiples of the data to be retrieved.
+        X.False,
+        z.wmatom.get(.State),
+        &real,
+        &format,
+        &n,
+        &extra,
+        &property,
+    );
+    if (res != X.Success) {
+        return -1;
+    }
+    if (property) |p| {
+        if (n != 0 and format == 32) {
+            result = @as([*]i32, @ptrCast(@alignCast(p)))[0];
+        }
+    }
+    _ = X.XFree(property);
+    return result;
+}
+
+fn manage(w: Window, wa: *X.XWindowAttributes) void {
+    _ = w;
+    _ = wa;
+}
+
 fn scan() void {
     var wa: X.XWindowAttributes = undefined;
     var num: c_uint = undefined;
@@ -161,7 +208,11 @@ fn scan() void {
             continue;
         }
         // TODO: get back here with getstate and manage.
-        if (wa.map_state == X.IsViewable) {}
+        // X.Status
+
+        if (wa.map_state == X.IsViewable or getstate(wins[i]) == X.IconicState) {
+            manage(wins[i], &wa);
+        }
     }
     i = 0;
     while (i < num) : (i += 1) {} // now the transients
