@@ -1,3 +1,4 @@
+const std = @import("std");
 const Monitor = @import("monitor.zig").Monitor;
 const App = @import("app.zig").App;
 const X = @import("c_lib.zig").X;
@@ -495,6 +496,7 @@ pub const Client = struct {
         var ch: X.XClassHint = undefined;
         // XClassHint ch = {NULL, NULL};
 
+        var buffer: [10]u8 = undefined;
         // Rule matching.
         self.isfloating.set(false);
         self.tags = 0;
@@ -502,8 +504,11 @@ pub const Client = struct {
         // const broken1: [*c]const u8 = "broken";
         // const broken: [*c]const u8 = "broken";
         // const broken: ?*[]const u8 = "broken";
-        // const class = ch.res_class orelse broken;
-        // _ = class;
+        const class: ?[*]u8 = ch.res_class orelse &buffer;
+        _ = class;
+        const c2 = @as([*:0]const u8, ch.res_class orelse "hey");
+        const c3: []const u8 = std.mem.span(c2);
+        _ = c3;
         // ch.res_class
         // class = ch.res_class ? ch.res_class : broken;
         // instance = ch.res_name ? ch.res_name : broken;

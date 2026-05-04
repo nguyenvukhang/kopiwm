@@ -26,3 +26,18 @@ test "c coerce nonnull optional ptr" {
     const value: ?*u8 = small.get_nonnull_str();
     try std.testing.expect(value != null);
 }
+
+test "string 1" {
+    const value: ?[*]const u8 = small.get_null_str();
+    try std.testing.expect(value == null);
+}
+
+test "string 2" {
+    const value: [*]const u8 = small.get_null_str() orelse "hey";
+    try std.testing.expect(value[0] == 'h');
+}
+
+test "string 3" {
+    const value: []const u8 = std.mem.span(small.get_nonnull_str());
+    try std.testing.expect(value[0] == 't');
+}
