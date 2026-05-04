@@ -222,18 +222,19 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     c.updateSizeHints();
     c.updateWMHints();
 
-    // XSelectInput(dpy, w,
-    //              EnterWindowMask | FocusChangeMask | PropertyChangeMask |
-    //                  StructureNotifyMask);
-    // grabbuttons(c, 0);
-    // if (!c->is_floating) {
-    //     c->is_floating = c->oldstate = trans != None || c->isfixed;
-    // }
-    // if (c->is_floating) {
-    //     XRaiseWindow(dpy, c->win);
-    // }
-    // attach(c);
-    // attachstack(c);
+    _ = X.XSelectInput(z.dpy, w, X.EnterWindowMask | X.FocusChangeMask | X.PropertyChangeMask | X.StructureNotifyMask);
+
+    grabbuttons(c, false);
+
+    if (!c.is_floating.curr) {
+        c.is_floating = .init(trans != X.None or c.is_fixed);
+    }
+    if (c.is_floating.curr) {
+        _ = X.XRaiseWindow(z.dpy, c.win);
+    }
+    c.attach();
+    c.attachStack();
+
     // XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32,
     //                 PropModeAppend, (unsigned char *)&(c->win), 1);
     // XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w,

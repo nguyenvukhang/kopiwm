@@ -51,7 +51,7 @@ pub const Client = struct {
     bw: toggle(i32),
     /// Bitmask of active tags.
     tags: u32 = 0,
-    isfixed: bool = undefined,
+    is_fixed: bool = undefined,
     is_floating: toggle(bool),
     isurgent: bool = undefined,
     neverfocus: bool = undefined,
@@ -498,7 +498,7 @@ pub const Client = struct {
             sz.mina = null;
             sz.maxa = null;
         }
-        self.isfixed = isfixed: {
+        self.is_fixed = isfixed: {
             const max = sz.max orelse break :isfixed false;
             const min = sz.min orelse break :isfixed false;
             break :isfixed max.eq(&min);
