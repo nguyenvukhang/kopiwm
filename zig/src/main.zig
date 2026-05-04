@@ -255,7 +255,8 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     ); // dwm: some windows require this.
     // me: I have no idea why. Looks like we're pushing the window off the screen.
 
-    // setclientstate(c, NormalState);
+    c.setState(X.NormalState);
+    if (c.mon == z.selmon) {}
     // if (c.mon == selmon) {
     //     unfocus(selmon->sel, 0);
     // }
@@ -469,9 +470,13 @@ fn setup(allocator: Allocator) !void {
 
 /// [dwm] unfocus
 fn unfocus(client: ?*Client, setfocus: bool) void {
-    // TODO: translate this.
-    _ = client;
-    _ = setfocus;
+    const c = client orelse return;
+    grabbuttons(c, false);
+    _ = X.XSetWindowBorder(z.dpy, c.win, z.scheme.get(.Normal).border.pixel);
+    if (setfocus) {
+        _ = X.XSetInputFocus(z.dpy, z.root, X.RevertToPointerRoot, X.CurrentTime);
+        _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));
+    }
 }
 
 /// [dwm] focus

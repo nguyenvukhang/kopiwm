@@ -528,4 +528,20 @@ pub const Client = struct {
             self.tags &= cfg.TAGMASK;
         }
     }
+
+    /// [dwm] setclientstate
+    pub fn setState(self: *Self, state: u32) void {
+        const data: [2]u32 = .{ state, X.None };
+        const z = self.app;
+        _ = X.XChangeProperty(
+            z.dpy,
+            self.win,
+            z.wmatom.get(.State),
+            z.wmatom.get(.State),
+            32,
+            X.PropModeReplace,
+            @ptrCast(&data),
+            2,
+        );
+    }
 };
