@@ -203,22 +203,15 @@ pub const Client = struct {
 
     /// [dwm] configure
     pub fn configure(self: *const Self, dpy: ?*Display) void {
-        const r = &self.pos.curr;
-        var event = X.XEvent{
-            .xconfigure = .{
-                .type = X.ConfigureNotify,
-                .display = dpy,
-                .event = self.win,
-                .window = self.win,
-                .x = r.x,
-                .y = r.y,
-                .width = @intCast(r.w),
-                .height = @intCast(r.h),
-                .border_width = self.bw.curr,
-                .above = X.None,
-                .override_redirect = X.False,
-            },
-        };
+        var xconf = self.pos.curr.toX(X.XConfigureEvent);
+        xconf.type = X.ConfigureNotify;
+        xconf.display = dpy;
+        xconf.event = self.win;
+        xconf.window = self.win;
+        xconf.border_width = self.bw.curr;
+        xconf.above = X.None;
+        xconf.override_redirect = X.False;
+        var event = X.XEvent{ .xconfigure = xconf };
         _ = X.XSendEvent(dpy, self.win, X.False, X.StructureNotifyMask, &event);
     }
 
@@ -348,24 +341,17 @@ pub const Client = struct {
                 // top-most point is beyond the limits of the current monitor.
                 rect.y = @as(i32, @intCast(c.app.sh)) - c.height();
             }
-            if (rect.x + @as(i32, @intCast(rect.w)) + 2 * c.bw.curr < 0) {
+            if (rect.r() + 2 * c.bw.curr < 0) {
                 rect.x = 0;
             }
-            if (rect.y + @as(i32, @intCast(rect.h)) + 2 * c.bw.curr < 0) {
+            if (rect.b() + 2 * c.bw.curr < 0) {
                 rect.y = 0;
             }
         } else {
             if (rect.x >= m.w.r()) rect.x = m.w.r() - c.width();
             if (rect.y >= m.w.b()) rect.y = m.w.b() - c.height();
-
-            // if (rect.x >= m.wx + @as(i32, @intCast(m.ww))) {
-            //     // if (*x + *w + 2 * c->bw <= m->wx) *x = m->wx;
-            //     rect.x = m.wx + @as(i32, @intCast(m.ww)) - @as(i32, @intCast(c.width()));
-            // }
-            // if (rect.y >= m.wy + @as(i32, @intCast(m.wh))) {
-            //     // if (*y + *h + 2 * c->bw <= m->wy) *y = m->wy;
-            //     rect.y = m.wy + @as(i32, @intCast(m.wh)) - @as(i32, @intCast(c.height()));
-            // }
+            if (rect.r() + 2 * c.bw.curr <= m.w.x) rect.x = m.w.x;
+            if (rect.b() + 2 * c.bw.curr <= m.w.y) rect.y = m.w.y;
         }
 
         if (rect.h < c.app.bar_height) rect.h = c.app.bar_height;
