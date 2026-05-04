@@ -137,6 +137,61 @@ fn wintoclient(w: Window) ?*Client {
     return null;
 }
 
+fn scan() void {
+    var wa: X.XWindowAttributes = undefined;
+    var num: c_uint = undefined;
+    var i: c_uint = undefined;
+    var d1: Window = undefined;
+    var d2: Window = undefined;
+    var wins_opt: ?[*]Window = undefined;
+
+    if (X.XQueryTree(z.dpy, z.root, &d1, &d2, &wins_opt, &num) == 0) {
+        return;
+    }
+    // No need to call XFree because null in Zig means NULL in C.
+    const wins: [*]Window = wins_opt orelse return;
+
+    i = 0;
+    while (i < num) : (i += 1) {
+        const r1 = X.XGetWindowAttributes(z.dpy, wins[i], &wa);
+        if (r1 == X.False or wa.override_redirect == X.True) {
+            continue;
+        }
+        if (X.XGetTransientForHint(z.dpy, wins[i], &d1) == X.True) {
+            continue;
+        }
+        // TODO: get back here with getstate and manage.
+        if (wa.map_state == X.IsViewable) {}
+    }
+    i = 0;
+    while (i < num) : (i += 1) {} // now the transients
+
+    // for (i = 0; i < num; i++) {
+    //     if (!XGetWindowAttributes(dpy, wins[i], &wa) ||
+    //         wa.override_redirect ||
+    //         XGetTransientForHint(dpy, wins[i], &d1)) {
+    //         continue;
+    //     }
+    //     if (wa.map_state == IsViewable ||
+    //         getstate(wins[i]) == IconicState) {
+    //         manage(wins[i], &wa);
+    //     }
+    // }
+    // for (i = 0; i < num; i++) { /* now the transients */
+    //     if (!XGetWindowAttributes(dpy, wins[i], &wa)) {
+    //         continue;
+    //     }
+    //     if (XGetTransientForHint(dpy, wins[i], &d1) &&
+    //         (wa.map_state == IsViewable ||
+    //          getstate(wins[i]) == IconicState)) {
+    //         manage(wins[i], &wa);
+    //     }
+    // }
+    // if (wins) {
+    //     XFree(wins);
+    // }
+}
+
 /// [dwm] wintomon
 /// TODO: revist this after all is said and done and see if we can guarantee
 /// non-null. That all depends on if selmon is always non-null.
@@ -664,6 +719,9 @@ pub fn main() !void {
     log.info("Start setup()", .{});
     try setup(allocator);
     log.info("Completed setup()", .{});
+
+    scan();
+
     log.info("Start cleanup()", .{});
     try cleanup(allocator);
     log.info("Completed cleanup()", .{});

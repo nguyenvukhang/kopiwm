@@ -130,13 +130,13 @@ pub const Client = struct {
     /// Returns true upon successful execution.
     pub fn sendEvent(self: *Self, z: *App, proto: X.Atom) bool {
         var n: c_int = undefined;
-        var protocols: [*c][*c]X.Atom = undefined;
+        var protocols: ?[*]X.Atom = undefined;
         var exists = false;
 
         if (X.XGetWMProtocols(z.dpy, self.win, &protocols, &n) != 0) {
             while (!exists and n > 0) {
                 n -= 1;
-                exists = protocols[@intCast(n)] == proto;
+                exists = protocols.?[@intCast(n)] == proto;
             }
             _ = X.XFree(@ptrCast(protocols));
         }
