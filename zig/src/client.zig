@@ -13,9 +13,9 @@ const Size = struct {
     const Self = @This();
 
     /// Width.
-    w: i32,
+    w: u32,
     /// Height.
-    h: i32,
+    h: u32,
 
     pub inline fn eq(lhs: *const Self, rhs: *const Self) bool {
         return lhs.w == rhs.w and lhs.h == rhs.h;
@@ -192,17 +192,17 @@ pub const Client = struct {
     }
 
     /// [dwm] WIDTH
-    pub inline fn width(self: *Self) u32 {
+    pub inline fn width(self: *const Self) u32 {
         return self.pos.curr.w + 2 * @as(u32, @intCast(self.bw.curr));
     }
 
     /// [dwm] HEIGHT
-    pub inline fn height(self: *Self) u32 {
+    pub inline fn height(self: *const Self) u32 {
         return self.pos.curr.h + 2 * @as(u32, @intCast(self.bw.curr));
     }
 
     /// [dwm] configure
-    pub fn configure(self: *Self, dpy: ?*Display) void {
+    pub fn configure(self: *const Self, dpy: ?*Display) void {
         const r = &self.pos.curr;
         var event = X.XEvent{
             .xconfigure = .{
@@ -326,7 +326,13 @@ pub const Client = struct {
         // }
     }
 
+    /// [dwm] applysizehints
+    /// Called during client window resize operations. `rect` is the originally
+    /// suggested resize target. After applying size hints, `rect` will be
+    /// updated to be a more correct resize target. Returns true if the final
+    /// value of `rect` differs from the client's current state.
     pub fn applySizeHints(self: *Self, rect: *Rect, interact: bool) bool {
+        const c: *const Self = self;
         const m: *Monitor = self.mon;
 
         // Set minimum possible.
@@ -334,39 +340,44 @@ pub const Client = struct {
         rect.h = @max(1, rect.h);
 
         if (interact) {
-            // if (*x > sw) {
-            //     *x = sw - WIDTH(c);
-            // }
-            // if (*y > sh) {
-            //     *y = sh - HEIGHT(c);
-            // }
-            // if (*x + *w + 2 * c->bw < 0) {
-            //     *x = 0;
-            // }
-            // if (*y + *h + 2 * c->bw < 0) {
-            //     *y = 0;
-            // }
+            if (rect.x > c.app.sw) {
+                // left-most point is beyond the limits of the current monitor.
+                rect.x = @as(i32, @intCast(c.app.sw)) - @as(i32, @intCast(c.width()));
+            }
+            if (rect.y > c.app.sh) {
+                // top-most point is beyond the limits of the current monitor.
+                rect.y = @as(i32, @intCast(c.app.sh)) - @as(i32, @intCast(c.height()));
+            }
+            if (rect.x + @as(i32, @intCast(rect.w)) + 2 * c.bw.curr < 0) {
+                rect.x = 0;
+            }
+            if (rect.y + @as(i32, @intCast(rect.h)) + 2 * c.bw.curr < 0) {
+                rect.y = 0;
+            }
         } else {
-            // if (*x >= m->wx + m->ww) {
-            //     *x = m->wx + m->ww - WIDTH(c);
+            if (rect.x >= m.wx + @as(i32, @intCast(m.ww))) {
+                // if (*x >= m->wx + m->ww) *x = m->wx + m->ww - WIDTH(c);
+                rect.x = m.wx + @as(i32, @intCast(m.ww)) - @as(i32, @intCast(c.width()));
+            }
+            if (rect.y >= m.wy + @as(i32, @intCast(m.wh))) {
+                // if (*y >= m->wy + m->wh) *y = m->wy + m->wh - HEIGHT(c);
+                rect.y = m.wy + @as(i32, @intCast(m.wh)) - @as(i32, @intCast(c.height()));
+            }
+            // if (rect.x >= m.wx + @as(i32, @intCast(m.ww))) {
+            //     // if (*x + *w + 2 * c->bw <= m->wx) *x = m->wx;
+            //     rect.x = m.wx + @as(i32, @intCast(m.ww)) - @as(i32, @intCast(c.width()));
             // }
-            // if (*y >= m->wy + m->wh) {
-            //     *y = m->wy + m->wh - HEIGHT(c);
+            // if (rect.y >= m.wy + @as(i32, @intCast(m.wh))) {
+            //     // if (*y + *h + 2 * c->bw <= m->wy) *y = m->wy;
+            //     rect.y = m.wy + @as(i32, @intCast(m.wh)) - @as(i32, @intCast(c.height()));
             // }
-            // if (*x + *w + 2 * c->bw <= m->wx) {
-            //     *x = m->wx;
-            // }
-            // if (*y + *h + 2 * c->bw <= m->wy) {
-            //     *y = m->wy;
-            // }
-
         }
 
-        if (rect.h < self.app.bar_height) rect.h = self.app.bar_height;
-        if (rect.w < self.app.bar_height) rect.w = self.app.bar_height;
+        if (rect.h < c.app.bar_height) rect.h = c.app.bar_height;
+        if (rect.w < c.app.bar_height) rect.w = c.app.bar_height;
 
-        if (cfg.resizehints or self.isfloating.curr or m.lt[m.sellt].arrange == null) {
-            if (!self.hintsvalid) {
+        if (cfg.resizehints or c.isfloating.curr or m.lt[m.sellt].arrange == null) {
+            if (!c.hintsvalid) {
                 self.updateSizeHints();
             }
             // dwm says: "see last two sentences in ICCCM 4.1.2.3".
@@ -382,51 +393,63 @@ pub const Client = struct {
             // > provided, nothing should be subtracted from the window size.
             // > (The minimum size is not to be used in place of the base size
             // > for this purpose.)
+            const baseismin = b: {
+                const base = &(c.sz.base orelse break :b false);
+                const min = &(c.sz.min orelse break :b false);
+                break :b base.eq(min);
+            };
 
-            const baseismin = self.basew == self.minw and self.baseh == self.minh;
             if (!baseismin) { // temporarily remove base dimensions
-                rect.w -= self.basew;
-                rect.h -= self.baseh;
+                if (c.sz.base) |*base| {
+                    rect.w -= base.w;
+                    rect.h -= base.h;
+                }
             }
-            // adjust for aspect limits
-            if (self.mina > 0 and self.maxa > 0) {
+
+            { // adjust for aspect limits
                 const w: f32 = @floatFromInt(rect.w);
                 const h: f32 = @floatFromInt(rect.h);
                 // If the aspect ratio is too large (very wide), then we reduce
                 // the width to fix the ratio, and if the aspect ratio is too
                 // small (very narrow), we reduce the height to make fix the
                 // ratio. Both cases, we're making the window smaller.
-                if (self.maxa < w / h) {
-                    rect.w = @intFromFloat(@as(f32, @floatFromInt(self.rect.h)) * self.maxa + 0.5);
-                } else if (self.mina < h / w) {
-                    rect.h = @intFromFloat(@as(f32, @floatFromInt(self.rect.w)) * self.mina + 0.5);
+                if (c.sz.mina) |mina| {
+                    if (mina < h / w) {
+                        rect.h = @intFromFloat(@as(f32, @floatFromInt(rect.w)) * mina + 0.5);
+                    }
+                }
+                if (c.sz.maxa) |maxa| {
+                    if (maxa < w / h) {
+                        rect.w = @intFromFloat(@as(f32, @floatFromInt(rect.h)) * maxa + 0.5);
+                    }
                 }
             }
-            //     if (baseismin) { /* increment calculation requires this */
-            //         *w -= self.basew;
-            //         *h -= self.baseh;
-            //     }
-            //     /* adjust for increment value */
-            //     if (self.incw) {
-            //         *w -= *w % self.incw;
-            //     }
-            //     if (self.inch) {
-            //         *h -= *h % self.inch;
-            //     }
-            //     /* restore base dimensions */
-            //     *w = MAX(*w + self.basew, self.minw);
-            //     *h = MAX(*h + self.baseh, self.minh);
-            //     if (self.maxw) {
-            //         *w = MIN(*w, self.maxw);
-            //     }
-            //     if (self.maxh) {
-            //         *h = MIN(*h, self.maxh);
-            //     }
+            if (baseismin) { // Increment calculation requires this.
+                if (c.sz.base) |*base| {
+                    rect.w -= base.w;
+                    rect.h -= base.h;
+                }
+            }
+            // Adjust for increment value.
+            if (c.sz.inc) |inc| {
+                rect.w -= rect.w % inc.w;
+                rect.h -= rect.h % inc.h;
+            }
+            // Restore base dimensions.
+            if (c.sz.base) |base| {
+                rect.w += base.w;
+                rect.h += base.h;
+            }
+            if (c.sz.min) |min| {
+                rect.w = @max(rect.w, min.w);
+                rect.h = @max(rect.h, min.h);
+            }
+            if (c.sz.max) |max| {
+                rect.w = @min(rect.w, max.w);
+                rect.h = @min(rect.h, max.h);
+            }
         }
-
-        // }
-        // return *x != c->x || *y != c->y || *w != c->w || *h != c->h;
-        return rect.x != self.x;
+        return !c.pos.curr.eq(rect);
     }
 
     /// [dwm] updatesizehints
@@ -442,26 +465,26 @@ pub const Client = struct {
 
         // [base]
         if (hint.flags & X.PBaseSize != 0) {
-            sz.base = .{ .w = hint.base_width, .h = hint.base_height };
+            sz.base = .{ .w = @intCast(hint.base_width), .h = @intCast(hint.base_height) };
         } else if ((hint.flags & X.PMinSize) != 0) {
-            sz.base = .{ .w = hint.min_width, .h = hint.min_height };
+            sz.base = .{ .w = @intCast(hint.min_width), .h = @intCast(hint.min_height) };
         } else sz.base = null;
 
         // [inc]
         if ((hint.flags & X.PResizeInc) != 0) {
-            sz.inc = .{ .w = hint.width_inc, .h = hint.height_inc };
+            sz.inc = .{ .w = @intCast(hint.width_inc), .h = @intCast(hint.height_inc) };
         } else sz.inc = null;
 
         // [max]
         if ((hint.flags & X.PMaxSize) != 0) {
-            sz.max = .{ .w = hint.max_width, .h = hint.max_height };
+            sz.max = .{ .w = @intCast(hint.max_width), .h = @intCast(hint.max_height) };
         } else sz.max = null;
 
         // [min]
         if ((hint.flags & X.PMinSize) != 0) {
-            sz.min = .{ .w = hint.min_width, .h = hint.min_height };
+            sz.min = .{ .w = @intCast(hint.min_width), .h = @intCast(hint.min_height) };
         } else if ((hint.flags & X.PBaseSize) != 0) {
-            sz.min = .{ .w = hint.base_width, .h = hint.base_height };
+            sz.min = .{ .w = @intCast(hint.base_width), .h = @intCast(hint.base_height) };
         } else sz.min = null;
 
         if ((hint.flags & X.PAspect) != 0) {

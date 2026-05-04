@@ -10,9 +10,11 @@ fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
 pub const Rect = struct {
     const Self = @This();
 
-    /// X-coordinate. Increases from left to right.
+    /// X-coordinate. Increases from left to right. (i.e., the value here
+    /// represents the left-most x-value of the rectangle)
     x: i32,
-    /// Y-coordinate. Increases from top to bottom.
+    /// Y-coordinate. Increases from top to bottom. (i.e., the value here
+    /// represents the top-most y-value of the rectangle)
     y: i32,
     /// Width.
     w: u32,

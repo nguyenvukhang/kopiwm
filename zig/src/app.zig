@@ -27,9 +27,13 @@ pub const App = struct {
     screen: c_int = undefined,
 
     /// Screen width.
+    /// Apparently dwm updates this in `void configurenotify(XEvent *)`, and
+    /// that's probably how multipe monitors are supported.
     sw: u32 = undefined,
 
     /// Screen height.
+    /// Apparently dwm updates this in `void configurenotify(XEvent *)`, and
+    /// that's probably how multipe monitors are supported.
     sh: u32 = undefined,
 
     drw: Drw = undefined,
