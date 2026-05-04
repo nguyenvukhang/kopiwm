@@ -88,7 +88,7 @@ pub const App = struct {
     }
 
     /// [dwm] getrootptr
-    pub fn getRootPtr(self: *Self, x: *c_int, y: *c_int) bool {
+    pub fn getRootPtr(self: *const Self, x: *c_int, y: *c_int) bool {
         var w: Window = undefined;
         var d_int: c_int = undefined; // dummy c_int.
         var d_uint: c_uint = undefined; // dummy c_uint.
@@ -101,7 +101,7 @@ pub const App = struct {
     /// Gets the property of a window in text form, and writes it to `buffer`.
     /// Returns the number of valid bytes written to the buffer.
     /// [dwm] gettextprop
-    pub fn getTextProp(self: *Self, w: Window, atom: X.Atom, buffer: []u8) ?usize {
+    pub fn getTextProp(self: *const Self, w: Window, atom: X.Atom, buffer: []u8) ?usize {
         if (buffer.len == 0) return null;
         var tp: X.XTextProperty = undefined;
         if (X.XGetTextProperty(self.dpy, w, &tp, atom) == 0 or tp.nitems == 0) {

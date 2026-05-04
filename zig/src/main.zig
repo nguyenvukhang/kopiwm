@@ -171,12 +171,12 @@ fn getstate(w: Window) i32 {
 /// [dwm] manage
 fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOfMemory}!void {
     const c = try allocator.create(Client);
-    c.* = .init(w, wa);
+    c.* = .init(&z, w, wa);
     var trans: Window = X.None;
     var wc: X.XWindowChanges = undefined;
     // var t: *Client = undefined;
 
-    c.updateTitle(&z);
+    c.updateTitle();
     blk: {
         if (X.XGetTransientForHint(z.dpy, w, &trans) == X.True) {
             // This seems to make very little sense if there is a bijection between
@@ -212,7 +212,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     _ = X.XSetWindowBorder(z.dpy, w, z.scheme.get(.Normal).border.pixel);
 
     c.configure(z.dpy); // propagates border_width, if size doesn't change
-    c.updateWindowType(&z);
+    c.updateWindowType();
 
     // updatewindowtype(c);
     // updatesizehints(c);
@@ -480,7 +480,7 @@ fn focus(allocator: Allocator, client: ?*Client) void {
         c.attachStack();
         grabbuttons(c, true);
         _ = X.XSetWindowBorder(z.dpy, c.win, z.scheme.get(.Selected).border.pixel);
-        c.setFocus(&z);
+        c.setFocus();
     } else {
         _ = X.XSetInputFocus(z.dpy, z.root, X.RevertToPointerRoot, X.CurrentTime);
         _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));

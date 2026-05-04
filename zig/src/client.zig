@@ -10,6 +10,7 @@ const toggle = @import("toggle.zig").toggle;
 
 pub const Client = struct {
     const Self = @This();
+    app: *const App,
 
     name: fstr(256) = undefined,
     mina: f32 = undefined,
@@ -41,8 +42,9 @@ pub const Client = struct {
     mon: *Monitor = undefined,
     win: Window,
 
-    pub fn init(w: Window, wa: *X.XWindowAttributes) Self {
+    pub fn init(app: *const App, w: Window, wa: *X.XWindowAttributes) Self {
         return Self{
+            .app = app,
             .win = w,
             .pos = .init(.fromX(X.XWindowAttributes, wa)),
             .bw = .init(@intCast(wa.border_width)),
@@ -51,7 +53,8 @@ pub const Client = struct {
     }
 
     /// [dwm] updatetitle
-    pub fn updateTitle(self: *Self, z: *App) void {
+    pub fn updateTitle(self: *Self) void {
+        const z = self.app;
         if (z.getTextProp(self.win, z.netatom.get(.WMName), &self.name.buffer)) |len| {
             self.name.len = len;
         } else if (z.getTextProp(self.win, X.XA_WM_NAME, &self.name.buffer)) |len| {
@@ -122,7 +125,8 @@ pub const Client = struct {
     }
 
     /// [dwm] setfocus
-    pub fn setFocus(self: *Self, z: *App) void {
+    pub fn setFocus(self: *Self) void {
+        const z = self.app;
         if (!self.neverfocus) {
             _ = X.XSetInputFocus(z.dpy, self.win, X.RevertToPointerRoot, X.CurrentTime);
         }
@@ -136,12 +140,13 @@ pub const Client = struct {
             @ptrCast(&self.win),
             1,
         );
-        _ = self.sendEvent(z, z.wmatom.get(.TakeFocus));
+        _ = self.sendEvent(z.wmatom.get(.TakeFocus));
     }
 
     /// [dwm] sendevent
     /// Returns true upon successful execution.
-    pub fn sendEvent(self: *Self, z: *App, proto: Atom) bool {
+    pub fn sendEvent(self: *Self, proto: Atom) bool {
+        const z = self.app;
         var n: c_int = undefined;
         var protocols: ?[*]Atom = undefined;
         var exists = false;
@@ -231,7 +236,8 @@ pub const Client = struct {
     }
 
     /// [dwm] setfullscreen
-    pub fn setFullscreen(self: *Self, z: *App, fullscreen: bool) void {
+    pub fn setFullscreen(self: *Self, fullscreen: bool) void {
+        const z = self.app;
         if (fullscreen and !self.isfullscreen) {
             _ = X.XChangeProperty(
                 z.dpy,
@@ -246,7 +252,7 @@ pub const Client = struct {
             self.isfullscreen = true;
             self.bw.set(0);
             self.isfloating.set(true);
-            self.resize(z, .{ .x = self.mon.mx, .y = self.mon.my, .w = self.mon.mw, .h = self.mon.mh });
+            self.resize(.{ .x = self.mon.mx, .y = self.mon.my, .w = self.mon.mw, .h = self.mon.mh });
             // XRaiseWindow(dpy, self.win);
         } else if (!fullscreen and self.isfullscreen) {
             _ = X.XChangeProperty(
@@ -263,15 +269,16 @@ pub const Client = struct {
             self.isfloating.revert();
             self.bw.revert();
             self.pos.revert();
-            self.resize(z, self.pos.curr);
+            self.resize(self.pos.curr);
             // arrange(self.mon);
         }
     }
 
-    pub fn updateWindowType(self: *Self, z: *App) void {
+    pub fn updateWindowType(self: *Self) void {
+        const z = self.app;
         const net = z.netatom;
         if (self.getAtomProp(z.dpy, net.get(.WMState)) == net.get(.WMFullscreen)) {
-            self.setFullscreen(z, true);
+            self.setFullscreen(true);
         }
         if (self.getAtomProp(z.dpy, net.get(.WMWindowType)) == net.get(.WMWindowTypeDialog)) {
             self.isfloating.set(true);
@@ -280,7 +287,8 @@ pub const Client = struct {
 
     /// [dwm] resizeclient
     /// Resize the X window, and also update its border width.
-    pub fn resize(self: *Self, z: *App, rect: Rect) void {
+    pub fn resize(self: *Self, rect: Rect) void {
+        const z = self.app;
         var wc = rect.toX(X.XWindowChanges);
         wc.border_width = self.bw.curr;
         const flags =
@@ -292,5 +300,98 @@ pub const Client = struct {
     }
 
     /// [dwm] resize
-    pub fn hintAndResize() void {}
+    pub fn hintAndResize() void {
+
+        // if (applysizehints(c, &x, &y, &w, &h, interact)) {
+        //     resizeclient(c, x, y, w, h);
+        // }
+    }
+
+    pub fn applySizeHints(self: *Self, rect: *Rect, interact: bool) void {
+        const m: *Monitor = self.mon;
+        _ = m;
+
+        // Set minimum possible.
+        rect.w = @max(1, rect.w);
+        rect.h = @max(1, rect.h);
+
+        if (interact) {
+            // if (*x > sw) {
+            //     *x = sw - WIDTH(c);
+            // }
+            // if (*y > sh) {
+            //     *y = sh - HEIGHT(c);
+            // }
+            // if (*x + *w + 2 * c->bw < 0) {
+            //     *x = 0;
+            // }
+            // if (*y + *h + 2 * c->bw < 0) {
+            //     *y = 0;
+            // }
+
+        } else {
+            // if (*x >= m->wx + m->ww) {
+            //     *x = m->wx + m->ww - WIDTH(c);
+            // }
+            // if (*y >= m->wy + m->wh) {
+            //     *y = m->wy + m->wh - HEIGHT(c);
+            // }
+            // if (*x + *w + 2 * c->bw <= m->wx) {
+            //     *x = m->wx;
+            // }
+            // if (*y + *h + 2 * c->bw <= m->wy) {
+            //     *y = m->wy;
+            // }
+
+        }
+
+        // int baseismin;
+        //
+        // if (*h < bh) {
+        //     *h = bh;
+        // }
+        // if (*w < bh) {
+        //     *w = bh;
+        // }
+        // if (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
+        //     if (!c->hintsvalid) {
+        //         updatesizehints(c);
+        //     }
+        //     /* see last two sentences in ICCCM 4.1.2.3 */
+        //     baseismin = c->basew == c->minw && c->baseh == c->minh;
+        //     if (!baseismin) { /* temporarily remove base dimensions */
+        //         *w -= c->basew;
+        //         *h -= c->baseh;
+        //     }
+        //     /* adjust for aspect limits */
+        //     if (c->mina > 0 && c->maxa > 0) {
+        //         if (c->maxa < (float)*w / *h) {
+        //             *w = *h * c->maxa + 0.5;
+        //         } else if (c->mina < (float)*h / *w) {
+        //             *h = *w * c->mina + 0.5;
+        //         }
+        //     }
+        //     if (baseismin) { /* increment calculation requires this */
+        //         *w -= c->basew;
+        //         *h -= c->baseh;
+        //     }
+        //     /* adjust for increment value */
+        //     if (c->incw) {
+        //         *w -= *w % c->incw;
+        //     }
+        //     if (c->inch) {
+        //         *h -= *h % c->inch;
+        //     }
+        //     /* restore base dimensions */
+        //     *w = MAX(*w + c->basew, c->minw);
+        //     *h = MAX(*h + c->baseh, c->minh);
+        //     if (c->maxw) {
+        //         *w = MIN(*w, c->maxw);
+        //     }
+        //     if (c->maxh) {
+        //         *h = MIN(*h, c->maxh);
+        //     }
+        // }
+        // return *x != c->x || *y != c->y || *w != c->w || *h != c->h;
+    }
 };
