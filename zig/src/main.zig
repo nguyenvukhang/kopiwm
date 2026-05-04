@@ -193,20 +193,21 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
         // applyrules(c);
     }
     if (X.XGetTransientForHint(z.dpy, w, &trans) == X.True) {}
+    var r = &c.*.pos.curr;
 
     // If client is too far right, shift it left.
-    if (c.r.x + @as(i32, @intCast(c.width())) > c.mon.wx + @as(i32, @intCast(c.mon.ww))) {
-        c.r.x = c.mon.wx + @as(i32, @intCast(c.mon.ww)) - @as(i32, @intCast(c.width()));
+    if (r.x + @as(i32, @intCast(c.width())) > c.mon.wx + @as(i32, @intCast(c.mon.ww))) {
+        r.x = c.mon.wx + @as(i32, @intCast(c.mon.ww)) - @as(i32, @intCast(c.width()));
     }
     // If client is too far down, shift it up.
-    if (c.r.y + @as(i32, @intCast(c.height())) > c.mon.wy + @as(i32, @intCast(c.mon.wh))) {
-        c.r.y = c.mon.wy + @as(i32, @intCast(c.mon.wh)) - @as(i32, @intCast(c.height()));
+    if (r.y + @as(i32, @intCast(c.height())) > c.mon.wy + @as(i32, @intCast(c.mon.wh))) {
+        r.y = c.mon.wy + @as(i32, @intCast(c.mon.wh)) - @as(i32, @intCast(c.height()));
     }
-    c.r.x = @max(c.r.x, c.mon.wx); // If client is too far left, truncate it.
-    c.r.y = @max(c.r.y, c.mon.wy); // If client is too far up, truncate it.
-    c.bw = cfg.borderpx;
+    r.x = @max(r.x, c.mon.wx); // If client is too far left, truncate it.
+    r.y = @max(r.y, c.mon.wy); // If client is too far up, truncate it.
+    c.bw.set(cfg.borderpx);
 
-    wc.border_width = c.bw;
+    wc.border_width = c.bw.curr;
     _ = X.XConfigureWindow(z.dpy, w, X.CWBorderWidth, &wc);
     _ = X.XSetWindowBorder(z.dpy, w, z.scheme.get(.Normal).border.pixel);
 

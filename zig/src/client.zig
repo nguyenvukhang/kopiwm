@@ -6,6 +6,7 @@ const fstr = @import("fstr.zig").fstr;
 const Display = X.Display;
 const Rect = @import("rect.zig").Rect;
 const Atom = X.Atom;
+const toggle = @import("toggle.zig").toggle;
 
 pub const Client = struct {
     const Self = @This();
@@ -13,10 +14,8 @@ pub const Client = struct {
     name: fstr(256) = undefined,
     mina: f32 = undefined,
     maxa: f32 = undefined,
-    /// Currect position.
-    r: Rect,
-    /// Previous position.
-    oldr: Rect,
+    /// Position, current and previous.
+    pos: toggle(Rect),
     basew: i32 = undefined,
     baseh: i32 = undefined,
     incw: i32 = undefined,
@@ -27,9 +26,7 @@ pub const Client = struct {
     minh: i32 = undefined,
     hintsvalid: bool = undefined,
     /// Border width.
-    bw: i32 = undefined,
-    /// Old border width.
-    oldbw: i32,
+    bw: toggle(i32) = undefined,
     /// Bitmask of active tags.
     tags: u32 = 0,
     isfixed: bool = undefined,
@@ -47,12 +44,10 @@ pub const Client = struct {
     win: Window,
 
     pub fn init(w: Window, wa: *X.XWindowAttributes) Self {
-        const r = Rect.fromXWindowAttributes(wa);
         return Self{
             .win = w,
-            .r = r,
-            .oldr = r,
-            .oldbw = @intCast(wa.border_width),
+            .pos = .init(.fromXWindowAttributes(wa)),
+            .bw = .init(@intCast(wa.border_width)),
         };
     }
 
@@ -175,27 +170,28 @@ pub const Client = struct {
 
     /// [dwm] WIDTH
     pub inline fn width(self: *Self) u32 {
-        return self.r.w + 2 * @as(u32, @intCast(self.bw));
+        return self.pos.curr.w + 2 * @as(u32, @intCast(self.bw.curr));
     }
 
     /// [dwm] HEIGHT
     pub inline fn height(self: *Self) u32 {
-        return self.r.h + 2 * @as(u32, @intCast(self.bw));
+        return self.pos.curr.h + 2 * @as(u32, @intCast(self.bw.curr));
     }
 
     /// [dwm] configure
     pub fn configure(self: *Self, dpy: ?*Display) void {
+        const r = &self.pos.curr;
         var event = X.XEvent{
             .xconfigure = .{
                 .type = X.ConfigureNotify,
                 .display = dpy,
                 .event = self.win,
                 .window = self.win,
-                .x = self.r.x,
-                .y = self.r.y,
-                .width = @intCast(self.r.w),
-                .height = @intCast(self.r.h),
-                .border_width = self.bw,
+                .x = r.x,
+                .y = r.y,
+                .width = @intCast(r.w),
+                .height = @intCast(r.h),
+                .border_width = self.bw.curr,
                 .above = X.None,
                 .override_redirect = X.False,
             },
@@ -236,33 +232,44 @@ pub const Client = struct {
     }
 
     pub fn setFullscreen(self: *Self, z: *App, fullscreen: bool) void {
-        _ = z;
-        _ = self;
-        _ = fullscreen;
+        if (fullscreen and !self.isfullscreen) {
+            X.XChangeProperty(
+                z.dpy,
+                self.win,
+                z.netatom.get(.WMState),
+                X.XA_ATOM,
+                32,
+                X.PropModeReplace,
+                @ptrCast(&z.netatom.get(.NetWMFullscreen)),
+                1,
+            );
+            self.isfullscreen = true;
+            self.oldstate = self.isfloating;
+        }
 
-        // if (fullscreen && !c->isfullscreen) {
-        //     XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
+        // if (fullscreen && !self.isfullscreen) {
+        //     XChangeProperty(dpy, self.win, netatom[NetWMState], XA_ATOM, 32,
         //                     PropModeReplace,
         //                     (unsigned char *)&netatom[NetWMFullscreen], 1);
-        //     c->isfullscreen = 1;
-        //     c->oldstate = c->isfloating;
-        //     c->oldbw = c->bw;
-        //     c->bw = 0;
-        //     c->isfloating = 1;
-        //     resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
-        //     XRaiseWindow(dpy, c->win);
-        // } else if (!fullscreen && c->isfullscreen) {
-        //     XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
+        //     self.isfullscreen = 1;
+        //     self.oldstate = self.isfloating;
+        //     self.oldbw = self.bw;
+        //     self.bw = 0;
+        //     self.isfloating = 1;
+        //     resizeclient(c, self.mon->mx, self.mon->my, self.mon->mw, self.mon->mh);
+        //     XRaiseWindow(dpy, self.win);
+        // } else if (!fullscreen && self.isfullscreen) {
+        //     XChangeProperty(dpy, self.win, netatom[NetWMState], XA_ATOM, 32,
         //                     PropModeReplace, (unsigned char *)0, 0);
-        //     c->isfullscreen = 0;
-        //     c->isfloating = c->oldstate;
-        //     c->bw = c->oldbw;
-        //     c->x = c->oldx;
-        //     c->y = c->oldy;
-        //     c->w = c->oldw;
-        //     c->h = c->oldh;
-        //     resizeclient(c, c->x, c->y, c->w, c->h);
-        //     arrange(c->mon);
+        //     self.isfullscreen = 0;
+        //     self.isfloating = self.oldstate;
+        //     self.bw = self.oldbw;
+        //     self.x = self.oldx;
+        //     self.y = self.oldy;
+        //     self.w = self.oldw;
+        //     self.h = self.oldh;
+        //     resizeclient(c, self.x, self.y, self.w, self.h);
+        //     arrange(self.mon);
         // }
 
     }
