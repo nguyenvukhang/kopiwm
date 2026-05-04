@@ -33,9 +33,6 @@ pub const std_options: std.Options = .{
     .logFn = @import("logger.zig").customLog,
 };
 
-const True: c_int = 1;
-const False: c_int = 0;
-
 pub const QuickWrite = struct {
     const Self = @This();
     const Writer = std.Io.Writer;
@@ -99,9 +96,9 @@ fn check_other_wm() void {
     xerrorlib = X.XSetErrorHandler(xerrorstart);
     // this causes an error if some other window manager is running
     _ = X.XSelectInput(z.dpy, X.DefaultRootWindow(z.dpy), X.SubstructureRedirectMask);
-    _ = X.XSync(z.dpy, False);
+    _ = X.XSync(z.dpy, X.False);
     _ = X.XSetErrorHandler(xerror);
-    _ = X.XSync(z.dpy, False);
+    _ = X.XSync(z.dpy, X.False);
 }
 
 /// [dwm] updatebarpos
@@ -231,21 +228,21 @@ fn setup(allocator: Allocator) !void {
     _ = try updategeom(allocator);
 
     // Initialize atoms.
-    utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", False);
-    z.wmatom.set(.Protocols, X.XInternAtom(z.dpy, "WM_PROTOCOLS", False));
-    z.wmatom.set(.Delete, X.XInternAtom(z.dpy, "WM_DELETE_WINDOW", False));
-    z.wmatom.set(.State, X.XInternAtom(z.dpy, "WM_STATE", False));
-    z.wmatom.set(.TakeFocus, X.XInternAtom(z.dpy, "WM_TAKE_FOCUS", False));
+    utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", X.False);
+    z.wmatom.set(.Protocols, X.XInternAtom(z.dpy, "WM_PROTOCOLS", X.False));
+    z.wmatom.set(.Delete, X.XInternAtom(z.dpy, "WM_DELETE_WINDOW", X.False));
+    z.wmatom.set(.State, X.XInternAtom(z.dpy, "WM_STATE", X.False));
+    z.wmatom.set(.TakeFocus, X.XInternAtom(z.dpy, "WM_TAKE_FOCUS", X.False));
 
-    z.netatom.set(.ActiveWindow, X.XInternAtom(z.dpy, "_NET_ACTIVE_WINDOW", False));
-    z.netatom.set(.Supported, X.XInternAtom(z.dpy, "_NET_SUPPORTED", False));
-    z.netatom.set(.WMName, X.XInternAtom(z.dpy, "_NET_WM_NAME", False));
-    z.netatom.set(.WMState, X.XInternAtom(z.dpy, "_NET_WM_STATE", False));
-    z.netatom.set(.WMCheck, X.XInternAtom(z.dpy, "_NET_SUPPORTING_WM_CHECK", False));
-    z.netatom.set(.WMFullscreen, X.XInternAtom(z.dpy, "_NET_WM_STATE_FULLSCREEN", False));
-    z.netatom.set(.WMWindowType, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE", False));
-    z.netatom.set(.WMWindowTypeDialog, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False));
-    z.netatom.set(.ClientList, X.XInternAtom(z.dpy, "_NET_CLIENT_LIST", False));
+    z.netatom.set(.ActiveWindow, X.XInternAtom(z.dpy, "_NET_ACTIVE_WINDOW", X.False));
+    z.netatom.set(.Supported, X.XInternAtom(z.dpy, "_NET_SUPPORTED", X.False));
+    z.netatom.set(.WMName, X.XInternAtom(z.dpy, "_NET_WM_NAME", X.False));
+    z.netatom.set(.WMState, X.XInternAtom(z.dpy, "_NET_WM_STATE", X.False));
+    z.netatom.set(.WMCheck, X.XInternAtom(z.dpy, "_NET_SUPPORTING_WM_CHECK", X.False));
+    z.netatom.set(.WMFullscreen, X.XInternAtom(z.dpy, "_NET_WM_STATE_FULLSCREEN", X.False));
+    z.netatom.set(.WMWindowType, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE", X.False));
+    z.netatom.set(.WMWindowTypeDialog, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE_DIALOG", X.False));
+    z.netatom.set(.ClientList, X.XInternAtom(z.dpy, "_NET_CLIENT_LIST", X.False));
 
     // Initialize cursors.
     z.cursors.set(.Normal, z.drw.curCreate(X.XC_left_ptr));
@@ -288,13 +285,103 @@ fn setup(allocator: Allocator) !void {
     }
 
     grabkeys();
-
-    // TODO: continue from here after drw.zig is complete
-    // focus(NULL);
+    focus(allocator, null);
 }
 
+/// [dwm] unfocus
+fn unfocus(client: ?*Client, setfocus: bool) void {
+    // TODO: translate this.
+    _ = client;
+    _ = setfocus;
+}
+
+/// [dwm] focus
+fn focus(allocator: Allocator, client: ?*Client) void {
+    var c_opt = client;
+    if (if (c_opt) |c| !c.isVisible() else true) {
+        c_opt = if (z.selmon) |m| m.stack else null;
+        // Push the pointer forward until c_opt points to the first visible client.
+        while (c_opt) |c| : (c_opt = c.snext) {
+            if (c.isVisible()) {
+                break;
+            }
+        }
+    }
+    // If the currently selected client in the selected monitor is not `c_opt`,
+    // then unfocus it.
+    if (z.selmon) |selected_monitor| {
+        if (selected_monitor.sel != c_opt) {
+            unfocus(selected_monitor.sel, false);
+        }
+    }
+    if (c_opt) |c| {
+        z.selmon = c.mon;
+        // if the client (that's about to be focused) is urgent, then put it at
+        // ease for it is about to be tended to.
+        if (c.isurgent) c.setUrgent(z.dpy, false);
+        c.detachStack();
+        c.attachStack();
+        grabbuttons(c, true);
+        //     XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
+        //     setfocus(c);
+    } else {
+        //     XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+        //     XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
+
+    }
+    if (z.selmon) |m| m.sel = c_opt;
+    drawbars(allocator);
+}
+
+/// [dwm] drawbars
+fn drawbars(allocator: Allocator) void {
+    var m_opt: ?*Monitor = z.mons;
+    while (m_opt) |m| : (m_opt = m.next) {
+        drawbar(allocator, m);
+    }
+}
+
+/// [dwm] grabbuttons
+fn grabbuttons(c: *Client, focused: bool) void {
+    updatenumlockmask();
+    const modifiers: [4]c_uint = .{ 0, X.LockMask, z.numlockmask, z.numlockmask | X.LockMask };
+    _ = X.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
+    if (!focused) {
+        _ = X.XGrabButton(
+            z.dpy,
+            X.AnyButton,
+            X.AnyModifier,
+            c.win,
+            X.False,
+            X.ButtonPressMask | X.ButtonReleaseMask,
+            X.GrabModeSync,
+            X.GrabModeSync,
+            X.None,
+            X.None,
+        );
+    }
+    for (cfg.buttons) |button| {
+        if (button.click == .ClientWin) {
+            for (modifiers) |modifier| {
+                _ = X.XGrabButton(
+                    z.dpy,
+                    button.button,
+                    button.mask | modifier,
+                    c.win,
+                    X.False,
+                    X.ButtonPressMask | X.ButtonReleaseMask,
+                    X.GrabModeAsync,
+                    X.GrabModeSync,
+                    X.None,
+                    X.None,
+                );
+            }
+        }
+    }
+}
+
+/// [dwm] grabkeys
 fn grabkeys() void {
-    const keys = cfg.keys;
     updatenumlockmask();
     const modifiers: [4]c_uint = .{ 0, X.LockMask, z.numlockmask, z.numlockmask | X.LockMask };
 
@@ -308,18 +395,18 @@ fn grabkeys() void {
         X.XGetKeyboardMapping(z.dpy, @intCast(start), end - start + 1, &skip) orelse
         return;
 
-    var k = start;
-    while (k < end) : (k += 1) {
-        for (0..keys.len) |i| {
+    var keycode = start;
+    while (keycode < end) : (keycode += 1) {
+        for (cfg.keys) |key| {
             // Skip modifier codes, we do that ourselves.
-            if (keys[i].key == syms[@intCast((k - start) * skip)]) {
+            if (key.sym == syms[@intCast((keycode - start) * skip)]) {
                 for (modifiers) |mod| {
                     _ = X.XGrabKey(
                         z.dpy,
-                        k,
-                        keys[i].mod | mod,
+                        keycode,
+                        key.mod | mod,
                         z.root,
-                        True,
+                        X.True,
                         X.GrabModeAsync,
                         X.GrabModeAsync,
                     );
@@ -395,7 +482,7 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
 /// [dwm] updatebars
 fn updatebars() void {
     var wa: X.XSetWindowAttributes = .{
-        .override_redirect = True,
+        .override_redirect = X.True,
         .background_pixmap = X.ParentRelative,
         .event_mask = X.ButtonPressMask | X.ExposureMask,
     };

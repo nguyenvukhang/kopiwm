@@ -27,6 +27,16 @@ pub const Net = enum(u8) {
     ClientList,
 };
 
+/// [dwm] Clk* enums.
+pub const Clk = enum {
+    TagBar,
+    LtSymbol,
+    StatusText,
+    WinTitle,
+    ClientWin,
+    RootWin,
+};
+
 /// [dwm] Cur* enums.
 /// The different possible states of the mouse cursor.
 pub const CursorState = enum {
@@ -37,8 +47,6 @@ pub const CursorState = enum {
 
 /// Represents a possible which one might be in that warrants a unique color scheme.
 pub const SchemeState = enum {
-    const Self = @This();
-
     Normal,
     Selected,
     Bar,
@@ -66,8 +74,18 @@ pub const Key = struct {
     /// Modifier keys, in any.
     mod: c_uint,
     /// X keysym.
-    key: X.KeySym,
+    sym: X.KeySym,
     /// The callback function.
+    func: *const fn (*App, *Arg) void,
+    arg: Arg,
+};
+
+/// A mouse button.
+pub const Button = struct {
+    click: Clk,
+    mask: c_uint,
+    /// See the `Button1`...`Button5` enums in "X11/X.h".
+    button: c_uint,
     func: *const fn (*App, *Arg) void,
     arg: Arg,
 };
