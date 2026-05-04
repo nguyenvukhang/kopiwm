@@ -64,7 +64,7 @@ pub const Arg = union(ArgTag) {
 
 pub const Key = struct {
     /// Modifier keys, in any.
-    mod: u32,
+    mod: c_uint,
     /// X keysym.
     key: X.KeySym,
     /// The callback function.

@@ -294,12 +294,9 @@ fn setup(allocator: Allocator) !void {
 }
 
 fn grabkeys() void {
+    const keys = cfg.keys;
     updatenumlockmask();
-    // unsigned int i, j, k;
-    // unsigned int modifiers[] = {0, LockMask, numlockmask,
-    //                             numlockmask | LockMask};
-    // int start, end, skip;
-    // KeySym *syms;
+    const modifiers: [4]c_uint = .{ 0, X.LockMask, z.numlockmask, z.numlockmask | X.LockMask };
 
     var start: c_int = undefined;
     var end: c_int = undefined;
@@ -307,18 +304,28 @@ fn grabkeys() void {
 
     _ = X.XUngrabKey(z.dpy, X.AnyKey, X.AnyModifier, z.root);
     _ = X.XDisplayKeycodes(z.dpy, &start, &end);
-    const syms: *X.KeySym = X.XGetKeyboardMapping(z.dpy, @intCast(start), end - start + 1, &skip) orelse return;
-    for (@intCast(start)..@intCast(end)) |_| {
-        for (0..cfg.keys.len) |_| {}
-        // for (i = 0; i < LENGTH(keys); i++) {
-        //     /* skip modifier codes, we do that ourselves */
-        //     if (keys[i].keysym == syms[(k - start) * skip]) {
-        //         for (j = 0; j < LENGTH(modifiers); j++) {
-        //             XGrabKey(dpy, k, keys[i].mod | modifiers[j], root, True,
-        //                      GrabModeAsync, GrabModeAsync);
-        //         }
-        //     }
-        // }
+    const syms: [*]X.KeySym =
+        X.XGetKeyboardMapping(z.dpy, @intCast(start), end - start + 1, &skip) orelse
+        return;
+
+    var k = start;
+    while (k < end) : (k += 1) {
+        for (0..keys.len) |i| {
+            // Skip modifier codes, we do that ourselves.
+            if (keys[i].key == syms[@intCast((k - start) * skip)]) {
+                for (modifiers) |mod| {
+                    _ = X.XGrabKey(
+                        z.dpy,
+                        k,
+                        keys[i].mod | mod,
+                        z.root,
+                        True,
+                        X.GrabModeAsync,
+                        X.GrabModeAsync,
+                    );
+                }
+            }
+        }
     }
     _ = X.XFree(syms);
     log.info("grabkeys() finished!", .{});

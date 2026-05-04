@@ -60,7 +60,7 @@ pub const App = struct {
     /// Status bar text.
     stext: fstr(256) = undefined,
 
-    numlockmask: u32 = undefined,
+    numlockmask: c_uint = undefined,
 
     pub fn init() Self {
         var z = Self{};
