@@ -212,6 +212,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     _ = X.XSetWindowBorder(z.dpy, w, z.scheme.get(.Normal).border.pixel);
 
     c.configure(z.dpy); // propagates border_width, if size doesn't change
+    c.updateWindowType(&z);
 
     // updatewindowtype(c);
     // updatesizehints(c);

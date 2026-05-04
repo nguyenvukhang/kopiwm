@@ -26,15 +26,13 @@ pub const Client = struct {
     minh: i32 = undefined,
     hintsvalid: bool = undefined,
     /// Border width.
-    bw: toggle(i32) = undefined,
+    bw: toggle(i32),
     /// Bitmask of active tags.
     tags: u32 = 0,
     isfixed: bool = undefined,
-    isfloating: bool = undefined,
+    isfloating: toggle(bool),
     isurgent: bool = undefined,
     neverfocus: bool = undefined,
-    /// Old floating state (previous value for `isfloating`).
-    oldstate: bool = undefined,
     isfullscreen: bool = undefined,
     /// Next client in the linked list of clients.
     next: ?*Self = null,
@@ -48,6 +46,7 @@ pub const Client = struct {
             .win = w,
             .pos = .init(.fromXWindowAttributes(wa)),
             .bw = .init(@intCast(wa.border_width)),
+            .isfloating = .init(false),
         };
     }
 
@@ -212,7 +211,7 @@ pub const Client = struct {
             self.win,
             prop,
             0,
-            @sizeOf(atom),
+            @sizeOf(Atom),
             X.False,
             X.XA_ATOM,
             &da,
@@ -231,56 +230,51 @@ pub const Client = struct {
         return atom;
     }
 
+    /// [dwm] setfullscreen
     pub fn setFullscreen(self: *Self, z: *App, fullscreen: bool) void {
         if (fullscreen and !self.isfullscreen) {
-            X.XChangeProperty(
+            _ = X.XChangeProperty(
                 z.dpy,
                 self.win,
                 z.netatom.get(.WMState),
                 X.XA_ATOM,
                 32,
                 X.PropModeReplace,
-                @ptrCast(&z.netatom.get(.NetWMFullscreen)),
+                @ptrCast(&z.netatom.get(.WMFullscreen)),
                 1,
             );
             self.isfullscreen = true;
-            self.oldstate = self.isfloating;
+            self.bw.set(0);
+            self.isfloating.set(true);
+            // resizeclient(c, self.mon->mx, self.mon->my, self.mon->mw, self.mon->mh);
+            // XRaiseWindow(dpy, self.win);
+        } else if (!fullscreen and self.isfullscreen) {
+            _ = X.XChangeProperty(
+                z.dpy,
+                self.win,
+                z.netatom.get(.WMState),
+                X.XA_ATOM,
+                32,
+                X.PropModeReplace,
+                null,
+                0,
+            );
+            self.isfullscreen = false;
+            self.isfloating.revert();
+            self.bw.revert();
+            self.pos.revert();
+            // resizeclient(c, self.x, self.y, self.w, self.h);
+            // arrange(self.mon);
         }
-
-        // if (fullscreen && !self.isfullscreen) {
-        //     XChangeProperty(dpy, self.win, netatom[NetWMState], XA_ATOM, 32,
-        //                     PropModeReplace,
-        //                     (unsigned char *)&netatom[NetWMFullscreen], 1);
-        //     self.isfullscreen = 1;
-        //     self.oldstate = self.isfloating;
-        //     self.oldbw = self.bw;
-        //     self.bw = 0;
-        //     self.isfloating = 1;
-        //     resizeclient(c, self.mon->mx, self.mon->my, self.mon->mw, self.mon->mh);
-        //     XRaiseWindow(dpy, self.win);
-        // } else if (!fullscreen && self.isfullscreen) {
-        //     XChangeProperty(dpy, self.win, netatom[NetWMState], XA_ATOM, 32,
-        //                     PropModeReplace, (unsigned char *)0, 0);
-        //     self.isfullscreen = 0;
-        //     self.isfloating = self.oldstate;
-        //     self.bw = self.oldbw;
-        //     self.x = self.oldx;
-        //     self.y = self.oldy;
-        //     self.w = self.oldw;
-        //     self.h = self.oldh;
-        //     resizeclient(c, self.x, self.y, self.w, self.h);
-        //     arrange(self.mon);
-        // }
-
     }
 
     pub fn updateWindowType(self: *Self, z: *App) void {
-        const net = z.netatom.get;
-        if (self.getAtomProp(net(.WMState)) == net(.WMFullscreen)) {
+        const net = z.netatom;
+        if (self.getAtomProp(z.dpy, net.get(.WMState)) == net.get(.WMFullscreen)) {
             self.setFullscreen(z, true);
         }
-        if (self.getAtomProp(net(.WMWindowType)) == net(.WMWindowTypeDialog)) {
-            self.isfloating = true;
+        if (self.getAtomProp(z.dpy, net.get(.WMWindowType)) == net.get(.WMWindowTypeDialog)) {
+            self.isfloating.set(true);
         }
     }
 };

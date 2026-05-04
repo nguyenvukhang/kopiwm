@@ -14,5 +14,10 @@ pub fn toggle(comptime T: type) type {
             self.prev = self.curr;
             self.curr = value;
         }
+
+        /// Revert the current state to the previous state.
+        pub fn revert(self: *Self) void {
+            self.curr = self.prev;
+        }
     };
 }
