@@ -1,4 +1,5 @@
 const Monitor = @import("monitor.zig").Monitor;
+const X = @import("c_lib.zig").X;
 
 /// [dwm] INTERSECT
 fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
@@ -19,6 +20,10 @@ pub const Rect = struct {
     h: u32,
 
     pub const zero = Self{ .x = 0, .y = 0, .w = 0, .h = 0 };
+
+    pub fn fromXWindowAttributes(wa: *X.XWindowAttributes) Self {
+        return .{ .x = @intCast(wa.x), .y = @intCast(wa.y), .w = @intCast(wa.width), .h = @intCast(wa.height) };
+    }
 
     pub fn toMonitor(self: *const Self, default: ?*Monitor, mons: ?*Monitor) ?*Monitor {
         var r = default;

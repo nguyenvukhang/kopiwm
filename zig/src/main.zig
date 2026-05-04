@@ -2,7 +2,6 @@ const std = @import("std");
 const mem = std.mem;
 const meta = std.meta;
 const log = std.log;
-const build_opts = @import("build_opts");
 const dwmz = @import("app.zig");
 const drw = @import("drw.zig").drw;
 const cfg = @import("config.zig");
@@ -15,6 +14,8 @@ const Rect = @import("rect.zig").Rect;
 const SchemeState = @import("enums.zig").SchemeState;
 const ColorScheme = @import("drw.zig").ColorScheme;
 const N = @import("enums.zig").N;
+const NAME = @import("build_opts").name;
+const VERSION = @import("build_opts").version;
 
 // TODO: re-enable this in production.
 const SAID_AND_DONE = true;
@@ -54,7 +55,7 @@ fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
     log.info("(xerrorstart)", .{});
     _ = _dpy;
     _ = _event;
-    std.debug.print(build_opts.name ++ ": another window manager is already running\n", .{});
+    std.debug.print(NAME ++ ": another window manager is already running\n", .{});
     std.process.exit(1);
 }
 
@@ -62,7 +63,7 @@ fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
 fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
     if (err_event == null) {
-        std.debug.print(build_opts.name ++ ": called xerror with null XErrorEvent value\n", .{});
+        std.debug.print(NAME ++ ": called xerror with null XErrorEvent value\n", .{});
         if (xerrorlib) |f| {
             return f(z.dpy, err_event);
         }
@@ -83,7 +84,7 @@ fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     {
         return 0;
     }
-    std.debug.print(build_opts.name ++ ": fatal error: request code={d}, error code={d}\n", .{ rc, ec });
+    std.debug.print(NAME ++ ": fatal error: request code={d}, error code={d}\n", .{ rc, ec });
     if (xerrorlib) |f| {
         return f(z.dpy, err_event);
     }
@@ -179,12 +180,76 @@ fn getstate(w: Window) i32 {
     return result;
 }
 
-fn manage(w: Window, wa: *X.XWindowAttributes) void {
-    _ = w;
-    _ = wa;
+fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOfMemory}!void {
+    const c = try allocator.create(Client);
+    c.* = .init(w, wa);
+
+    // Client *c, *t = NULL;
+    // Window trans = None;
+    // XWindowChanges wc;
+    //
+    // c = ecalloc(1, sizeof(Client));
+    // c->win = w;
+    // /* geometry */
+    // c->x = c->oldx = wa->x;
+    // c->y = c->oldy = wa->y;
+    // c->w = c->oldw = wa->width;
+    // c->h = c->oldh = wa->height;
+    // c->oldbw = wa->border_width;
+    //
+    // updatetitle(c);
+    // if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
+    //     c->mon = t->mon;
+    //     c->tags = t->tags;
+    // } else {
+    //     c->mon = selmon;
+    //     applyrules(c);
+    // }
+    //
+    // if (c->x + WIDTH(c) > c->mon->wx + c->mon->ww) {
+    //     c->x = c->mon->wx + c->mon->ww - WIDTH(c);
+    // }
+    // if (c->y + HEIGHT(c) > c->mon->wy + c->mon->wh) {
+    //     c->y = c->mon->wy + c->mon->wh - HEIGHT(c);
+    // }
+    // c->x = MAX(c->x, c->mon->wx);
+    // c->y = MAX(c->y, c->mon->wy);
+    // c->bw = borderpx;
+    //
+    // wc.border_width = c->bw;
+    // XConfigureWindow(dpy, w, CWBorderWidth, &wc);
+    // XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
+    // configure(c); /* propagates border_width, if size doesn't change */
+    // updatewindowtype(c);
+    // updatesizehints(c);
+    // updatewmhints(c);
+    // XSelectInput(dpy, w,
+    //              EnterWindowMask | FocusChangeMask | PropertyChangeMask |
+    //                  StructureNotifyMask);
+    // grabbuttons(c, 0);
+    // if (!c->isfloating) {
+    //     c->isfloating = c->oldstate = trans != None || c->isfixed;
+    // }
+    // if (c->isfloating) {
+    //     XRaiseWindow(dpy, c->win);
+    // }
+    // attach(c);
+    // attachstack(c);
+    // XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32,
+    //                 PropModeAppend, (unsigned char *)&(c->win), 1);
+    // XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w,
+    //                   c->h); /* some windows require this */
+    // setclientstate(c, NormalState);
+    // if (c->mon == selmon) {
+    //     unfocus(selmon->sel, 0);
+    // }
+    // c->mon->sel = c;
+    // arrange(c->mon);
+    // XMapWindow(dpy, c->win);
+    // focus(NULL);
 }
 
-fn scan() void {
+fn scan(allocator: Allocator) error{OutOfMemory}!void {
     var wa: X.XWindowAttributes = undefined;
     var num: c_uint = undefined;
     var i: c_uint = undefined;
@@ -211,7 +276,7 @@ fn scan() void {
         // X.Status
 
         if (wa.map_state == X.IsViewable or getstate(wins[i]) == X.IconicState) {
-            manage(wins[i], &wa);
+            try manage(allocator, wins[i], &wa);
         }
     }
     i = 0;
@@ -537,7 +602,7 @@ fn updatenumlockmask() void {
 
 /// [dwm] cleanup
 // Continue to build this up as we go.
-fn cleanup(allocator: Allocator) !void {
+fn cleanup(allocator: Allocator) void {
     log.info("Start cleanup()", .{});
     while (z.mons) |mon| {
         cleanupmon(allocator, mon);
@@ -644,7 +709,7 @@ fn gettextprop(w: Window, atom: X.Atom, buffer: []u8) usize {
 fn updatestatus(allocator: Allocator) void {
     const b = gettextprop(z.root, X.XA_WM_NAME, &z.stext.buffer);
     if (b == 0) {
-        z.stext.set(build_opts.name ++ "-" ++ build_opts.version);
+        z.stext.set(NAME ++ "-" ++ VERSION);
     } else {
         z.stext.len = b;
     }
@@ -747,37 +812,37 @@ pub fn main() !void {
         log.info("argv = {s}", .{arg});
     }
 
-    {
-        var buffer: [32]u8 = undefined;
-        var stdout_writer = std.fs.File.stdout().writer(&buffer);
-        var stdout: QuickWrite = .init(&stdout_writer.interface);
-        var stderr_writer = std.fs.File.stderr().writer(&buffer);
-        var stderr: QuickWrite = .init(&stderr_writer.interface);
+    var diebuf: [32]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&diebuf);
+    var stdout: QuickWrite = .init(&stdout_writer.interface);
+    var stderr_writer = std.fs.File.stderr().writer(&diebuf);
+    var stderr: QuickWrite = .init(&stderr_writer.interface);
 
-        if (argv.len == 2 and mem.eql(u8, mem.span(argv[1]), "-v")) {
-            return try stdout.print("{s}-{s}\n", .{ build_opts.name, build_opts.version });
-        } else if (argv.len != 1) {
-            return try stdout.print("usage: {s} [-v]\n", .{build_opts.name});
-        }
-        if (C.setlocale(C.LC_CTYPE, "") == null or X.XSupportsLocale() == 0) {
-            try stderr.print("warning: no locale support\n", .{});
-        }
-        z.dpy = X.XOpenDisplay(null) orelse {
-            return try stdout.print(build_opts.name ++ ": cannot open display\n", .{});
-        };
+    if (argv.len == 2 and mem.eql(u8, mem.span(argv[1]), "-v")) {
+        return try stdout.print("{s}-{s}\n", .{ NAME, VERSION });
+    } else if (argv.len != 1) {
+        return try stdout.print("usage: {s} [-v]\n", .{NAME});
     }
+    if (C.setlocale(C.LC_CTYPE, "") == null or X.XSupportsLocale() == X.False) {
+        try stderr.print("warning: no locale support\n", .{});
+    }
+    z.dpy = X.XOpenDisplay(null) orelse {
+        return try stdout.print(NAME ++ ": cannot open display\n", .{});
+    };
+    defer _ = X.XCloseDisplay(z.dpy);
+
     if (SAID_AND_DONE) check_other_wm();
+
     log.info("Start setup()", .{});
     try setup(allocator);
+    defer cleanup(allocator);
+
     log.info("Completed setup()", .{});
 
-    scan();
+    log.info("Start main loop", .{});
+    try scan(allocator);
 
-    log.info("Start cleanup()", .{});
-    try cleanup(allocator);
-    log.info("Completed cleanup()", .{});
-    if (SAID_AND_DONE) _ = X.XCloseDisplay(z.dpy);
-    log.info("The end!", .{});
+    log.info("The end! Starting cleanup...", .{});
 }
 
 test {

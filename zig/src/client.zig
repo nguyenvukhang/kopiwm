@@ -4,49 +4,51 @@ const X = @import("c_lib.zig").X;
 const Window = X.Window;
 const fstr = @import("fstr.zig").fstr;
 const Display = X.Display;
+const Rect = @import("rect.zig").Rect;
 
 pub const Client = struct {
     const Self = @This();
 
-    name: fstr(256),
-    mina: f32,
-    maxa: f32,
-    x: i32,
-    y: i32,
-    w: i32,
-    h: i32,
-    oldx: i32,
-    oldy: i32,
-    oldw: i32,
-    oldh: i32,
-    basew: i32,
-    baseh: i32,
-    incw: i32,
-    inch: i32,
-    maxw: i32,
-    maxh: i32,
-    minw: i32,
-    minh: i32,
-    hintsvalid: bool,
+    name: fstr(256) = undefined,
+    mina: f32 = undefined,
+    maxa: f32 = undefined,
+    /// Currect position.
+    r: Rect,
+    /// Previous position.
+    oldr: Rect,
+    basew: i32 = undefined,
+    baseh: i32 = undefined,
+    incw: i32 = undefined,
+    inch: i32 = undefined,
+    maxw: i32 = undefined,
+    maxh: i32 = undefined,
+    minw: i32 = undefined,
+    minh: i32 = undefined,
+    hintsvalid: bool = undefined,
     /// Border width.
-    bw: i32,
+    bw: i32 = undefined,
     /// Old border width.
-    oldbw: i32,
+    oldbw: i32 = undefined,
     /// Bitmask of active tags.
     tags: u32 = 0,
-    isfixed: bool,
-    isfloating: bool,
-    isurgent: bool,
-    neverfocus: bool,
+    isfixed: bool = undefined,
+    isfloating: bool = undefined,
+    isurgent: bool = undefined,
+    neverfocus: bool = undefined,
     /// Old floating state (previous value for `isfloating`).
-    oldstate: bool,
-    isfullscreen: bool,
+    oldstate: bool = undefined,
+    isfullscreen: bool = undefined,
     /// Next client in the linked list of clients.
-    next: ?*Self,
+    next: ?*Self = null,
     /// Next client in the display stack.
-    snext: ?*Self,
-    mon: *Monitor,
+    snext: ?*Self = null,
+    mon: *Monitor = undefined,
     win: Window,
+
+    pub fn init(w: Window, wa: *X.XWindowAttributes) Self {
+        const r = Rect.fromXWindowAttributes(wa);
+        return Self{ .win = w, .r = r, .oldr = r };
+    }
 
     /// [dwm] ISVISIBLE
     pub fn isVisible(self: *Self) bool {
