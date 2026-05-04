@@ -130,9 +130,7 @@ fn wintoclient(w: Window) ?*Client {
     while (m_opt) |m| : (m_opt = m.next) {
         c_opt = m.clients;
         while (c_opt) |c| : (c_opt = c.next) {
-            if (c.win == w) {
-                return c;
-            }
+            if (c.win == w) return c;
         }
     }
     return null;
@@ -184,33 +182,46 @@ fn getstate(w: Window) i32 {
 fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOfMemory}!void {
     const c = try allocator.create(Client);
     c.* = .init(w, wa);
-    // var trans: Window = X.None;
-    // var wc: X.XWindowChanges = undefined;
+    var trans: Window = X.None;
+    var wc: X.XWindowChanges = undefined;
     // var t: *Client = undefined;
 
     c.updateTitle(&z);
-    // if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
-    //     c->mon = t->mon;
-    //     c->tags = t->tags;
-    // } else {
-    //     c->mon = selmon;
-    //     applyrules(c);
-    // }
-    //
-    // if (c->x + WIDTH(c) > c->mon->wx + c->mon->ww) {
-    //     c->x = c->mon->wx + c->mon->ww - WIDTH(c);
-    // }
-    // if (c->y + HEIGHT(c) > c->mon->wy + c->mon->wh) {
-    //     c->y = c->mon->wy + c->mon->wh - HEIGHT(c);
-    // }
-    // c->x = MAX(c->x, c->mon->wx);
-    // c->y = MAX(c->y, c->mon->wy);
-    // c->bw = borderpx;
-    //
-    // wc.border_width = c->bw;
-    // XConfigureWindow(dpy, w, CWBorderWidth, &wc);
-    // XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
-    // configure(c); /* propagates border_width, if size doesn't change */
+    blk: {
+        if (X.XGetTransientForHint(z.dpy, w, &trans) == X.True) {
+            // This seems to make very little sense if there is a bijection between
+            // clients and windows.
+            if (wintoclient(w)) |other_client| {
+                c.tags = other_client.tags;
+                c.mon = other_client.mon;
+                break :blk;
+            }
+        }
+        c.mon = z.selmon orelse {
+            @panic("Tried unwrapping an optional `selmon`.");
+        };
+        // applyrules(c);
+    }
+    if (X.XGetTransientForHint(z.dpy, w, &trans) == X.True) {}
+
+    // If client is too far right, shift it left.
+    if (c.r.x + @as(i32, @intCast(c.width())) > c.mon.wx + @as(i32, @intCast(c.mon.ww))) {
+        c.r.x = c.mon.wx + @as(i32, @intCast(c.mon.ww)) - @as(i32, @intCast(c.width()));
+    }
+    // If client is too far down, shift it up.
+    if (c.r.y + @as(i32, @intCast(c.height())) > c.mon.wy + @as(i32, @intCast(c.mon.wh))) {
+        c.r.y = c.mon.wy + @as(i32, @intCast(c.mon.wh)) - @as(i32, @intCast(c.height()));
+    }
+    c.r.x = @max(c.r.x, c.mon.wx); // If client is too far left, truncate it.
+    c.r.y = @max(c.r.y, c.mon.wy); // If client is too far up, truncate it.
+    c.bw = cfg.borderpx;
+
+    wc.border_width = c.bw;
+    _ = X.XConfigureWindow(z.dpy, w, X.CWBorderWidth, &wc);
+    _ = X.XSetWindowBorder(z.dpy, w, z.scheme.get(.Normal).border.pixel);
+
+    c.configure(z.dpy); // propagates border_width, if size doesn't change
+
     // updatewindowtype(c);
     // updatesizehints(c);
     // updatewmhints(c);

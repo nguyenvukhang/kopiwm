@@ -171,4 +171,49 @@ pub const Client = struct {
         }
         return exists;
     }
+
+    /// [dwm] WIDTH
+    pub inline fn width(self: *Self) u32 {
+        return self.r.w + 2 * @as(u32, @intCast(self.bw));
+    }
+
+    /// [dwm] HEIGHT
+    pub inline fn height(self: *Self) u32 {
+        return self.r.h + 2 * @as(u32, @intCast(self.bw));
+    }
+
+    /// [dwm] configure
+    pub fn configure(self: *Self, dpy: ?*Display) void {
+        var event = X.XEvent{
+            .xconfigure = .{
+                .type = X.ConfigureNotify,
+                .display = dpy,
+                .event = self.win,
+                .window = self.win,
+                .x = self.r.x,
+                .y = self.r.y,
+                .width = @intCast(self.r.w),
+                .height = @intCast(self.r.h),
+                .border_width = self.bw,
+                .above = X.None,
+                .override_redirect = X.False,
+            },
+        };
+        _ = X.XSendEvent(dpy, self.win, X.False, X.StructureNotifyMask, &event);
+    }
+
+    pub fn updateWindowType() void{
+
+
+    // Atom state = getatomprop(c, netatom[NetWMState]);
+    // Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
+    //
+    // if (state == netatom[NetWMFullscreen]) {
+    //     setfullscreen(c, 1);
+    // }
+    // if (wtype == netatom[NetWMWindowTypeDialog]) {
+    //     c->isfloating = 1;
+    // }
+
+    }
 };

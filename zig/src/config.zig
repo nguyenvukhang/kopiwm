@@ -10,6 +10,9 @@ const Key = @import("enums.zig").Key;
 const Button = @import("enums.zig").Button;
 const F = @import("funcs.zig");
 
+/// border pixel of windows
+pub const borderpx: u32 = 1;
+
 pub const tags = [_][]const u8{ "1", "2", "3", "4", "T" };
 pub const fonts = [_][]const u8{"monospace:size=10"};
 
@@ -28,10 +31,10 @@ pub const lockfullscreen = 1;
 /// refresh rate (per second) for client move/resize
 pub const refreshrate = 60;
 
-// false means hide bar.
+/// false means hide bar.
 pub const show_bar = true;
 
-// false means bottom bar.
+/// false means bottom bar.
 pub const top_bar = true;
 
 pub const layouts = [_]lt.Layout{
