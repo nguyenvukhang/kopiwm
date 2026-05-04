@@ -9,29 +9,41 @@ const Atom = X.Atom;
 const toggle = @import("toggle.zig").toggle;
 const cfg = @import("config.zig");
 
+const Size = struct {
+    const Self = @This();
+
+    /// Width.
+    w: i32,
+    /// Height.
+    h: i32,
+
+    pub inline fn eq(lhs: *const Self, rhs: *const Self) bool {
+        return lhs.w == rhs.w and lhs.h == rhs.h;
+    }
+};
+
+const ClientSizes = struct {
+    base: ?Size = null,
+    /// Incremental size when resizing.
+    inc: ?Size = null,
+    max: ?Size = null,
+    min: ?Size = null,
+    /// Maximum aspect ratio (width / height).
+    maxa: ?f32 = null,
+    /// Minimum aspect ratio (height / width).
+    /// Note that this is the reciprocal of the conventional notion of the
+    /// aspect ratio because of how we'll be using it.
+    mina: ?f32 = null,
+};
+
 pub const Client = struct {
     const Self = @This();
     app: *const App,
 
     name: fstr(256) = undefined,
-    /// Minimum aspect ratio (height / width).
-    /// Note that this is the reciprocal of the conventional notion of the
-    /// aspect ratio because of how we'll be using it.
-    mina: f32 = undefined,
-    /// Maximum aspect ratio (width / height).
-    maxa: f32 = undefined,
     /// Position, current and previous.
     pos: toggle(Rect),
-    basew: i32 = undefined,
-    baseh: i32 = undefined,
-    /// Incremental width when resizing.
-    incw: i32 = undefined,
-    /// Incremental height when resizing.
-    inch: i32 = undefined,
-    maxw: i32 = undefined,
-    maxh: i32 = undefined,
-    minw: i32 = undefined,
-    minh: i32 = undefined,
+    sz: ClientSizes = undefined,
     hintsvalid: bool = undefined,
     /// Border width.
     bw: toggle(i32),
@@ -314,7 +326,7 @@ pub const Client = struct {
         // }
     }
 
-    pub fn applySizeHints(self: *Self, rect: *Rect, interact: bool) void {
+    pub fn applySizeHints(self: *Self, rect: *Rect, interact: bool) bool {
         const m: *Monitor = self.mon;
 
         // Set minimum possible.
@@ -414,68 +426,60 @@ pub const Client = struct {
 
         // }
         // return *x != c->x || *y != c->y || *w != c->w || *h != c->h;
+        return rect.x != self.x;
     }
 
     /// [dwm] updatesizehints
-    fn updateSizeHints(self: *Self) void {
-        var size: X.XSizeHints = undefined;
+    pub fn updateSizeHints(self: *Self) void {
+        var hint: X.XSizeHints = undefined;
         var msize: c_long = undefined;
+        const sz: *ClientSizes = &self.sz;
 
-        if (X.XGetWMNormalHints(self.app.dpy, self.win, &size, &msize) == 0) {
+        if (X.XGetWMNormalHints(self.app.dpy, self.win, &hint, &msize) == 0) {
             // Size is uninitialized, ensure that size.flags aren't used.
-            size.flags = X.PSize;
+            hint.flags = X.PSize;
         }
 
-        if (size.flags & X.PBaseSize != 0) {
-            self.basew = size.base_width;
-            self.baseh = size.base_height;
-        } else if ((size.flags & X.PMinSize) != 0) {
-            self.basew = size.min_width;
-            self.baseh = size.min_height;
-        } else {
-            self.basew = 0;
-            self.baseh = 0;
-        }
+        // [base]
+        if (hint.flags & X.PBaseSize != 0) {
+            sz.base = .{ .w = hint.base_width, .h = hint.base_height };
+        } else if ((hint.flags & X.PMinSize) != 0) {
+            sz.base = .{ .w = hint.min_width, .h = hint.min_height };
+        } else sz.base = null;
 
-        if ((size.flags & X.PResizeInc) != 0) {
-            self.incw = size.width_inc;
-            self.inch = size.height_inc;
-        } else {
-            self.incw = 0;
-            self.inch = 0;
-        }
+        // [inc]
+        if ((hint.flags & X.PResizeInc) != 0) {
+            sz.inc = .{ .w = hint.width_inc, .h = hint.height_inc };
+        } else sz.inc = null;
 
-        if (((size.flags & X.PMaxSize) != 0) != 0) {
-            self.maxw = size.max_width;
-            self.maxh = size.max_height;
-        } else {
-            self.maxw = 0;
-            self.maxh = 0;
-        }
+        // [max]
+        if ((hint.flags & X.PMaxSize) != 0) {
+            sz.max = .{ .w = hint.max_width, .h = hint.max_height };
+        } else sz.max = null;
 
-        if ((size.flags & X.PMinSize) != 0) {
-            self.minw = size.min_width;
-            self.minh = size.min_height;
-        } else if ((size.flags & X.PBaseSize) != 0) {
-            self.minw = size.base_width;
-            self.minh = size.base_height;
-        } else {
-            self.minw = 0;
-            self.minh = 0;
-        }
+        // [min]
+        if ((hint.flags & X.PMinSize) != 0) {
+            sz.min = .{ .w = hint.min_width, .h = hint.min_height };
+        } else if ((hint.flags & X.PBaseSize) != 0) {
+            sz.min = .{ .w = hint.base_width, .h = hint.base_height };
+        } else sz.min = null;
 
-        if ((size.flags & X.PAspect) != 0) {
-            if (size.min_aspect.y > 0) {
-                self.mina = @as(f32, @floatFromInt(size.min_aspect.y)) / @as(f32, @floatFromInt(size.min_aspect.x));
+        if ((hint.flags & X.PAspect) != 0) {
+            if (hint.min_aspect.y > 0) {
+                sz.mina = @as(f32, @floatFromInt(hint.min_aspect.y)) / @as(f32, @floatFromInt(hint.min_aspect.x));
             }
-            if (size.max_aspect.y > 0) {
-                self.maxa = @as(f32, @floatFromInt(size.max_aspect.x)) / @as(f32, @floatFromInt(size.max_aspect.y));
+            if (hint.max_aspect.y > 0) {
+                sz.maxa = @as(f32, @floatFromInt(hint.max_aspect.x)) / @as(f32, @floatFromInt(hint.max_aspect.y));
             }
         } else {
-            self.mina = 0.0;
-            self.maxa = 0.0;
+            sz.mina = null;
+            sz.maxa = null;
         }
-        self.isfixed = self.maxw > 0 and self.maxh > 0 and self.maxw == self.minw and self.maxh == self.minh;
+        self.isfixed = isfixed: {
+            const max = sz.max orelse break :isfixed false;
+            const min = sz.min orelse break :isfixed false;
+            break :isfixed max.eq(&min);
+        };
         self.hintsvalid = true;
     }
 };

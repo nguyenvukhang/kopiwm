@@ -213,6 +213,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
 
     c.configure(z.dpy); // propagates border_width, if size doesn't change
     c.updateWindowType();
+    c.updateSizeHints();
 
     // updatewindowtype(c);
     // updatesizehints(c);

@@ -52,4 +52,8 @@ pub const Rect = struct {
         }
         return r;
     }
+
+    pub fn eq(lhs: *const Self, rhs: *const Self) bool {
+        return lhs.x == rhs.x and lhs.y == rhs.y and lhs.w == rhs.w and lhs.h == rhs.h;
+    }
 };
