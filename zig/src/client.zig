@@ -10,19 +10,7 @@ const Rect = @import("rect.zig").Rect;
 const Atom = X.Atom;
 const toggle = @import("toggle.zig").toggle;
 const cfg = @import("config.zig");
-
-const Size = struct {
-    const Self = @This();
-
-    /// Width.
-    w: u32,
-    /// Height.
-    h: u32,
-
-    pub inline fn eq(lhs: *const Self, rhs: *const Self) bool {
-        return lhs.w == rhs.w and lhs.h == rhs.h;
-    }
-};
+const Size = @import("enums.zig").Size;
 
 const ClientSizes = struct {
     base: ?Size = null,

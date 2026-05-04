@@ -102,3 +102,16 @@ pub const Rule = struct {
     /// TODO: see if this is really needed.
     monitor: usize,
 };
+
+pub const Size = struct {
+    const Self = @This();
+
+    /// Width.
+    w: u32,
+    /// Height.
+    h: u32,
+
+    pub inline fn eq(lhs: *const Self, rhs: *const Self) bool {
+        return lhs.w == rhs.w and lhs.h == rhs.h;
+    }
+};

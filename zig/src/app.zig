@@ -6,6 +6,7 @@ const Net = @import("enums.zig").Net;
 const WM = @import("enums.zig").WM;
 const SchemeState = @import("enums.zig").SchemeState;
 const CursorState = @import("enums.zig").CursorState;
+const Size = @import("enums.zig").Size;
 const fstr = @import("fstr.zig").fstr;
 const Client = @import("client.zig").Client;
 const Allocator = std.mem.Allocator;
@@ -27,15 +28,10 @@ pub const App = struct {
 
     screen: c_int = undefined,
 
-    /// Screen width.
+    /// Screen size.
     /// Apparently dwm updates this in `void configurenotify(XEvent *)`, and
     /// that's probably how multipe monitors are supported.
-    sw: u32 = undefined,
-
-    /// Screen height.
-    /// Apparently dwm updates this in `void configurenotify(XEvent *)`, and
-    /// that's probably how multipe monitors are supported.
-    sh: u32 = undefined,
+    s: Size = undefined,
 
     drw: Drw = undefined,
 

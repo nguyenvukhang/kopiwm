@@ -235,17 +235,33 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     c.attach();
     c.attachStack();
 
-    // XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32,
-    //                 PropModeAppend, (unsigned char *)&(c->win), 1);
-    // XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w,
-    //                   c->h); /* some windows require this */
+    _ = X.XChangeProperty(
+        z.dpy,
+        z.root,
+        z.netatom.get(.ClientList),
+        X.XA_WINDOW,
+        32,
+        X.PropModeAppend,
+        @ptrCast(&c.win),
+        1,
+    );
+    _ = X.XMoveResizeWindow(
+        z.dpy,
+        c.win,
+        c.pos.curr.x + 2 * @as(i32, @intCast(z.s.w)),
+        c.pos.curr.y,
+        c.pos.curr.w,
+        c.pos.curr.h,
+    ); // dwm: some windows require this.
+    // me: I have no idea why. Looks like we're pushing the window off the screen.
+
     // setclientstate(c, NormalState);
-    // if (c->mon == selmon) {
+    // if (c.mon == selmon) {
     //     unfocus(selmon->sel, 0);
     // }
-    // c->mon->sel = c;
-    // arrange(c->mon);
-    // XMapWindow(dpy, c->win);
+    // c.mon->sel = c;
+    // arrange(c.mon);
+    // XMapWindow(dpy, c.win);
     // focus(NULL);
 }
 
@@ -341,12 +357,12 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
             z.mons = try Monitor.init(allocator);
             break :m z.mons.?;
         };
-        if (mons.w.w != z.sw or mons.m.h != z.sh) {
+        if (mons.w.w != z.s.w or mons.m.h != z.s.h) {
             dirty = true;
-            mons.w.w = z.sw;
-            mons.m.w = z.sw;
-            mons.w.h = z.sh;
-            mons.m.h = z.sh;
+            mons.w.w = z.s.w;
+            mons.w.h = z.s.h;
+            mons.m.w = z.s.w;
+            mons.m.h = z.s.h;
             updatebarpos(mons);
         }
     }
@@ -373,11 +389,11 @@ fn setup(allocator: Allocator) !void {
     while (std.c.waitpid(-1, null, std.c.W.NOHANG) > 0) {}
 
     z.screen = X.DefaultScreen(z.dpy);
-    z.sw = @intCast(X.DisplayWidth(z.dpy, z.screen));
-    z.sh = @intCast(X.DisplayHeight(z.dpy, z.screen));
-    log.info("width: {d}, height: {d}", .{ z.sw, z.sh });
+    z.s.w = @intCast(X.DisplayWidth(z.dpy, z.screen));
+    z.s.h = @intCast(X.DisplayHeight(z.dpy, z.screen));
+    log.info("width: {d}, height: {d}", .{ z.s.w, z.s.h });
     z.root = X.RootWindow(z.dpy, z.screen);
-    z.drw = .init(z.dpy.?, z.screen, z.root, z.sw, z.sh);
+    z.drw = .init(z.dpy.?, z.screen, z.root, z.s.w, z.s.h);
     {
         const f = try z.drw.fontsetCreate(allocator, &cfg.fonts);
         if (f == null) {
