@@ -23,7 +23,7 @@ pub const mfact: f32 = 0.5;
 pub const nmaster = 1;
 
 /// 1 means respect size hints in tiled resizals
-pub const resizehints = 1;
+pub const resizehints: bool = true;
 
 /// 1 will force focus on the fullscreen window
 pub const lockfullscreen = 1;

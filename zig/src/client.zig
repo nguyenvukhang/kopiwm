@@ -7,19 +7,24 @@ const Display = X.Display;
 const Rect = @import("rect.zig").Rect;
 const Atom = X.Atom;
 const toggle = @import("toggle.zig").toggle;
+const cfg = @import("config.zig");
 
 pub const Client = struct {
     const Self = @This();
     app: *const App,
 
     name: fstr(256) = undefined,
+    /// Minimum aspect ratio.
     mina: f32 = undefined,
+    /// Maximum aspect ratio.
     maxa: f32 = undefined,
     /// Position, current and previous.
     pos: toggle(Rect),
     basew: i32 = undefined,
     baseh: i32 = undefined,
+    /// Incremental width when resizing.
     incw: i32 = undefined,
+    /// Incremental height when resizing.
     inch: i32 = undefined,
     maxw: i32 = undefined,
     maxh: i32 = undefined,
@@ -309,7 +314,6 @@ pub const Client = struct {
 
     pub fn applySizeHints(self: *Self, rect: *Rect, interact: bool) void {
         const m: *Monitor = self.mon;
-        _ = m;
 
         // Set minimum possible.
         rect.w = @max(1, rect.w);
@@ -328,7 +332,6 @@ pub const Client = struct {
             // if (*y + *h + 2 * c->bw < 0) {
             //     *y = 0;
             // }
-
         } else {
             // if (*x >= m->wx + m->ww) {
             //     *x = m->wx + m->ww - WIDTH(c);
@@ -345,17 +348,17 @@ pub const Client = struct {
 
         }
 
-        // int baseismin;
-        //
-        // if (*h < bh) {
-        //     *h = bh;
-        // }
-        // if (*w < bh) {
-        //     *w = bh;
-        // }
+        if (rect.h < self.app.bar_height) rect.h = self.app.bar_height;
+        if (rect.w < self.app.bar_height) rect.w = self.app.bar_height;
+
+        if (cfg.resizehints or self.isfloating.curr or m.lt[m.sellt].arrange == null) {
+            if (!self.hintsvalid) {
+                // updatesizehints(c);
+            }
+        }
+
         // if (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
         //     if (!c->hintsvalid) {
-        //         updatesizehints(c);
         //     }
         //     /* see last two sentences in ICCCM 4.1.2.3 */
         //     baseismin = c->basew == c->minw && c->baseh == c->minh;
@@ -393,5 +396,64 @@ pub const Client = struct {
         //     }
         // }
         // return *x != c->x || *y != c->y || *w != c->w || *h != c->h;
+    }
+
+    /// [dwm] updatesizehints
+    fn updateSizeHints(self: *Self) void {
+        var size: X.XSizeHints = undefined;
+        var msize: c_long = undefined;
+
+        if (X.XGetWMNormalHints(self.app.dpy, self.win, &size, &msize) == 0) {
+            // Size is uninitialized, ensure that size.flags aren't used.
+            size.flags = X.PSize;
+        }
+
+        if (size.flags & X.PBaseSize != 0) {
+            self.basew = size.base_width;
+            self.baseh = size.base_height;
+        } else if ((size.flags & X.PMinSize) != 0) {
+            self.basew = size.min_width;
+            self.baseh = size.min_height;
+        } else {
+            self.basew = 0;
+            self.baseh = 0;
+        }
+
+        if ((size.flags & X.PResizeInc) != 0) {
+            self.incw = size.width_inc;
+            self.inch = size.height_inc;
+        } else {
+            self.incw = 0;
+            self.inch = 0;
+        }
+
+        if (((size.flags & X.PMaxSize) != 0) != 0) {
+            self.maxw = size.max_width;
+            self.maxh = size.max_height;
+        } else {
+            self.maxw = 0;
+            self.maxh = 0;
+        }
+
+        if ((size.flags & X.PMinSize) != 0) {
+            self.minw = size.min_width;
+            self.minh = size.min_height;
+        } else if ((size.flags & X.PBaseSize) != 0) {
+            self.minw = size.base_width;
+            self.minh = size.base_height;
+        } else {
+            self.minw = 0;
+            self.minh = 0;
+        }
+
+        if ((size.flags & X.PAspect) != 0) {
+            self.mina = @as(f32, @floatFromInt(size.min_aspect.y)) / @as(f32, @floatFromInt(size.min_aspect.x));
+            self.maxa = @as(f32, @floatFromInt(size.max_aspect.y)) / @as(f32, @floatFromInt(size.max_aspect.x));
+        } else {
+            self.mina = 0.0;
+            self.maxa = 0.0;
+        }
+        self.isfixed = self.maxw > 0 and self.maxh > 0 and self.maxw == self.minw and self.maxh == self.minh;
+        self.hintsvalid = true;
     }
 };
