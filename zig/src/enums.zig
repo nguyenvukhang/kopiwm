@@ -1,4 +1,5 @@
 const X = @import("c_lib.zig").X;
+const App = @import("app.zig").App;
 
 /// Count the number of enum variants that exist.
 pub fn N(comptime T: type) usize {
@@ -67,6 +68,6 @@ pub const Key = struct {
     /// X keysym.
     key: X.KeySym,
     /// The callback function.
-    func: *const fn (*const Arg) void,
+    func: *const fn (*App, *Arg) void,
     arg: Arg,
 };

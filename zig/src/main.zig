@@ -21,6 +21,7 @@ const SAID_AND_DONE = true;
 
 // X11 stuff.
 const X = @import("c_lib.zig").X;
+const C = @import("c_lib.zig").C;
 const Window = X.Window;
 const Display = X.Display;
 const XErrorEvent = X.XErrorEvent;
@@ -31,11 +32,6 @@ pub const std_options: std.Options = .{
     .log_level = .debug,
     .logFn = @import("logger.zig").customLog,
 };
-
-const C = @cImport({
-    @cInclude("locale.h");
-    @cInclude("signal.h");
-});
 
 const True: c_int = 1;
 const False: c_int = 0;

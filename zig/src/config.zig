@@ -7,6 +7,7 @@ const Scheme = @import("drw.zig").Scheme;
 const EnumArray = std.enums.EnumArray;
 const Arg = @import("enums.zig").Arg;
 const Key = @import("enums.zig").Key;
+const F = @import("funcs.zig");
 
 pub const tags = [_][]const u8{ "1", "2", "3", "4", "T" };
 pub const fonts = [_][]const u8{"monospace:size=10"};
@@ -59,5 +60,5 @@ pub const colors = EnumArray(SchemeState, Scheme([]const u8)).init(.{
 const Mod4Mask = 1 << 4;
 const MODKEY = Mod4Mask;
 pub const keys = [_]Key{
-    .{ .mod = MODKEY, .key = X.XK_space, .func = undefined, .arg = undefined },
+    .{ .mod = MODKEY, .key = X.XK_space, .func = F.spawn, .arg = undefined },
 };

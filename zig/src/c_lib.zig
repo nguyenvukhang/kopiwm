@@ -11,3 +11,8 @@ pub const X = @cImport({
 pub const fc = @cImport({
     @cInclude("fontconfig/fontconfig.h");
 });
+
+pub const C = @cImport({
+    @cInclude("locale.h");
+    @cInclude("signal.h");
+});
