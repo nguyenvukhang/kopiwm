@@ -220,15 +220,8 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     c.configure(z.dpy); // propagates border_width, if size doesn't change
     c.updateWindowType();
     c.updateSizeHints();
-    // TODO: remove this after satisfied with applySizeHints
-    {
-        var rect: Rect = .zero;
-        _ = c.applySizeHints(&rect, false);
-    }
+    c.updateWMHints();
 
-    // updatewindowtype(c);
-    // updatesizehints(c);
-    // updatewmhints(c);
     // XSelectInput(dpy, w,
     //              EnterWindowMask | FocusChangeMask | PropertyChangeMask |
     //                  StructureNotifyMask);

@@ -433,6 +433,25 @@ pub const Client = struct {
         return !c.pos.curr.eq(rect);
     }
 
+    /// [dwm] updatewmhints
+    pub fn updateWMHints(self: *Self) void {
+        const z = self.app;
+        const wmh: *X.XWMHints = X.XGetWMHints(z.dpy, self.win) orelse return;
+        defer _ = X.XFree(wmh);
+        const wmh_urg = wmh.flags & X.XUrgencyHint != 0;
+        if (self == z.selclient() and wmh_urg) {
+            wmh.flags &= ~X.XUrgencyHint;
+            _ = X.XSetWMHints(z.dpy, self.win, wmh);
+        } else {
+            self.isurgent = wmh_urg;
+        }
+        if (wmh.flags & X.InputHint != 0) {
+            self.neverfocus = wmh.input == 0;
+        } else {
+            self.neverfocus = false;
+        }
+    }
+
     /// [dwm] updatesizehints
     pub fn updateSizeHints(self: *Self) void {
         var hint: X.XSizeHints = undefined;

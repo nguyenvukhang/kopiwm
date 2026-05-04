@@ -7,6 +7,7 @@ const WM = @import("enums.zig").WM;
 const SchemeState = @import("enums.zig").SchemeState;
 const CursorState = @import("enums.zig").CursorState;
 const fstr = @import("fstr.zig").fstr;
+const Client = @import("client.zig").Client;
 const Allocator = std.mem.Allocator;
 const EnumArray = std.enums.EnumArray;
 
@@ -129,5 +130,10 @@ pub const App = struct {
         }
         _ = X.XFree(tp.value);
         return l;
+    }
+
+    /// Better alternative to self.selmon.?.sel
+    pub inline fn selclient(self: *const Self) ?*Client {
+        return if (self.selmon) |m| m.sel else null;
     }
 };
