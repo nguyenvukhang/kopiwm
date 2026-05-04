@@ -1,4 +1,5 @@
 const std = @import("std");
+const mem = std.mem;
 const Monitor = @import("monitor.zig").Monitor;
 const App = @import("app.zig").App;
 const X = @import("c_lib.zig").X;
@@ -51,7 +52,7 @@ pub const Client = struct {
     /// Bitmask of active tags.
     tags: u32 = 0,
     isfixed: bool = undefined,
-    isfloating: toggle(bool),
+    is_floating: toggle(bool),
     isurgent: bool = undefined,
     neverfocus: bool = undefined,
     isfullscreen: bool = undefined,
@@ -68,7 +69,7 @@ pub const Client = struct {
             .win = w,
             .pos = .init(.fromX(X.XWindowAttributes, wa)),
             .bw = .init(@intCast(wa.border_width)),
-            .isfloating = .init(false),
+            .is_floating = .init(false),
         };
     }
 
@@ -264,7 +265,7 @@ pub const Client = struct {
             );
             self.isfullscreen = true;
             self.bw.set(0);
-            self.isfloating.set(true);
+            self.is_floating.set(true);
             self.resize(self.mon.m);
             // XRaiseWindow(dpy, self.win);
         } else if (!fullscreen and self.isfullscreen) {
@@ -279,7 +280,7 @@ pub const Client = struct {
                 0,
             );
             self.isfullscreen = false;
-            self.isfloating.revert();
+            self.is_floating.revert();
             self.bw.revert();
             self.pos.revert();
             self.resize(self.pos.curr);
@@ -294,7 +295,7 @@ pub const Client = struct {
             self.setFullscreen(true);
         }
         if (self.getAtomProp(z.dpy, net.get(.WMWindowType)) == net.get(.WMWindowTypeDialog)) {
-            self.isfloating.set(true);
+            self.is_floating.set(true);
         }
     }
 
@@ -356,7 +357,7 @@ pub const Client = struct {
         if (rect.h < c.app.bar_height) rect.h = c.app.bar_height;
         if (rect.w < c.app.bar_height) rect.w = c.app.bar_height;
 
-        if (cfg.resizehints or c.isfloating.curr or m.lt[m.sellt].arrange == null) {
+        if (cfg.resizehints or c.is_floating.curr or m.lt[m.sellt].arrange == null) {
             if (!c.hintsvalid) {
                 self.updateSizeHints();
             }
@@ -489,51 +490,35 @@ pub const Client = struct {
     /// [dwm] applyrules
     pub fn applyRules(self: *Self) void {
 
-        // const char *class, *instance;
-        // unsigned int i;
-        // const Rule *r;
-        // Monitor *m;
-        var ch: X.XClassHint = undefined;
-        // XClassHint ch = {NULL, NULL};
-
-        var buffer: [10]u8 = undefined;
         // Rule matching.
-        self.isfloating.set(false);
+        self.is_floating.set(false);
         self.tags = 0;
+        var ch: X.XClassHint = undefined;
         _ = X.XGetClassHint(self.app.dpy, self.win, &ch);
-        // const broken1: [*c]const u8 = "broken";
-        // const broken: [*c]const u8 = "broken";
-        // const broken: ?*[]const u8 = "broken";
-        const class: ?[*]u8 = ch.res_class orelse &buffer;
-        _ = class;
-        const c2 = @as([*:0]const u8, ch.res_class orelse "hey");
-        const c3: []const u8 = std.mem.span(c2);
-        _ = c3;
-        // ch.res_class
-        // class = ch.res_class ? ch.res_class : broken;
-        // instance = ch.res_name ? ch.res_name : broken;
-        //
-        // for (i = 0; i < LENGTH(rules); i++) {
-        //     r = &rules[i];
-        //     if ((!r->title || strstr(c->name, r->title)) &&
-        //         (!r->class || strstr(class, r->class)) &&
-        //         (!r->instance || strstr(instance, r->instance))) {
-        //         c->isfloating = r->isfloating;
-        //         c->tags |= r->tags;
-        //         for (m = mons; m && m->num != r->monitor; m = m->next);
-        //         if (m) {
-        //             c->mon = m;
-        //         }
-        //     }
-        // }
-        // if (ch.res_class) {
-        //     XFree(ch.res_class);
-        // }
-        // if (ch.res_name) {
-        //     XFree(ch.res_name);
-        // }
-        // c->tags =
-        //     c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
+        const class: []const u8 = if (ch.res_class) |x| mem.span(x) else "<broken>";
+        const instance: []const u8 = if (ch.res_name) |x| mem.span(x) else "<broken>";
 
+        for (cfg.rules) |rule| {
+            var match = if (rule.title) |s| self.name.contains(s) else true;
+            if (rule.class) |s| match &= mem.containsAtLeast(u8, class, 1, s);
+            if (rule.instance) |s| match &= mem.containsAtLeast(u8, instance, 1, s);
+            if (!match) continue;
+            // Matched the rule!
+            self.is_floating.set(rule.is_floating);
+            self.tags |= rule.tags;
+            var m_opt = self.app.mons;
+            while (m_opt) |m| : (m_opt = m.next) {
+                if (m.num == rule.monitor) break;
+            }
+            if (m_opt) |m| self.mon = m;
+        }
+
+        if (ch.res_class) |x| _ = X.XFree(x);
+        if (ch.res_name) |x| _ = X.XFree(x);
+        if (self.tags & cfg.TAGMASK == 0) {
+            self.tags = self.mon.tagset[self.mon.seltags];
+        } else {
+            self.tags &= cfg.TAGMASK;
+        }
     }
 };

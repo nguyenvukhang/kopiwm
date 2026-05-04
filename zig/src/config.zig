@@ -16,6 +16,9 @@ const F = @import("funcs.zig");
 pub const borderpx: u32 = 1;
 
 pub const tags = [_][]const u8{ "1", "2", "3", "4", "T" };
+
+pub const TAGMASK: u32 = (@as(u32, 1) << tags.len) - 1;
+
 pub const fonts = [_][]const u8{"monospace:size=10"};
 
 /// Factor of the master area size [0.05...0.95].

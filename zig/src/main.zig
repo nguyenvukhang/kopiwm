@@ -233,10 +233,10 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     //              EnterWindowMask | FocusChangeMask | PropertyChangeMask |
     //                  StructureNotifyMask);
     // grabbuttons(c, 0);
-    // if (!c->isfloating) {
-    //     c->isfloating = c->oldstate = trans != None || c->isfixed;
+    // if (!c->is_floating) {
+    //     c->is_floating = c->oldstate = trans != None || c->isfixed;
     // }
-    // if (c->isfloating) {
+    // if (c->is_floating) {
     //     XRaiseWindow(dpy, c->win);
     // }
     // attach(c);
