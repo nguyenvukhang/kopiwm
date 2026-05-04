@@ -323,7 +323,7 @@ fn focus(allocator: Allocator, client: ?*Client) void {
         c.attachStack();
         grabbuttons(c, true);
         _ = X.XSetWindowBorder(z.dpy, c.win, z.scheme.get(.Selected).border.pixel);
-        // setfocus(c);
+        c.setFocus(&z);
     } else {
         _ = X.XSetInputFocus(z.dpy, z.root, X.RevertToPointerRoot, X.CurrentTime);
         _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));

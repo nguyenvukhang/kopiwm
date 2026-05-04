@@ -113,25 +113,23 @@ pub const Client = struct {
         if (!self.neverfocus) {
             _ = X.XSetInputFocus(z.dpy, self.win, X.RevertToPointerRoot, X.CurrentTime);
         }
-        X.XChangeProperty(
+        _ = X.XChangeProperty(
             z.dpy,
             z.root,
             z.netatom.get(.ActiveWindow),
             X.XA_WINDOW,
             32,
             X.PropModeReplace,
-            @ptrCast(self.win),
+            @ptrCast(&self.win),
             1,
         );
-        self.sendEvent(z, z.wmatom.get(.TakeFocus));
+        _ = self.sendEvent(z, z.wmatom.get(.TakeFocus));
     }
 
     /// [dwm] sendevent
     /// Returns true upon successful execution.
     pub fn sendEvent(self: *Self, z: *App, proto: X.Atom) bool {
         var n: c_int = undefined;
-        // Atom *protocols;
-        // XEvent ev;
         var protocols: [*c][*c]X.Atom = undefined;
         var exists = false;
 
@@ -140,20 +138,17 @@ pub const Client = struct {
                 n -= 1;
                 exists = protocols[@intCast(n)] == proto;
             }
-            X.XFree(protocols);
+            _ = X.XFree(@ptrCast(protocols));
         }
         if (exists) {
-            const ev = X.XEvent{
-                .type = X.ClientMessage,
-                .xclient = .{
-                    .window = self.win,
-                    .message_type = z.wmatom.get(.Protocols),
-                    .format = 32,
-                    .data = .{
-                        .l = .{ proto, X.CurrentTime },
-                    },
-                },
+            var ev = X.XEvent{ .type = X.ClientMessage };
+            ev.xclient = .{
+                .window = self.win,
+                .message_type = z.wmatom.get(.Protocols),
+                .format = 32,
             };
+            ev.xclient.data.l[0] = @intCast(proto);
+            ev.xclient.data.l[1] = X.CurrentTime;
             _ = X.XSendEvent(z.dpy, self.win, X.False, X.NoEventMask, &ev);
         }
         return exists;
