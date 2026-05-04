@@ -1,12 +1,6 @@
 const Monitor = @import("monitor.zig").Monitor;
 const X = @import("c_lib.zig").X;
 
-/// [dwm] INTERSECT
-fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
-    return @max(0, @min(x + w, m.w.x + @as(i32, @intCast(m.w.w))) - @max(x, m.w.x)) *
-        @max(0, @min(y + h, m.w.y + @as(i32, @intCast(m.w.h))) - @max(y, m.w.y));
-}
-
 pub const Rect = struct {
     const Self = @This();
 
@@ -44,9 +38,7 @@ pub const Rect = struct {
         var a: i32 = 0;
         var m_opt = mons;
         while (m_opt) |m| : (m_opt = m.next) {
-            // TODO: make a rect-rect intersect method, and make a `toRect`
-            // method for a monitor.
-            a = intersect(self.x, self.y, @intCast(self.w), @intCast(self.h), m);
+            a = self.intersect(&m.w);
             if (a > max_area) {
                 max_area = a;
                 ret = m;
@@ -66,7 +58,7 @@ pub const Rect = struct {
 
     /// The right-most coordinate.
     pub inline fn r(self: *const Self) i32 {
-        return self.x + @as(@TypeOf(self.x), @intCast(self.w));
+        return self.x + @as(i32, @intCast(self.w));
     }
 
     /// The top-most coordinate. Use `self.y` where it's sufficiently clear.
@@ -76,6 +68,12 @@ pub const Rect = struct {
 
     /// The bottom-most coordinate. Use `self.y` where it's sufficiently clear.
     pub inline fn b(self: *const Self) i32 {
-        return self.y + @as(@TypeOf(self.y), @intCast(self.h));
+        return self.y + @as(i32, @intCast(self.h));
+    }
+
+    /// [dwm] INTERSECT
+    fn intersect(lhs: *const Self, rhs: *const Self) i32 {
+        return @max(0, @min(lhs.r(), rhs.r()) - @max(lhs.x, rhs.x)) *
+            @max(0, @min(lhs.b(), rhs.b()) - @max(lhs.y, rhs.y));
     }
 };
