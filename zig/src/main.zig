@@ -335,6 +335,7 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
     }
     // No need to call XFree because null in Zig means NULL in C.
     const wins: [*]Window = wins_opt orelse return;
+    defer _ = X.XFree(wins);
 
     i = 0;
     while (i < num) : (i += 1) {
@@ -345,40 +346,19 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
         if (X.XGetTransientForHint(z.dpy, wins[i], &d1) == X.True) {
             continue;
         }
-        // TODO: get back here with getstate and manage.
-        // X.Status
-
         if (wa.map_state == X.IsViewable or getstate(wins[i]) == X.IconicState) {
             try manage(allocator, wins[i], &wa);
         }
     }
     i = 0;
-    while (i < num) : (i += 1) {} // now the transients
-
-    // for (i = 0; i < num; i++) {
-    //     if (!XGetWindowAttributes(dpy, wins[i], &wa) ||
-    //         wa.override_redirect ||
-    //         XGetTransientForHint(dpy, wins[i], &d1)) {
-    //         continue;
-    //     }
-    //     if (wa.map_state == IsViewable ||
-    //         getstate(wins[i]) == IconicState) {
-    //         manage(wins[i], &wa);
-    //     }
-    // }
-    // for (i = 0; i < num; i++) { /* now the transients */
-    //     if (!XGetWindowAttributes(dpy, wins[i], &wa)) {
-    //         continue;
-    //     }
-    //     if (XGetTransientForHint(dpy, wins[i], &d1) &&
-    //         (wa.map_state == IsViewable ||
-    //          getstate(wins[i]) == IconicState)) {
-    //         manage(wins[i], &wa);
-    //     }
-    // }
-    // if (wins) {
-    //     XFree(wins);
-    // }
+    while (i < num) : (i += 1) { // now the transients
+        const r1 = X.XGetWindowAttributes(z.dpy, wins[i], &wa);
+        const viewable = wa.map_state == X.IsViewable;
+        const iconic = getstate(wins[i]) == X.IconicState;
+        if (r1 == X.True and (viewable or iconic)) {
+            try manage(allocator, wins[i], &wa);
+        }
+    }
 }
 
 /// [dwm] wintomon
