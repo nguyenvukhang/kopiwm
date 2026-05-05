@@ -10,6 +10,7 @@ const Monitor = @import("monitor.zig").Monitor;
 const Client = @import("client.zig").Client;
 const WM = @import("enums.zig").WM;
 const Clk = @import("enums.zig").Clk;
+const Arg = @import("enums.zig").Arg;
 const Net = @import("enums.zig").Net;
 const Rect = @import("rect.zig").Rect;
 const SchemeState = @import("enums.zig").SchemeState;
@@ -51,6 +52,12 @@ pub const QuickWrite = struct {
         return .{ .writer = writer };
     }
 };
+
+/// [dwm] CLEANMASK
+fn CLEANMASK(mask: u32) u32 {
+    return (mask & ~(z.numlockmask | X.LockMask)) &
+        (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod2Mask | X.Mod3Mask | X.Mod4Mask | X.Mod5Mask);
+}
 
 /// [dwm] xerrorstart
 fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
@@ -327,13 +334,10 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
 /// [dwm] buttonpress
 fn buttonpress(allocator: Allocator, e: *XEvent) void {
     const ev: X.XButtonPressedEvent = e.xbutton;
-    // var click: Clk = .RootWin;
-    // unsigned int i, x, click;
-    // Arg arg = {0};
-    // Client *c;
-    // Monitor *m;
-    // XButtonPressedEvent *ev = &e->xbutton;
+    var click: Clk = .RootWin;
+    var arg: Arg = undefined;
 
+    // Focus monitor if necessary.
     const m_opt = wintomon(ev.window);
     if (m_opt) |m| {
         if (m != z.selmon) {
@@ -342,43 +346,51 @@ fn buttonpress(allocator: Allocator, e: *XEvent) void {
             focus(allocator, null);
         }
     }
-    // Focus monitor if necessary.
-    // if ((m = wintomon(ev->window)) && m != selmon) {
-    //     unfocus(selmon->sel, 1);
-    //     selmon = m;
-    //     focus(NULL);
-    // }
 
-    // if (ev->window == selmon->barwin) {
-    //     i = x = 0;
-    //     do {
-    //         x += TEXTW(tags[i]);
-    //     } while (ev->x >= x && ++i < LENGTH(tags));
-    //     if (i < LENGTH(tags)) {
-    //         click = ClkTagBar;
-    //         arg.ui = 1 << i;
-    //     } else if (ev->x < x + TEXTW(selmon->ltsymbol)) {
-    //         click = ClkLtSymbol;
-    //     } else if (ev->x > selmon->ww - (int)TEXTW(stext) + lrpad - 2) {
-    //         click = ClkStatusText;
-    //     } else {
-    //         click = ClkWinTitle;
-    //     }
-    // } else if ((c = wintoclient(ev->window))) {
-    //     focus(c);
-    //     restack(selmon);
-    //     XAllowEvents(dpy, ReplayPointer, CurrentTime);
-    //     click = ClkClientWin;
-    // }
-    // for (i = 0; i < LENGTH(buttons); i++) {
-    //     if (click == buttons[i].click && buttons[i].func &&
-    //         buttons[i].button == ev->button &&
-    //         CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
-    //         buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0
-    //                             ? &arg
-    //                             : &buttons[i].arg);
-    //     }
-    // }
+    // Locate the click, and populate the `click` variable.
+    // This block searches for the click location in the bar window.
+    if (z.selmon) |selmon| {
+        if (ev.window == selmon.barwin) {
+            var i: usize = 0;
+            var x: u32 = 0;
+            while (true) {
+                x += z.TEXTW(allocator, cfg.tags[i]);
+                i += 1;
+                if (ev.x >= x and i < cfg.tags.len) continue;
+                break;
+            }
+            if (i < cfg.tags.len) {
+                click = .TagBar;
+                arg.ui = @as(u32, 1) << @intCast(i);
+            } else if (ev.x < x + z.TEXTW(allocator, selmon.layout_symbol)) {
+                click = .LtSymbol;
+            } else if (ev.x > selmon.w.w - z.TEXTW(allocator, z.stext.get()) + z.lrpad - 2) {
+                click = .StatusText;
+            } else {
+                click = .WinTitle;
+            }
+        }
+    }
+    // Locate the click, and populate the `click` variable.
+    // This block searches for the click location in the client.
+    if (wintoclient(ev.window)) |c| {
+        focus(allocator, c);
+        if (z.selmon) |m| restack(allocator, m);
+        _ = X.XAllowEvents(z.dpy, X.ReplayPointer, X.CurrentTime);
+        click = .ClientWin;
+    }
+
+    // Search the `buttons` map for a hit.
+    for (cfg.buttons) |*button| {
+        if (button.click != click or button.button != ev.button) continue;
+        if (CLEANMASK(button.mask) == CLEANMASK(ev.state)) {
+            if (click == .TagBar) {
+                button.func(&z, &arg);
+            } else {
+                button.func(&z, &button.arg);
+            }
+        }
+    }
 }
 
 /// [dwm] clientmessage

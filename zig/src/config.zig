@@ -65,8 +65,7 @@ pub const colors = EnumArray(SchemeState, Scheme([]const u8)).init(.{
     // zig fmt: on
 });
 
-const Mod4Mask = 1 << 4;
-const MODKEY = Mod4Mask;
+const MODKEY = X.Mod4Mask;
 pub const keys = [_]Key{
     .{ .mod = MODKEY, .sym = X.XK_space, .func = F.spawn, .arg = undefined },
 };

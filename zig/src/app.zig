@@ -43,6 +43,8 @@ pub const App = struct {
     mons: ?*Monitor = null,
 
     /// Selected monitor.
+    /// TODO: figure out if we can remove this Optional. dwm seems to operate
+    /// under the assumption that this is always populated.
     selmon: ?*Monitor = null,
 
     root: Window = undefined,
@@ -61,7 +63,7 @@ pub const App = struct {
     /// Status bar text.
     stext: fstr(256) = undefined,
 
-    numlockmask: c_uint = undefined,
+    numlockmask: c_uint = 0,
 
     running: bool = true,
 

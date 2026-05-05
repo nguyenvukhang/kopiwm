@@ -29,11 +29,20 @@ pub const Net = enum(u8) {
 
 /// [dwm] Clk* enums.
 pub const Clk = enum {
+    /// User clicked on one of the tags in the tags list (traditionally located
+    /// at the top-left) in the bar window.
     TagBar,
+    /// User clicked the layout symbol (traditionally located to the left of the
+    /// tags) in the bar window.
     LtSymbol,
+    /// User clicked the status text (traditionally located at top-right) in the
+    /// bar window.
     StatusText,
+    /// User clicked the window title in the bar window.
     WinTitle,
+    /// User clicked on a client window.
     ClientWin,
+    /// The base case: User clicked on none of the above.
     RootWin,
 };
 
