@@ -32,8 +32,11 @@ pub const Rect = struct {
         return .{ .x = @intCast(z.x), .y = @intCast(z.y), .w = @intCast(z.width), .h = @intCast(z.height) };
     }
 
-    pub fn toMonitor(self: *const Self, default: *Monitor, mons: ?*Monitor) *Monitor {
-        var ret = default;
+    /// [dwm] recttomon
+    /// Searches the list of monitors for the one with the biggest intersection
+    /// with `self` (using Monitor.w), and returns that one.
+    pub fn toMonitor(self: *const Self, mons: ?*Monitor) ?*Monitor {
+        var ret: ?*Monitor = null;
         var max_area: i32 = 0;
         var a: i32 = 0;
         var m_opt = mons;

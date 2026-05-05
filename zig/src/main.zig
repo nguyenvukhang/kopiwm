@@ -625,8 +625,23 @@ fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
 
 /// [dwm] motionnotify
 fn motionNotify(allocator: Allocator, e: *XEvent) void {
-    _ = allocator;
-    _ = e;
+    const ev: X.XMotionEvent = e.xmotion;
+    const static = struct {
+        var mon: ?*Monitor = null;
+    };
+    if (ev.window != z.root) return;
+    const rect = Rect{ .x = ev.x_root, .y = ev.y_root, .w = 1, .h = 1 };
+    const m_opt = rect.toMonitor(z.selmon);
+    if (m_opt) |m| {
+        if (static.mon) |mon| {
+            if (m != mon) {
+                unfocus(z.selmon.sel, true);
+                z.selmon = m;
+                focus(allocator, null);
+            }
+        }
+    }
+    static.mon = m_opt;
 }
 
 /// [dwm] propertynotify
@@ -736,7 +751,9 @@ fn wintomon(w: Window) *Monitor {
     var y: c_int = undefined;
     if (w == z.root and z.getRootPtr(&x, &y)) {
         const r = Rect{ .x = @intCast(x), .y = @intCast(y), .w = 1, .h = 1 };
-        return r.toMonitor(z.selmon, z.mons);
+        // To guarantee a non-null return of `*Monitor`, we deviate a tad from
+        // dwm's behaviour and return `selmon` if nothing is found.
+        return r.toMonitor(z.mons) orelse z.selmon;
     }
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
