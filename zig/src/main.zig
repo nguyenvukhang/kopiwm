@@ -330,7 +330,7 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
 }
 
 /// [dwm] buttonpress
-fn buttonpress(allocator: Allocator, e: *XEvent) void {
+fn buttonPress(allocator: Allocator, e: *XEvent) void {
     const ev: X.XButtonPressedEvent = e.xbutton;
     var click: Clk = .RootWin;
     var arg: Arg = undefined;
@@ -390,28 +390,24 @@ fn buttonpress(allocator: Allocator, e: *XEvent) void {
 }
 
 /// [dwm] clientmessage
-fn clientmessage(allocator: Allocator, ev: *XEvent) void {
+fn clientMessage(ev: *XEvent) void {
     const cme: X.XClientMessageEvent = ev.xclient;
-    // var c: *Client = wintoclient(ev.cme.window) orelse return;
+    var c: *Client = wintoclient(cme.window) orelse return;
 
     if (cme.message_type == z.netatom.get(.WMState)) {
-        // _ = c;
+        const fs_atom = z.netatom.get(.WMFullscreen);
+        if (cme.data.l[1] == fs_atom or cme.data.l[2] == fs_atom) {
+            c.setFullscreen(switch (cme.data.l[0]) {
+                1 => true, // _NET_WM_STATE_ADD
+                2 => !c.isfullscreen, // _NET_WM_STATE_TOGGLE
+                else => false,
+            });
+        }
+    } else if (cme.message_type == z.netatom.get(.ActiveWindow)) {
+        if (c != z.selmon.sel and c.isurgent) {
+            c.setUrgent(z.dpy, true);
+        }
     }
-
-    // if (cme->message_type == netatom[NetWMState]) {
-    //     if (cme->data.l[1] == netatom[NetWMFullscreen] ||
-    //         cme->data.l[2] == netatom[NetWMFullscreen]) {
-    //         setfullscreen(c,
-    //                       (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
-    //                        || (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ &&
-    //                            !c->isfullscreen)));
-    //     }
-    // } else if (cme->message_type == netatom[NetActiveWindow]) {
-    //     if (c != selmon->sel && !c->isurgent) {
-    //         seturgent(c, 1);
-    //     }
-    // }
-    _ = allocator;
 }
 
 /// [dwm] configurerequest
@@ -492,32 +488,42 @@ fn run(allocator: Allocator) void {
     _ = X.XSync(z.dpy, X.False);
     var ev: XEvent = undefined;
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
-        if (handler[@intCast(ev.type)]) |f| {
-            f(allocator, &ev);
+        if (handler[@intCast(ev.type)]) |handler_fn| {
+            switch (handler_fn) {
+                .Alloc => |f| f(allocator, &ev),
+                .NoAlloc => |f| f(&ev),
+            }
         }
     }
 }
 
-var handler: [X.LASTEvent]?*const fn (Allocator, *XEvent) void = undefined;
+const HandlerFnTag = enum { Alloc, NoAlloc };
+const HandlerFn = union(HandlerFnTag) {
+    Alloc: *const fn (Allocator, *XEvent) void,
+    NoAlloc: *const fn (*XEvent) void,
+};
+var handler: [X.LASTEvent]?HandlerFn = undefined;
 
 fn setupHandler() void {
     var i: c_int = 0;
     while (i < handler.len) : (i += 1) {
         handler[@intCast(i)] = switch (i) {
-            X.ButtonPress => buttonpress,
-            X.ClientMessage => clientmessage,
-            X.ConfigureNotify => configurenotify,
-            X.ConfigureRequest => configurerequest,
-            X.DestroyNotify => destroynotify,
-            X.EnterNotify => enternotify,
-            X.Expose => expose,
-            X.FocusIn => focusin,
-            X.KeyPress => keypress,
-            X.MapRequest => maprequest,
-            X.MappingNotify => mappingnotify,
-            X.MotionNotify => motionnotify,
-            X.PropertyNotify => propertynotify,
-            X.UnmapNotify => unmapnotify,
+            // zig fmt: off
+            X.ButtonPress      => .{ .Alloc   = buttonPress },
+            X.ClientMessage    => .{ .NoAlloc = clientMessage },
+            X.ConfigureNotify  => .{ .Alloc   = configurenotify },
+            X.ConfigureRequest => .{ .Alloc   = configurerequest },
+            X.DestroyNotify    => .{ .Alloc   = destroynotify },
+            X.EnterNotify      => .{ .Alloc   = enternotify },
+            X.Expose           => .{ .Alloc   = expose },
+            X.FocusIn          => .{ .Alloc   = focusin },
+            X.KeyPress         => .{ .Alloc   = keypress },
+            X.MapRequest       => .{ .Alloc   = maprequest },
+            X.MappingNotify    => .{ .Alloc   = mappingnotify },
+            X.MotionNotify     => .{ .Alloc   = motionnotify },
+            X.PropertyNotify   => .{ .Alloc   = propertynotify },
+            X.UnmapNotify      => .{ .Alloc   = unmapnotify },
+            // zig fmt: on
             else => null,
         };
     }
