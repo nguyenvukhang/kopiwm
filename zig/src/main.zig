@@ -59,6 +59,10 @@ fn CLEANMASK(mask: u32) u32 {
         (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod2Mask | X.Mod3Mask | X.Mod4Mask | X.Mod5Mask);
 }
 
+fn xerrordummy(_: ?*Display, _: [*c]XErrorEvent) callconv(.c) c_int {
+    return 0;
+}
+
 /// [dwm] xerrorstart
 fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
     log.info("(xerrorstart)", .{});
@@ -270,6 +274,53 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     arrange(allocator, c.mon);
     _ = X.XMapWindow(z.dpy, c.win);
     focus(allocator, null);
+}
+
+fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
+    const m = c.mon;
+    c.detach();
+    c.detachStack();
+    if (!destroyed) {
+        _ = X.XGrabServer(z.dpy); // dwm: Avoid race conditions.
+        _ = X.XSetErrorHandler(xerrordummy);
+        _ = X.XSelectInput(z.dpy, c.win, X.NoEventMask);
+        var wc: X.XWindowChanges = .{ .border_width = c.bw.prev };
+        _ = X.XConfigureWindow(z.py, c.win, X.CWBorderWidth, &wc); // restore border
+        _ = X.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
+        c.setState(X.WithdrawnState);
+        _ = X.XSync(z.dpy, X.False);
+        _ = X.XSetErrorHandler(xerror);
+        _ = X.XUngrabServer(z.dpy);
+    }
+    allocator.destroy(c);
+    focus(null);
+    updateClientList();
+    arrange(allocator, m);
+}
+
+/// [dwm] updateclientlist
+/// Updates the ClientList property in the X server.
+fn updateClientList() void {
+    var m_opt = z.mons;
+    var c_opt: ?*Client = undefined;
+    // Delete the existing list.
+    _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ClientList));
+    // Rebuild the list.
+    while (m_opt) |m| : (m_opt = m.next) {
+        c_opt = m.clients;
+        while (c_opt) |c| : (c_opt = c.next) {
+            _ = X.XChangeProperty(
+                z.dpy,
+                z.root,
+                z.netatom.get(.ClientList),
+                X.XA_WINDOW,
+                32,
+                X.PropModeAppend,
+                @ptrCast(&c.win),
+                1,
+            );
+        }
+    }
 }
 
 /// [dwm] arrangemon
@@ -505,16 +556,7 @@ fn configurenotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
 /// [dwm] destroynotify
 fn destroyNotify(allocator: Allocator, e: *XEvent) void {
     const ev: X.XDestroyWindowEvent = e.xdestroywindow;
-    const c = wintoclient(ev.window) orelse return;
-    _ = c;
-    _ = allocator;
-
-    // Client *c;
-    // XDestroyWindowEvent *ev = &e->xdestroywindow;
-    //
-    // if ((c = wintoclient(ev->window))) {
-    //     unmanage(c, 1);
-    // }
+    if (wintoclient(ev.window)) |c| unmanage(allocator, c, true);
 }
 
 /// [dwm] enternotify
@@ -824,8 +866,8 @@ fn unfocus(client: ?*Client, setfocus: bool) void {
 fn focus(allocator: Allocator, client: ?*Client) void {
     var c_opt = client;
     if (if (c_opt) |c| !c.isVisible() else true) {
-        c_opt = z.selmon.stack;
         // Push the pointer forward until c_opt points to the first visible client.
+        c_opt = z.selmon.stack;
         while (c_opt) |c| : (c_opt = c.snext) {
             if (c.isVisible()) {
                 break;

@@ -94,9 +94,17 @@ pub const Client = struct {
     fn getStackPtr(self: *Self) ?*(?*Self) {
         var opt: *?*Self = &self.mon.stack;
         while (opt.*) |c| : (opt = &c.snext) {
-            if (c == self) {
-                return opt;
-            }
+            if (c == self) return opt;
+        }
+        return null;
+    }
+
+    /// Gets a pointer to the node in the linked list `self.mon.clients` that
+    /// points to `self`.
+    fn getPtr(self: *Self) ?*(?*Self) {
+        var opt: *?*Self = &self.mon.clients;
+        while (opt.*) |c| : (opt = &c.next) {
+            if (c == self) return opt;
         }
         return null;
     }
@@ -114,6 +122,13 @@ pub const Client = struct {
     pub fn attachStack(self: *Self) void {
         self.snext = self.mon.stack;
         self.mon.stack = self;
+    }
+
+    /// [dwm] detach
+    pub fn detach(self: *Self) void {
+        if (self.getPtr()) |c| {
+            c.* = self.snext;
+        }
     }
 
     /// [dwm] detachstack
