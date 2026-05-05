@@ -575,9 +575,11 @@ fn enterNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// [dwm] expose
-fn expose(allocator: Allocator, ev: *XEvent) void {
-    _ = allocator;
-    _ = ev;
+fn expose(allocator: Allocator, e: *XEvent) void {
+    const ev: X.XExposeEvent = e.xexpose;
+    if (ev.count == 0) {
+        drawbar(allocator, wintomon(ev.window));
+    }
 }
 
 /// [dwm] focusin
