@@ -9,6 +9,7 @@ const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
 const Client = @import("client.zig").Client;
 const WM = @import("enums.zig").WM;
+const Clk = @import("enums.zig").Clk;
 const Net = @import("enums.zig").Net;
 const Rect = @import("rect.zig").Rect;
 const SchemeState = @import("enums.zig").SchemeState;
@@ -324,99 +325,174 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
 }
 
 /// [dwm] buttonpress
-fn buttonpress(ev: *XEvent) void {
-    _ = ev;
+fn buttonpress(allocator: Allocator, e: *XEvent) void {
+    const ev: X.XButtonPressedEvent = e.xbutton;
+    // var click: Clk = .RootWin;
+    // unsigned int i, x, click;
+    // Arg arg = {0};
+    // Client *c;
+    // Monitor *m;
+    // XButtonPressedEvent *ev = &e->xbutton;
+
+    const m_opt = wintomon(ev.window);
+    if (m_opt) |m| {
+        if (m != z.selmon) {
+            if (z.selclient()) |c| unfocus(c, true);
+            z.selmon = m;
+            focus(allocator, null);
+        }
+    }
+    // Focus monitor if necessary.
+    // if ((m = wintomon(ev->window)) && m != selmon) {
+    //     unfocus(selmon->sel, 1);
+    //     selmon = m;
+    //     focus(NULL);
+    // }
+
+    // if (ev->window == selmon->barwin) {
+    //     i = x = 0;
+    //     do {
+    //         x += TEXTW(tags[i]);
+    //     } while (ev->x >= x && ++i < LENGTH(tags));
+    //     if (i < LENGTH(tags)) {
+    //         click = ClkTagBar;
+    //         arg.ui = 1 << i;
+    //     } else if (ev->x < x + TEXTW(selmon->ltsymbol)) {
+    //         click = ClkLtSymbol;
+    //     } else if (ev->x > selmon->ww - (int)TEXTW(stext) + lrpad - 2) {
+    //         click = ClkStatusText;
+    //     } else {
+    //         click = ClkWinTitle;
+    //     }
+    // } else if ((c = wintoclient(ev->window))) {
+    //     focus(c);
+    //     restack(selmon);
+    //     XAllowEvents(dpy, ReplayPointer, CurrentTime);
+    //     click = ClkClientWin;
+    // }
+    // for (i = 0; i < LENGTH(buttons); i++) {
+    //     if (click == buttons[i].click && buttons[i].func &&
+    //         buttons[i].button == ev->button &&
+    //         CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
+    //         buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0
+    //                             ? &arg
+    //                             : &buttons[i].arg);
+    //     }
+    // }
 }
 
 /// [dwm] clientmessage
-fn clientmessage(ev: *XEvent) void {
+fn clientmessage(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] configurerequest
-fn configurerequest(ev: *XEvent) void {
+fn configurerequest(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] configurenotify
-fn configurenotify(ev: *XEvent) void {
+fn configurenotify(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] destroynotify
-fn destroynotify(ev: *XEvent) void {
+fn destroynotify(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] enternotify
-fn enternotify(ev: *XEvent) void {
+fn enternotify(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] expose
-fn expose(ev: *XEvent) void {
+fn expose(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] focusin
-fn focusin(ev: *XEvent) void {
+fn focusin(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] keypress
-fn keypress(ev: *XEvent) void {
+fn keypress(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] mappingnotify
-fn mappingnotify(ev: *XEvent) void {
+fn mappingnotify(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] maprequest
-fn maprequest(ev: *XEvent) void {
+fn maprequest(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] motionnotify
-fn motionnotify(ev: *XEvent) void {
+fn motionnotify(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] propertynotify
-fn propertynotify(ev: *XEvent) void {
+fn propertynotify(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
 /// [dwm] unmapnotify
-fn unmapnotify(ev: *XEvent) void {
+fn unmapnotify(allocator: Allocator, ev: *XEvent) void {
+    _ = allocator;
     _ = ev;
 }
 
-
 /// [dwm] run
 /// main event loop
-fn run() void {
-    var ev: XEvent = undefined;
+fn run(allocator: Allocator) void {
     _ = X.XSync(z.dpy, X.False);
+    var ev: XEvent = undefined;
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
-        switch (ev.type) {
-            X.ButtonPress => buttonpress(&ev),
-            X.ClientMessage => clientmessage(&ev),
-            X.ConfigureNotify => configurenotify(&ev),
-            X.ConfigureRequest => configurerequest(&ev),
-            X.DestroyNotify => destroynotify(&ev),
-            X.EnterNotify => enternotify(&ev),
-            X.Expose => expose(&ev),
-            X.FocusIn => focusin(&ev),
-            X.KeyPress => keypress(&ev),
-            X.MapRequest => maprequest(&ev),
-            X.MappingNotify => mappingnotify(&ev),
-            X.MotionNotify => motionnotify(&ev),
-            X.PropertyNotify => propertynotify(&ev),
-            X.UnmapNotify => unmapnotify(&ev),
-            else => continue,
+        if (handler[@intCast(ev.type)]) |f| {
+            f(allocator, &ev);
         }
+    }
+}
+
+var handler: [X.LASTEvent]?*const fn (Allocator, *XEvent) void = undefined;
+
+fn setupHandler() void {
+    var i: c_int = 0;
+    while (i < handler.len) : (i += 1) {
+        handler[@intCast(i)] = switch (i) {
+            X.ButtonPress => buttonpress,
+            X.ClientMessage => clientmessage,
+            X.ConfigureNotify => configurenotify,
+            X.ConfigureRequest => configurerequest,
+            X.DestroyNotify => destroynotify,
+            X.EnterNotify => enternotify,
+            X.Expose => expose,
+            X.FocusIn => focusin,
+            X.KeyPress => keypress,
+            X.MapRequest => maprequest,
+            X.MappingNotify => mappingnotify,
+            X.MotionNotify => motionnotify,
+            X.PropertyNotify => propertynotify,
+            X.UnmapNotify => unmapnotify,
+            else => null,
+        };
     }
 }
 
@@ -958,6 +1034,7 @@ pub fn main() !void {
     if (SAID_AND_DONE) check_other_wm();
 
     log.info("Start setup()", .{});
+    setupHandler();
     try setup(allocator);
     defer cleanup(allocator);
 
@@ -965,7 +1042,7 @@ pub fn main() !void {
 
     log.info("Start main loop", .{});
     try scan(allocator);
-    run();
+    run(allocator);
 
     log.info("The end! Starting cleanup...", .{});
 }
