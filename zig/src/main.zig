@@ -285,7 +285,7 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
         _ = X.XSetErrorHandler(xerrordummy);
         _ = X.XSelectInput(z.dpy, c.win, X.NoEventMask);
         var wc: X.XWindowChanges = .{ .border_width = c.bw.prev };
-        _ = X.XConfigureWindow(z.py, c.win, X.CWBorderWidth, &wc); // restore border
+        _ = X.XConfigureWindow(z.dpy, c.win, X.CWBorderWidth, &wc); // restore border
         _ = X.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
         c.setState(X.WithdrawnState);
         _ = X.XSync(z.dpy, X.False);
@@ -293,7 +293,7 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
         _ = X.XUngrabServer(z.dpy);
     }
     allocator.destroy(c);
-    focus(null);
+    focus(allocator, null);
     updateClientList();
     arrange(allocator, m);
 }
@@ -387,13 +387,11 @@ fn buttonPress(allocator: Allocator, e: *XEvent) void {
     var arg: Arg = undefined;
 
     // Focus monitor if necessary.
-    const m_opt = wintomon(ev.window);
-    if (m_opt) |m| {
-        if (m != z.selmon) {
-            if (z.selmon.sel) |c| unfocus(c, true);
-            z.selmon = m;
-            focus(allocator, null);
-        }
+    const m = wintomon(ev.window);
+    if (m != z.selmon) {
+        if (z.selmon.sel) |c| unfocus(c, true);
+        z.selmon = m;
+        focus(allocator, null);
     }
 
     // Locate the click, and populate the `click` variable.
@@ -560,9 +558,20 @@ fn destroyNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// [dwm] enternotify
-fn enterNotify(allocator: Allocator, ev: *XEvent) void {
-    _ = allocator;
-    _ = ev;
+fn enterNotify(allocator: Allocator, e: *XEvent) void {
+    const ev: X.XCrossingEvent = e.xcrossing;
+    if ((ev.mode != X.NotifyNormal or ev.detail == X.NotifyInferior) and ev.window != z.root) {
+        return;
+    }
+    const c = wintoclient(ev.window);
+    const m = if (c) |client| client.mon else wintomon(ev.window);
+    if (m != z.selmon) {
+        unfocus(z.selmon.sel, true);
+        z.selmon = m;
+    } else if (c == null or c == z.selmon.sel) {
+        return;
+    }
+    focus(allocator, c);
 }
 
 /// [dwm] expose
@@ -703,9 +712,7 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
 }
 
 /// [dwm] wintomon
-/// TODO: revist this after all is said and done and see if we can guarantee
-/// non-null. That all depends on if selmon is always non-null.
-fn wintomon(w: Window) ?*Monitor {
+fn wintomon(w: Window) *Monitor {
     var x: c_int = undefined;
     var y: c_int = undefined;
     if (w == z.root and z.getRootPtr(&x, &y)) {
@@ -714,13 +721,9 @@ fn wintomon(w: Window) ?*Monitor {
     }
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
-        if (w == m.barwin) {
-            return m;
-        }
+        if (w == m.barwin) return m;
     }
-    if (wintoclient(w)) |client| {
-        return client.mon;
-    }
+    if (wintoclient(w)) |c| return c.mon;
     return z.selmon;
 }
 

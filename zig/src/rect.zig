@@ -32,7 +32,7 @@ pub const Rect = struct {
         return .{ .x = @intCast(z.x), .y = @intCast(z.y), .w = @intCast(z.width), .h = @intCast(z.height) };
     }
 
-    pub fn toMonitor(self: *const Self, default: ?*Monitor, mons: ?*Monitor) ?*Monitor {
+    pub fn toMonitor(self: *const Self, default: *Monitor, mons: ?*Monitor) *Monitor {
         var ret = default;
         var max_area: i32 = 0;
         var a: i32 = 0;
