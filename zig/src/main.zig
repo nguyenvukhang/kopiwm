@@ -197,7 +197,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
 
     c.updateTitle();
     blk: {
-        if (X.XGetTransientForHint(z.dpy, w, &trans) == X.True) {
+        if (X.XGetTransientForHint(z.dpy, w, &trans) != 0) {
             // This seems to make very little sense if there is a bijection between
             // clients and windows.
             if (wintoclient(w)) |other_client| {
@@ -209,7 +209,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
         c.mon = z.selmon;
         c.applyRules();
     }
-    if (X.XGetTransientForHint(z.dpy, w, &trans) == X.True) {}
+    if (X.XGetTransientForHint(z.dpy, w, &trans) != 0) {}
     var r = &c.*.pos.curr;
 
     // If client is too far right, shift it left.
@@ -611,10 +611,16 @@ fn mappingNotify(e: *XEvent) void {
 }
 
 /// [dwm] maprequest
-fn mapRequest(allocator: Allocator, e: *XEvent) void {
-    const ev: X.XMappingEvent = e.xmapping;
-    _ = allocator;
-    _ = ev;
+fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
+    const ev: X.XMapRequestEvent = e.xmaprequest;
+    var wa: X.XWindowAttributes = undefined;
+
+    const res = X.XGetWindowAttributes(z.dpy, ev.window, &wa);
+    if (res == 0 or wa.override_redirect != 0) return;
+
+    if (wintoclient(ev.window) == null) {
+        try manage(allocator, ev.window, &wa);
+    }
 }
 
 /// [dwm] motionnotify
@@ -673,7 +679,7 @@ fn setupHandler() void {
             X.Expose           => .{ .AllocCl = expose },
             X.FocusIn          => .{ .NoAlloc = focusIn },
             X.KeyPress         => .{ .NoAlloc = keyPress },
-            X.MapRequest       => .{ .AllocCl = mapRequest },
+            X.MapRequest       => .{ .Alloc   = mapRequest },
             X.MappingNotify    => .{ .NoAlloc = mappingNotify },
             X.MotionNotify     => .{ .AllocCl = motionNotify },
             X.PropertyNotify   => .{ .AllocCl = propertyNotify },
@@ -703,10 +709,10 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
     i = 0;
     while (i < num) : (i += 1) {
         const r1 = X.XGetWindowAttributes(z.dpy, wins[i], &wa);
-        if (r1 == X.False or wa.override_redirect == X.True) {
+        if (r1 == X.False or wa.override_redirect != 0) {
             continue;
         }
-        if (X.XGetTransientForHint(z.dpy, wins[i], &d1) == X.True) {
+        if (X.XGetTransientForHint(z.dpy, wins[i], &d1) != 0) {
             continue;
         }
         if (wa.map_state == X.IsViewable or getstate(wins[i]) == X.IconicState) {
@@ -718,7 +724,7 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
         const r1 = X.XGetWindowAttributes(z.dpy, wins[i], &wa);
         const viewable = wa.map_state == X.IsViewable;
         const iconic = getstate(wins[i]) == X.IconicState;
-        if (r1 == X.True and (viewable or iconic)) {
+        if (r1 != 0 and (viewable or iconic)) {
             try manage(allocator, wins[i], &wa);
         }
     }

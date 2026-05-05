@@ -100,7 +100,7 @@ pub const App = struct {
         // XQueryPointer returns the root window the pointer is logically on and
         // the pointer coordinates relative to the root window's origin.
         const res: X.Bool = X.XQueryPointer(self.dpy, self.root, &w, &w, x, y, &d_int, &d_int, &d_uint);
-        return res == X.True;
+        return res != 0;
     }
 
     /// Gets the property of a window in text form, and writes it to `buffer`.
