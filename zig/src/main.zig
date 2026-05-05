@@ -474,9 +474,32 @@ fn configureRequest(e: *XEvent) void {
 }
 
 /// [dwm] configurenotify
-fn configurenotify(allocator: Allocator, ev: *XEvent) void {
-    _ = allocator;
-    _ = ev;
+fn configurenotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
+    const ev: X.XConfigureEvent = e.xconfigure;
+    if (ev.window != z.root) return;
+    const dirty = z.s.w != ev.width or z.s.h != ev.height;
+    z.s.w = @intCast(ev.width);
+    z.s.h = @intCast(ev.height);
+
+    var selmon: ?*Monitor = z.selmon;
+    // TODO: [dwm] updategeom handling sucks, needs to be simplified
+    if ((try updategeom(allocator, &selmon)) or dirty) {
+        z.drw.resize(z.s.w, z.bar_height);
+        updatebars();
+        var m_opt = z.mons;
+        var c_opt: ?*Client = null;
+        while (m_opt) |m| : (m_opt = m.next) {
+            c_opt = m.clients;
+            while (c_opt) |c| : (c_opt = c.next) {
+                if (c.isfullscreen) {
+                    c.resize(m.m);
+                }
+            }
+            _ = X.XMoveResizeWindow(z.dpy, m.barwin, m.w.x, m.w.y, m.w.w, z.bar_height);
+        }
+        focus(allocator, null);
+        arrange(allocator, null);
+    }
 }
 
 /// [dwm] destroynotify
@@ -541,23 +564,25 @@ fn unmapNotify(allocator: Allocator, ev: *XEvent) void {
 
 /// [dwm] run
 /// main event loop
-fn run(allocator: Allocator) void {
+fn run(allocator: Allocator) error{OutOfMemory}!void {
     _ = X.XSync(z.dpy, X.False);
     var ev: XEvent = undefined;
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
         if (handler[@intCast(ev.type)]) |handler_fn| {
             switch (handler_fn) {
-                .Alloc => |f| f(allocator, &ev),
                 .NoAlloc => |f| f(&ev),
+                .AllocCl => |f| f(allocator, &ev),
+                .Alloc => |f| try f(allocator, &ev),
             }
         }
     }
 }
 
-const HandlerFnTag = enum { Alloc, NoAlloc };
+const HandlerFnTag = enum { NoAlloc, AllocCl, Alloc };
 const HandlerFn = union(HandlerFnTag) {
-    Alloc: *const fn (Allocator, *XEvent) void,
     NoAlloc: *const fn (*XEvent) void,
+    AllocCl: *const fn (Allocator, *XEvent) void,
+    Alloc: *const fn (Allocator, *XEvent) error{OutOfMemory}!void,
 };
 var handler: [X.LASTEvent]?HandlerFn = undefined;
 
@@ -566,20 +591,20 @@ fn setupHandler() void {
     while (i < handler.len) : (i += 1) {
         handler[@intCast(i)] = switch (i) {
             // zig fmt: off
-            X.ButtonPress      => .{ .Alloc   = buttonPress },
+            X.ButtonPress      => .{ .AllocCl = buttonPress },
             X.ClientMessage    => .{ .NoAlloc = clientMessage },
             X.ConfigureNotify  => .{ .Alloc   = configurenotify },
             X.ConfigureRequest => .{ .NoAlloc = configureRequest },
-            X.DestroyNotify    => .{ .Alloc   = destroyNotify },
-            X.EnterNotify      => .{ .Alloc   = enterNotify },
-            X.Expose           => .{ .Alloc   = expose },
-            X.FocusIn          => .{ .Alloc   = focusIn },
-            X.KeyPress         => .{ .Alloc   = keyPress },
-            X.MapRequest       => .{ .Alloc   = mapRequest },
-            X.MappingNotify    => .{ .Alloc   = mappingNotify },
-            X.MotionNotify     => .{ .Alloc   = motionNotify },
-            X.PropertyNotify   => .{ .Alloc   = propertyNotify },
-            X.UnmapNotify      => .{ .Alloc   = unmapNotify },
+            X.DestroyNotify    => .{ .AllocCl = destroyNotify },
+            X.EnterNotify      => .{ .AllocCl = enterNotify },
+            X.Expose           => .{ .AllocCl = expose },
+            X.FocusIn          => .{ .AllocCl = focusIn },
+            X.KeyPress         => .{ .AllocCl = keyPress },
+            X.MapRequest       => .{ .AllocCl = mapRequest },
+            X.MappingNotify    => .{ .AllocCl = mappingNotify },
+            X.MotionNotify     => .{ .AllocCl = motionNotify },
+            X.PropertyNotify   => .{ .AllocCl = propertyNotify },
+            X.UnmapNotify      => .{ .AllocCl = unmapNotify },
             // zig fmt: on
             else => null,
         };
@@ -1135,7 +1160,7 @@ pub fn main() !void {
 
     log.info("Start main loop", .{});
     try scan(allocator);
-    run(allocator);
+    try run(allocator);
 
     log.info("The end! Starting cleanup...", .{});
 }

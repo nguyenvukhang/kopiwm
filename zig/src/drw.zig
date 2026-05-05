@@ -196,12 +196,12 @@ pub const Drw = struct {
     pub fn resize(self: *Self, w: u32, h: u32) void {
         self.w = w;
         self.h = h;
-        if (self.drawable) {
-            X.XFreePixmap(self.dpy, self.drawable);
+        if (self.drawable != 0) {
+            _ = X.XFreePixmap(self.dpy, self.drawable);
         }
         self.drawable = X.XCreatePixmap(
             self.dpy,
-            self.window,
+            self.root,
             w,
             h,
             @intCast(X.DefaultDepth(self.dpy, self.screen)),
