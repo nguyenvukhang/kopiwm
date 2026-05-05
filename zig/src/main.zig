@@ -26,6 +26,7 @@ const C = @import("c_lib.zig").C;
 const Window = X.Window;
 const Display = X.Display;
 const XErrorEvent = X.XErrorEvent;
+const XEvent = X.XEvent;
 
 var z: dwmz.App = .init();
 
@@ -296,7 +297,7 @@ fn restack(allocator: Allocator, m: *Monitor) void {
     }
 
     _ = X.XSync(z.dpy, X.False);
-    var ev: X.XEvent = undefined;
+    var ev: XEvent = undefined;
     while (X.XCheckMaskEvent(z.dpy, X.EnterWindowMask, &ev) != 0) {}
 }
 
@@ -322,6 +323,104 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
     }
 }
 
+/// [dwm] buttonpress
+fn buttonpress(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] clientmessage
+fn clientmessage(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] configurerequest
+fn configurerequest(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] configurenotify
+fn configurenotify(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] destroynotify
+fn destroynotify(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] enternotify
+fn enternotify(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] expose
+fn expose(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] focusin
+fn focusin(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] keypress
+fn keypress(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] mappingnotify
+fn mappingnotify(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] maprequest
+fn maprequest(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] motionnotify
+fn motionnotify(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] propertynotify
+fn propertynotify(ev: *XEvent) void {
+    _ = ev;
+}
+
+/// [dwm] unmapnotify
+fn unmapnotify(ev: *XEvent) void {
+    _ = ev;
+}
+
+
+/// [dwm] run
+/// main event loop
+fn run() void {
+    var ev: XEvent = undefined;
+    _ = X.XSync(z.dpy, X.False);
+    while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
+        switch (ev.type) {
+            X.ButtonPress => buttonpress(&ev),
+            X.ClientMessage => clientmessage(&ev),
+            X.ConfigureNotify => configurenotify(&ev),
+            X.ConfigureRequest => configurerequest(&ev),
+            X.DestroyNotify => destroynotify(&ev),
+            X.EnterNotify => enternotify(&ev),
+            X.Expose => expose(&ev),
+            X.FocusIn => focusin(&ev),
+            X.KeyPress => keypress(&ev),
+            X.MapRequest => maprequest(&ev),
+            X.MappingNotify => mappingnotify(&ev),
+            X.MotionNotify => motionnotify(&ev),
+            X.PropertyNotify => propertynotify(&ev),
+            X.UnmapNotify => unmapnotify(&ev),
+            else => continue,
+        }
+    }
+}
+
+/// [dwm] scan
 fn scan(allocator: Allocator) error{OutOfMemory}!void {
     var wa: X.XWindowAttributes = undefined;
     var num: c_uint = undefined;
@@ -866,6 +965,7 @@ pub fn main() !void {
 
     log.info("Start main loop", .{});
     try scan(allocator);
+    run();
 
     log.info("The end! Starting cleanup...", .{});
 }

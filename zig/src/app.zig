@@ -63,6 +63,8 @@ pub const App = struct {
 
     numlockmask: c_uint = undefined,
 
+    running: bool = true,
+
     pub fn init() Self {
         var z = Self{};
         const n = @min(build_opts.name.len, z.updatebars_buffer.len);
