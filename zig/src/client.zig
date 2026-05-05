@@ -585,4 +585,20 @@ pub const Client = struct {
             _ = X.XMoveWindow(c.app.dpy, c.win, c.width() * -2, c.pos.curr.y);
         }
     }
+
+    /// [dwm] nexttiled
+    pub fn nextTiled(self: *Self) ?*Self {
+        var c_opt: ?*Self = self;
+        // TODO: Again, figure out why this isn't using snext. Shouldn't the stack
+        // correspond to the tiling? Or is the stack only in play when things
+        // are floating?
+        //
+        // And what about if we reached the end? Should we wrap around?
+        while (c_opt) |c| : (c_opt = c.next) {
+            if (!c.is_floating.curr and c.isVisible()) {
+                return c;
+            }
+        }
+        return null;
+    }
 };

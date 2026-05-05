@@ -891,6 +891,27 @@ fn killClient(_: *const Arg) void {
     }
 }
 
+/// [dwm] monocle
+fn monocle(m: *Monitor) void {
+    var c_opt = m.clients;
+    var n: u32 = 0;
+    while (c_opt) |c| : (c_opt = c.next) {
+        if (c.isVisible()) n += 1;
+    }
+    if (n > 0) { // Override layout symbol.
+        // TODO: have to make the layout symbol an owned buffer. Right not it
+        // can only display const strings.
+        // snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
+    }
+    c_opt = (c_opt orelse return).nextTiled();
+    while (c_opt) |c| : (c_opt = c.nextTiled()) {
+        var r = m.w;
+        r.w = m.w.w - 2 * @as(u32, @intCast(c.bw));
+        r.h = m.w.h - 2 * @as(u32, @intCast(c.bw));
+        c.hintAndResize(r, false);
+    }
+}
+
 /// [dwm] wintomon
 fn wintomon(w: Window) *Monitor {
     var x: c_int = undefined;
