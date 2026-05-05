@@ -544,4 +544,29 @@ pub const Client = struct {
             2,
         );
     }
+
+    /// [dwm] showhide
+    /// Refreshes the show-hide state of the entire linked list of Clients in
+    /// the stack.
+    pub fn showHide(c: *Self) void {
+        if (c.isVisible()) {
+            // Show clients top-down.
+            _ = X.XMoveWindow(c.app.dpy, c.win, c.pos.curr.x, c.pos.curr.y);
+            const should_resize = r: {
+                if (c.isfullscreen) break :r false;
+                if (c.mon.lt[c.mon.sellt].arrange) |_| break :r true;
+                break :r c.is_floating.curr;
+            };
+            if (should_resize) c.hintAndResize(c.pos.curr, false);
+            if (c.snext) |next| next.showHide();
+        } else {
+            // Hide clients bottom up.
+            if (c.snext) |next| next.showHide();
+            // TODO: figure out when we're sending it to (-2 * width)
+            // x-coordinate. Is the goal to send it outside of the screen?
+            // But if so, then shouldn't we send it based on the width of the
+            // screen instead of the client?
+            _ = X.XMoveWindow(c.app.dpy, c.win, c.width() * -2, c.pos.curr.y);
+        }
+    }
 };

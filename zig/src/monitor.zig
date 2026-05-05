@@ -29,10 +29,10 @@ pub const Monitor = struct {
     m: Rect = undefined,
     /// Current window rect.
     w: Rect = undefined,
-    /// Index of selected tags.
+    /// Index of selected tags (indexes `self.tagset`).
     seltags: u1 = 0,
-    /// Index of selected layout.
-    sellt: usize = undefined,
+    /// Index of selected layout (indexes `self.lt`).
+    sellt: u1 = undefined,
     /// A couple of bitmasks, only ever to be indexed by `seltags`.
     tagset: [2]u32 = .{ 1, 1 },
     /// false means hide bar.
