@@ -66,7 +66,7 @@ pub const Rect = struct {
         return self.y;
     }
 
-    /// The bottom-most coordinate. Use `self.y` where it's sufficiently clear.
+    /// The bottom-most coordinate.
     pub inline fn b(self: *const Self) i32 {
         return self.y + @as(i32, @intCast(self.h));
     }

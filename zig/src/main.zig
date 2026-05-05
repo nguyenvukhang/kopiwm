@@ -411,9 +411,66 @@ fn clientMessage(ev: *XEvent) void {
 }
 
 /// [dwm] configurerequest
-fn configurerequest(allocator: Allocator, ev: *XEvent) void {
-    _ = allocator;
-    _ = ev;
+fn configureRequest(e: *XEvent) void {
+    const ev = e.xconfigurerequest;
+    const vmask = ev.value_mask;
+
+    if (wintoclient(ev.window)) |c| {
+        if (vmask & X.CWBorderWidth != 0) {
+            c.bw.set(ev.border_width);
+        } else if (c.is_floating.curr or z.selmon.lt[z.selmon.sellt].arrange == null) {
+            const m = c.mon;
+            if (vmask & X.CWX != 0) {
+                c.pos.prev.x = c.pos.curr.x;
+                c.pos.curr.x = m.m.x + ev.x;
+            }
+            if (vmask & X.CWY != 0) {
+                c.pos.prev.y = c.pos.curr.y;
+                c.pos.curr.y = m.m.y + ev.y;
+            }
+            if (vmask & X.CWWidth != 0) {
+                c.pos.prev.w = c.pos.curr.w;
+                c.pos.curr.w = @intCast(ev.width);
+            }
+            if (vmask & X.CWHeight != 0) {
+                c.pos.prev.h = c.pos.curr.h;
+                c.pos.curr.h = @intCast(ev.height);
+            }
+            if (c.pos.curr.r() > m.m.r() and c.is_floating.curr) {
+                // Center in x-direction.
+                c.pos.prev.x = c.pos.curr.x;
+                c.pos.curr.x = m.m.x + (@divFloor(@as(i32, @intCast(m.m.w)), 2) - @divFloor(c.width(), 2));
+            }
+            if (c.pos.curr.b() > m.m.b() and c.is_floating.curr) {
+                // Center in y-direction.
+                c.pos.prev.y = c.pos.curr.y;
+                c.pos.curr.y = m.m.y + (@divFloor(@as(i32, @intCast(m.m.h)), 2) - @divFloor(c.height(), 2));
+            }
+            if ((vmask & (X.CWX | X.CWY) != 0) and (vmask & (X.CWWidth | X.CWHeight)) == 0) {
+                c.configure(z.dpy);
+            }
+            if (c.isVisible()) {
+                const r = &c.pos.curr;
+                _ = X.XMoveResizeWindow(z.dpy, c.win, r.x, r.y, r.w, r.h);
+            }
+        } else {
+            c.configure(z.dpy);
+        }
+    } else {
+        var wc: X.XWindowChanges = .{
+            .x = ev.x,
+            .y = ev.y,
+            .width = ev.width,
+            .height = ev.height,
+            .border_width = ev.border_width,
+            .sibling = ev.above,
+            .stack_mode = ev.detail,
+        };
+        _ = X.XConfigureWindow(z.dpy, ev.window, @intCast(vmask), &wc);
+    }
+
+    // if ((c = wintoclient(ev->window))) {
+    _ = X.XSync(z.dpy, X.False);
 }
 
 /// [dwm] configurenotify
@@ -423,13 +480,13 @@ fn configurenotify(allocator: Allocator, ev: *XEvent) void {
 }
 
 /// [dwm] destroynotify
-fn destroynotify(allocator: Allocator, ev: *XEvent) void {
+fn destroyNotify(allocator: Allocator, ev: *XEvent) void {
     _ = allocator;
     _ = ev;
 }
 
 /// [dwm] enternotify
-fn enternotify(allocator: Allocator, ev: *XEvent) void {
+fn enterNotify(allocator: Allocator, ev: *XEvent) void {
     _ = allocator;
     _ = ev;
 }
@@ -441,43 +498,43 @@ fn expose(allocator: Allocator, ev: *XEvent) void {
 }
 
 /// [dwm] focusin
-fn focusin(allocator: Allocator, ev: *XEvent) void {
+fn focusIn(allocator: Allocator, ev: *XEvent) void {
     _ = allocator;
     _ = ev;
 }
 
 /// [dwm] keypress
-fn keypress(allocator: Allocator, ev: *XEvent) void {
+fn keyPress(allocator: Allocator, ev: *XEvent) void {
     _ = allocator;
     _ = ev;
 }
 
 /// [dwm] mappingnotify
-fn mappingnotify(allocator: Allocator, ev: *XEvent) void {
+fn mappingNotify(allocator: Allocator, ev: *XEvent) void {
     _ = allocator;
     _ = ev;
 }
 
 /// [dwm] maprequest
-fn maprequest(allocator: Allocator, ev: *XEvent) void {
+fn mapRequest(allocator: Allocator, ev: *XEvent) void {
     _ = allocator;
     _ = ev;
 }
 
 /// [dwm] motionnotify
-fn motionnotify(allocator: Allocator, ev: *XEvent) void {
+fn motionNotify(allocator: Allocator, ev: *XEvent) void {
     _ = allocator;
     _ = ev;
 }
 
 /// [dwm] propertynotify
-fn propertynotify(allocator: Allocator, ev: *XEvent) void {
+fn propertyNotify(allocator: Allocator, ev: *XEvent) void {
     _ = allocator;
     _ = ev;
 }
 
 /// [dwm] unmapnotify
-fn unmapnotify(allocator: Allocator, ev: *XEvent) void {
+fn unmapNotify(allocator: Allocator, ev: *XEvent) void {
     _ = allocator;
     _ = ev;
 }
@@ -512,17 +569,17 @@ fn setupHandler() void {
             X.ButtonPress      => .{ .Alloc   = buttonPress },
             X.ClientMessage    => .{ .NoAlloc = clientMessage },
             X.ConfigureNotify  => .{ .Alloc   = configurenotify },
-            X.ConfigureRequest => .{ .Alloc   = configurerequest },
-            X.DestroyNotify    => .{ .Alloc   = destroynotify },
-            X.EnterNotify      => .{ .Alloc   = enternotify },
+            X.ConfigureRequest => .{ .NoAlloc = configureRequest },
+            X.DestroyNotify    => .{ .Alloc   = destroyNotify },
+            X.EnterNotify      => .{ .Alloc   = enterNotify },
             X.Expose           => .{ .Alloc   = expose },
-            X.FocusIn          => .{ .Alloc   = focusin },
-            X.KeyPress         => .{ .Alloc   = keypress },
-            X.MapRequest       => .{ .Alloc   = maprequest },
-            X.MappingNotify    => .{ .Alloc   = mappingnotify },
-            X.MotionNotify     => .{ .Alloc   = motionnotify },
-            X.PropertyNotify   => .{ .Alloc   = propertynotify },
-            X.UnmapNotify      => .{ .Alloc   = unmapnotify },
+            X.FocusIn          => .{ .Alloc   = focusIn },
+            X.KeyPress         => .{ .Alloc   = keyPress },
+            X.MapRequest       => .{ .Alloc   = mapRequest },
+            X.MappingNotify    => .{ .Alloc   = mappingNotify },
+            X.MotionNotify     => .{ .Alloc   = motionNotify },
+            X.PropertyNotify   => .{ .Alloc   = propertyNotify },
+            X.UnmapNotify      => .{ .Alloc   = unmapNotify },
             // zig fmt: on
             else => null,
         };
