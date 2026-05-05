@@ -22,6 +22,9 @@ const VERSION = @import("build_opts").version;
 // TODO: re-enable this in production.
 const SAID_AND_DONE = true;
 
+// This exists because of config callbacks.
+var global_allocator: Allocator = undefined;
+
 // X11 stuff.
 const X = @import("c_lib.zig").X;
 const C = @import("c_lib.zig").C;
@@ -1079,6 +1082,9 @@ fn updatenumlockmask() void {
 /// [dwm] cleanup
 // Continue to build this up as we go.
 fn cleanup(allocator: Allocator) void {
+    const a: Arg = .{ .ui = ~@as(u32, 0) };
+    view(&a);
+
     log.info("Start cleanup()", .{});
     while (z.mons) |mon| {
         cleanupmon(allocator, mon);
@@ -1174,18 +1180,9 @@ pub fn view(arg: *const Arg) void {
     if (arg.ui & cfg.TAGMASK != 0) {
         z.selmon.tagset[z.selmon.seltags] = arg.ui & cfg.TAGMASK;
     }
+    focus(global_allocator, null);
+    arrange(global_allocator, z.selmon);
 }
-// void view(const Arg *arg) {
-//     if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags]) {
-//         return;
-//     }
-//     selmon->seltags ^= 1; /* toggle sel tagset */
-//     if (arg->ui & TAGMASK) {
-//         selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
-//     }
-//     focus(NULL);
-//     arrange(selmon);
-// }
 
 fn drawbar(allocator: Allocator, m: *Monitor) void {
     if (!m.show_bar) {
@@ -1275,6 +1272,7 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
+    global_allocator = allocator;
 
     const argv = std.os.argv;
     log.info("argc = {d}", .{argv.len});
