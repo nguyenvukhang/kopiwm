@@ -260,7 +260,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
         unfocus(c.mon.sel, false);
     }
     c.mon.sel = c;
-    arrange(c.mon);
+    arrange(allocator, c.mon);
     _ = X.XMapWindow(z.dpy, c.win);
     focus(allocator, null);
 }
@@ -272,12 +272,36 @@ fn arrangeMon(m: *Monitor) void {
 }
 
 /// [dwm] restack
-fn restack(m: *Monitor) void {
-    _ = m;
+fn restack(allocator: Allocator, m: *Monitor) void {
+    drawbar(allocator, m);
+
+    const has_arrange = m.lt[m.sellt].arrange != null;
+
+    const sel = m.sel orelse return;
+    if (sel.is_floating.curr or !has_arrange) {
+        _ = X.XRaiseWindow(z.dpy, sel.win);
+    }
+    if (has_arrange) {
+        var wc: X.XWindowChanges = .{
+            .stack_mode = X.Below,
+            .sibling = m.barwin,
+        };
+        var c_opt = m.stack;
+        while (c_opt) |c| : (c_opt = c.snext) {
+            if (!c.is_floating.curr and c.isVisible()) {
+                _ = X.XConfigureWindow(z.dpy, c.win, X.CWSibling | X.CWStackMode, &wc);
+                wc.sibling = c.win;
+            }
+        }
+    }
+
+    _ = X.XSync(z.dpy, X.False);
+    var ev: X.XEvent = undefined;
+    while (X.XCheckMaskEvent(z.dpy, X.EnterWindowMask, &ev) != 0) {}
 }
 
 /// [dwm] arrange
-fn arrange(monitor: ?*Monitor) void {
+fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
     var m_opt: ?*Monitor = null;
     if (monitor) |m| {
         if (m.stack) |c| c.showHide();
@@ -289,7 +313,7 @@ fn arrange(monitor: ?*Monitor) void {
     }
     if (monitor) |m| {
         arrangeMon(m);
-        restack(m);
+        restack(allocator, m);
     } else {
         m_opt = monitor;
         while (m_opt) |m| : (m_opt = m.next) {
