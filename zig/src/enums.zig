@@ -124,3 +124,10 @@ pub const Size = struct {
         return lhs.w == rhs.w and lhs.h == rhs.h;
     }
 };
+
+/// Symbolizes a movement, used for navigating to the next/previous entity
+/// (Monitor/Client/Window).
+pub const Direction = enum {
+    Next,
+    Prev,
+};

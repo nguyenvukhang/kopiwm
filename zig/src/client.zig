@@ -220,6 +220,7 @@ pub const Client = struct {
         _ = X.XSendEvent(dpy, self.win, X.False, X.StructureNotifyMask, &event);
     }
 
+    /// [dwm] getatomprop
     fn getAtomProp(self: *Self, dpy: ?*Display, prop: Atom) ?Atom {
         var da: Atom = undefined; // dummy atom.
         var atom: Atom = undefined;
@@ -291,6 +292,7 @@ pub const Client = struct {
         }
     }
 
+    /// [dwm] updatewindowtype
     pub fn updateWindowType(self: *Self) void {
         const z = self.app;
         const net = z.netatom;

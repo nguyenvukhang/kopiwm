@@ -27,6 +27,9 @@ def get_declared_funcs(filepath: str, static_only=False) -> list[str]:
 
 c_funcs = get_declared_funcs(drw_h) + get_declared_funcs(dwm_c, static_only=True)
 
+c_funcs.remove("drw_fontset_getwidth_clamp")  # Never used.
+c_funcs.remove("xerrordummy")
+
 for root, subdirs, files in walk(__cwd__):
     if root.endswith(".zig-cache") or root.endswith("zig-out"):
         subdirs[:] = []
@@ -43,7 +46,7 @@ for root, subdirs, files in walk(__cwd__):
             try:
                 c_funcs.remove(line)
             except:
-                pass
+                print(f"[{line}] found in Zig, but not in C")
 
         # for line in text.splitlines():
         #     i = len(c_funcs) - 1;

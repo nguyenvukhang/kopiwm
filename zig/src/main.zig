@@ -9,6 +9,7 @@ const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
 const Client = @import("client.zig").Client;
 const WM = @import("enums.zig").WM;
+const Direction = @import("enums.zig").Direction;
 const Layout = @import("layout.zig").Layout;
 const Clk = @import("enums.zig").Clk;
 const Arg = @import("enums.zig").Arg;
@@ -110,6 +111,7 @@ fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
 
 var xerrorlib: ?*const fn (?*Display, [*c]XErrorEvent) callconv(.c) c_int = null;
 
+/// [dwm] checkotherwm
 fn check_other_wm() void {
     xerrorlib = X.XSetErrorHandler(xerrorstart);
     // this causes an error if some other window manager is running
@@ -117,6 +119,45 @@ fn check_other_wm() void {
     _ = X.XSync(z.dpy, X.False);
     _ = X.XSetErrorHandler(xerror);
     _ = X.XSync(z.dpy, X.False);
+}
+
+/// [dwm] dirtomon
+fn directionToMonitor(direction: Direction) ?*Monitor {
+    var m_opt: ?*Monitor = null;
+    switch (direction) {
+        .Next => {
+            m_opt = if (z.selmon.next) |t| t else z.mons;
+        },
+        .Prev => {
+            m_opt = z.mons;
+            if (z.selmon == z.mons) {
+                while (m_opt) |m| : (m_opt = m.next) {}
+            } else {
+                while (m_opt) |m| : (m_opt = m.next) {
+                    if (m.next == z.selmon) {
+                        break;
+                    }
+                }
+            }
+        },
+    }
+    return m_opt;
+}
+
+fn focusMon(arg: *const Arg) void {
+    // Skip base case where there are no monitors to change focus to.
+    // TODO: see if we can guarantee that `z.mons` is non-null.
+    const mons = z.mons orelse return;
+    if (mons.next == null) return;
+    _ = arg;
+
+    //     if ((m = dirtomon(arg->i)) == selmon) {
+    //         return;
+    //     }
+    //     unfocus(selmon->sel, 0);
+    //     selmon = m;
+    //     focus(NULL);
+
 }
 
 /// [dwm] updatebarpos
@@ -1190,6 +1231,7 @@ pub fn spawn(arg: *const Arg) void {
     _ = arg;
 }
 
+/// [dwm] view
 pub fn view(arg: *const Arg) void {
     if (arg.ui & cfg.TAGMASK == z.selmon.tagset[z.selmon.seltags]) {
         return; // nothing to do here.
@@ -1202,6 +1244,7 @@ pub fn view(arg: *const Arg) void {
     arrange(global_allocator, z.selmon);
 }
 
+/// [dwm] drawbar
 fn drawbar(allocator: Allocator, m: *Monitor) void {
     if (!m.show_bar) {
         return;
