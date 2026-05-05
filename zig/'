@@ -290,12 +290,22 @@ fn arrange(monitor: ?*Monitor) void {
     if (monitor) |m| {
         arrangeMon(m);
         restack(m);
-    } else {
-        m_opt = monitor;
-        while (m_opt) |m| : (m_opt = m.next) {
-            arrangeMon(m);
-        }
     }
+    // if (m) {
+    //     showhide(m->stack);
+    // } else {
+    //     for (m = mons; m; m = m->next) {
+    //         showhide(m->stack);
+    //     }
+    // }
+    // if (m) {
+    //     arrangemon(m);
+    //     restack(m);
+    // } else {
+    //     for (m = mons; m; m = m->next) {
+    //         arrangemon(m);
+    //     }
+    // }
 }
 
 fn scan(allocator: Allocator) error{OutOfMemory}!void {

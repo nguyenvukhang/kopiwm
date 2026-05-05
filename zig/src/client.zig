@@ -321,13 +321,13 @@ pub const Client = struct {
         rect.h = @max(1, rect.h);
 
         if (interact) {
-            if (rect.x > c.app.sw) {
+            if (rect.x > c.app.s.w) {
                 // left-most point is beyond the limits of the current monitor.
-                rect.x = @as(i32, @intCast(c.app.sw)) - c.width();
+                rect.x = @as(i32, @intCast(c.app.s.w)) - c.width();
             }
-            if (rect.y > c.app.sh) {
+            if (rect.y > c.app.s.h) {
                 // top-most point is beyond the limits of the current monitor.
-                rect.y = @as(i32, @intCast(c.app.sh)) - c.height();
+                rect.y = @as(i32, @intCast(c.app.s.h)) - c.height();
             }
             if (rect.r() + 2 * c.bw.curr < 0) {
                 rect.x = 0;
