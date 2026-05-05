@@ -27,17 +27,17 @@ pub const mfact: f32 = 0.5;
 /// Number of clients in master area
 pub const nmaster = 1;
 
-/// 1 means respect size hints in tiled resizals
+/// Respect size hints in tiled resizals
 pub const resizehints: bool = true;
 
-/// 1 will force focus on the fullscreen window
-pub const lockfullscreen = 1;
+/// Force focus on the fullscreen window
+pub const lockfullscreen: bool = true;
 
-/// refresh rate (per second) for client move/resize
-pub const refreshrate = 60;
+/// Refresh rate (per second) for client move/resize
+pub const refreshrate: u16 = 60;
 
-/// false means hide bar.
-pub const show_bar = true;
+/// False means hide bar.
+pub const show_bar: bool = true;
 
 pub const bar_pos: BarPosition = .top;
 

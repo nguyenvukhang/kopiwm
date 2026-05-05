@@ -122,6 +122,7 @@ fn check_other_wm() void {
 }
 
 /// [dwm] dirtomon
+/// TODO: See if we can guarantee a non-null pointer.
 fn directionToMonitor(direction: Direction) ?*Monitor {
     var m_opt: ?*Monitor = null;
     switch (direction) {
@@ -144,20 +145,62 @@ fn directionToMonitor(direction: Direction) ?*Monitor {
     return m_opt;
 }
 
+/// [dwm] focusmon
 fn focusMon(arg: *const Arg) void {
     // Skip base case where there are no monitors to change focus to.
     // TODO: see if we can guarantee that `z.mons` is non-null.
     const mons = z.mons orelse return;
     if (mons.next == null) return;
-    _ = arg;
+    const m_opt = directionToMonitor(arg.d);
+    if (m_opt == z.selmon) return;
+    if (m_opt) |m| {
+        unfocus(z.selmon.sel, false);
+        z.selmon = m;
+        focus(global_allocator, null);
+    }
+}
 
-    //     if ((m = dirtomon(arg->i)) == selmon) {
-    //         return;
-    //     }
-    //     unfocus(selmon->sel, 0);
-    //     selmon = m;
-    //     focus(NULL);
-
+/// [dwm] focusstack
+fn focusStack(arg: *const Arg) void {
+    const sel = z.selmon.sel orelse return;
+    if (sel.isfullscreen and cfg.lockfullscreen) return;
+    var c_opt: ?*Client = null;
+    switch (arg.d) {
+        .Next => {
+            c_opt = sel.next;
+            // TODO: figure out why this isn't c.snext.
+            while (c_opt) |c| : (c_opt = c.next) {
+                if (c.isVisible()) {
+                    break;
+                }
+            }
+            if (c_opt == null) {
+                c_opt = z.selmon.clients;
+                while (c_opt) |c| : (c_opt = c.next) {
+                    if (c.isVisible()) {
+                        break;
+                    }
+                }
+            }
+        },
+        .Prev => {
+            var i_opt: ?*Client = null;
+            i_opt = z.selmon.clients;
+            while (i_opt) |i| : (i_opt = i.next) {
+                if (i == sel) break;
+                if (i.isVisible()) c_opt = i;
+            }
+            if (c_opt == null) {
+                while (i_opt) |i| : (i_opt = i.next) {
+                    if (i.isVisible()) c_opt = i;
+                }
+            }
+        },
+    }
+    if (c_opt) |c| {
+        focus(global_allocator, c);
+        restack(global_allocator, z.selmon);
+    }
 }
 
 /// [dwm] updatebarpos
@@ -200,7 +243,8 @@ fn wintoclient(w: Window) ?*Client {
     return null;
 }
 
-fn getstate(w: Window) i32 {
+/// [dwm] getstate
+fn getState(w: Window) i32 {
     var real: X.Atom = undefined;
     var format: c_int = undefined;
     var n: c_ulong = undefined;
@@ -812,7 +856,7 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
         if (X.XGetTransientForHint(z.dpy, wins[i], &d1) != 0) {
             continue;
         }
-        if (wa.map_state == X.IsViewable or getstate(wins[i]) == X.IconicState) {
+        if (wa.map_state == X.IsViewable or getState(wins[i]) == X.IconicState) {
             try manage(allocator, wins[i], &wa);
         }
     }
@@ -820,7 +864,7 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
     while (i < num) : (i += 1) { // now the transients
         const r1 = X.XGetWindowAttributes(z.dpy, wins[i], &wa);
         const viewable = wa.map_state == X.IsViewable;
-        const iconic = getstate(wins[i]) == X.IconicState;
+        const iconic = getState(wins[i]) == X.IconicState;
         if (r1 != 0 and (viewable or iconic)) {
             try manage(allocator, wins[i], &wa);
         }

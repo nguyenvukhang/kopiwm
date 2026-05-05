@@ -68,6 +68,8 @@ pub const ArgTag = enum {
     ui,
     /// Float.
     f,
+    /// Direction. (used for relative navigation.)
+    d,
     /// Strings. (used for cli args.)
     s,
 };
@@ -76,6 +78,7 @@ pub const Arg = union(ArgTag) {
     i: i32,
     ui: u32,
     f: f32,
+    d: Direction,
     s: []const u8,
 };
 
