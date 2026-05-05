@@ -646,8 +646,37 @@ fn motionNotify(allocator: Allocator, e: *XEvent) void {
 
 /// [dwm] propertynotify
 fn propertyNotify(allocator: Allocator, e: *XEvent) void {
-    _ = allocator;
-    _ = e;
+    const ev: X.XPropertyEvent = e.xproperty;
+    if (ev.window == z.root and ev.atom == X.XA_WM_NAME) {
+        updatestatus(allocator);
+    } else if (ev.state == X.PropertyDelete) {
+        return; // ignore.
+    } else if (wintoclient(ev.window)) |c| {
+        switch (ev.atom) {
+            X.XA_WM_TRANSIENT_FOR => {
+                var trans: Window = undefined;
+                const b = !c.is_floating.curr and
+                    X.XGetTransientForHint(z.dpy, c.win, &trans) != 0;
+                c.is_floating.set(wintoclient(trans) != null);
+                if (b and c.is_floating.curr) arrange(allocator, c.mon);
+            },
+            X.XA_WM_NORMAL_HINTS => c.hintsvalid = false,
+            X.XA_WM_HINTS => {
+                c.updateWMHints();
+                drawbars(allocator);
+            },
+            else => {},
+        }
+        if (ev.atom == X.XA_WM_NAME or ev.atom == z.netatom.get(.WMName)) {
+            c.updateTitle();
+            if (c == c.mon.sel) {
+                drawbar(allocator, c.mon);
+            }
+        }
+        if (ev.atom == z.netatom.get(.WMWindowType)) {
+            c.updateWindowType();
+        }
+    }
 }
 
 /// [dwm] unmapnotify
