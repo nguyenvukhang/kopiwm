@@ -4,7 +4,7 @@ const lt = @import("layout.zig");
 const SchemeState = @import("enums.zig").SchemeState;
 const N = @import("enums.zig").N;
 const Scheme = @import("drw.zig").Scheme;
-const EnumArray = std.enums.EnumArray;
+const EnumArray = @import("enum_array.zig").EnumArray;
 const Arg = @import("enums.zig").Arg;
 const BarPosition = @import("enums.zig").BarPosition;
 const Key = @import("enums.zig").Key;
@@ -53,17 +53,17 @@ const col_gray4: []const u8 = "#eeeeee";
 const col_accent_400: []const u8 = "#d8b4fe";
 const col_accent_900: []const u8 = "#581c87";
 
-pub const colors = EnumArray(SchemeState, Scheme([]const u8)).init(.{
+fn colors_() EnumArray(SchemeState, Scheme([]const u8)) {
     // As of the time of writing, LSP doesn't quite work here in terms of
     // suggesting the `SchemeState` as the keys. It will still catch nicely at
     // comptime though.
-    //
-    // zig fmt: off
-    .Normal   = .{ .fg = col_gray3, .bg = col_gray1,      .border = col_gray2      },
-    .Selected = .{ .fg = col_gray1, .bg = col_accent_400, .border = col_accent_900 },
-    .Bar      = .{ .fg = col_gray3, .bg = col_gray2,      .border = col_gray2      },
-    // zig fmt: on
-});
+    var c: EnumArray(SchemeState, Scheme([]const u8)) = undefined;
+    c.set(.Normal, .{ .fg = col_gray3, .bg = col_gray1, .border = col_gray2 });
+    c.set(.Selected, .{ .fg = col_gray1, .bg = col_accent_400, .border = col_accent_900 });
+    c.set(.Bar, .{ .fg = col_gray3, .bg = col_gray2, .border = col_gray2 });
+    return c;
+}
+pub const colors = colors_();
 
 const MODKEY = X.Mod4Mask;
 pub const keys = [_]Key{

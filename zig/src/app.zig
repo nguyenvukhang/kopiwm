@@ -10,7 +10,7 @@ const Size = @import("enums.zig").Size;
 const fstr = @import("fstr.zig").fstr;
 const Client = @import("client.zig").Client;
 const Allocator = std.mem.Allocator;
-const EnumArray = std.enums.EnumArray;
+const EnumArray = @import("enum_array.zig").EnumArray;
 
 const Drw = @import("drw.zig").Drw;
 const ColorScheme = @import("drw.zig").ColorScheme;

@@ -391,8 +391,27 @@ fn buttonpress(allocator: Allocator, e: *XEvent) void {
 
 /// [dwm] clientmessage
 fn clientmessage(allocator: Allocator, ev: *XEvent) void {
+    const cme: X.XClientMessageEvent = ev.xclient;
+    // var c: *Client = wintoclient(ev.cme.window) orelse return;
+
+    if (cme.message_type == z.netatom.get(.WMState)) {
+        // _ = c;
+    }
+
+    // if (cme->message_type == netatom[NetWMState]) {
+    //     if (cme->data.l[1] == netatom[NetWMFullscreen] ||
+    //         cme->data.l[2] == netatom[NetWMFullscreen]) {
+    //         setfullscreen(c,
+    //                       (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
+    //                        || (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ &&
+    //                            !c->isfullscreen)));
+    //     }
+    // } else if (cme->message_type == netatom[NetActiveWindow]) {
+    //     if (c != selmon->sel && !c->isurgent) {
+    //         seturgent(c, 1);
+    //     }
+    // }
     _ = allocator;
-    _ = ev;
 }
 
 /// [dwm] configurerequest
