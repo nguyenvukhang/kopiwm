@@ -12,6 +12,9 @@ const Button = @import("enums.zig").Button;
 const Rule = @import("enums.zig").Rule;
 const F = @import("main.zig");
 
+/// Number of pixels to snap during movement.
+pub const snap: i32 = 32;
+
 /// border pixel of windows
 pub const borderpx: u32 = 1;
 

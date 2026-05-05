@@ -198,22 +198,22 @@ pub const Client = struct {
 
     /// [dwm] WIDTH
     pub inline fn width(self: *const Self) i32 {
-        return @as(i32, @intCast(self.pos.curr.w)) + 2 * self.bw.curr;
+        return @as(i32, @intCast(self.pos.now.w)) + 2 * self.bw.now;
     }
 
     /// [dwm] HEIGHT
     pub inline fn height(self: *const Self) i32 {
-        return @as(i32, @intCast(self.pos.curr.h)) + 2 * self.bw.curr;
+        return @as(i32, @intCast(self.pos.now.h)) + 2 * self.bw.now;
     }
 
     /// [dwm] configure
     pub fn configure(self: *const Self, dpy: ?*Display) void {
-        var xconf = self.pos.curr.toX(X.XConfigureEvent);
+        var xconf = self.pos.now.toX(X.XConfigureEvent);
         xconf.type = X.ConfigureNotify;
         xconf.display = dpy;
         xconf.event = self.win;
         xconf.window = self.win;
-        xconf.border_width = self.bw.curr;
+        xconf.border_width = self.bw.now;
         xconf.above = X.None;
         xconf.override_redirect = X.False;
         var event = X.XEvent{ .xconfigure = xconf };
@@ -287,7 +287,7 @@ pub const Client = struct {
             self.is_floating.revert();
             self.bw.revert();
             self.pos.revert();
-            self.resize(self.pos.curr);
+            self.resize(self.pos.now);
             // arrange(self.mon);
         }
     }
@@ -309,7 +309,7 @@ pub const Client = struct {
     pub fn resize(self: *Self, rect: Rect) void {
         const z = self.app;
         var wc = rect.toX(X.XWindowChanges);
-        wc.border_width = self.bw.curr;
+        wc.border_width = self.bw.now;
         const flags =
             X.CWX | X.CWY | X.CWWidth | X.CWHeight | X.CWBorderWidth;
         _ = X.XConfigureWindow(z.dpy, self.win, flags, &wc);
@@ -346,23 +346,23 @@ pub const Client = struct {
                 // top-most point is beyond the limits of the current monitor.
                 rect.y = @as(i32, @intCast(c.app.s.h)) - c.height();
             }
-            if (rect.r() + 2 * c.bw.curr < 0) {
+            if (rect.r() + 2 * c.bw.now < 0) {
                 rect.x = 0;
             }
-            if (rect.b() + 2 * c.bw.curr < 0) {
+            if (rect.b() + 2 * c.bw.now < 0) {
                 rect.y = 0;
             }
         } else {
             if (rect.x >= m.w.r()) rect.x = m.w.r() - c.width();
             if (rect.y >= m.w.b()) rect.y = m.w.b() - c.height();
-            if (rect.r() + 2 * c.bw.curr <= m.w.x) rect.x = m.w.x;
-            if (rect.b() + 2 * c.bw.curr <= m.w.y) rect.y = m.w.y;
+            if (rect.r() + 2 * c.bw.now <= m.w.x) rect.x = m.w.x;
+            if (rect.b() + 2 * c.bw.now <= m.w.y) rect.y = m.w.y;
         }
 
         if (rect.h < c.app.bar_height) rect.h = c.app.bar_height;
         if (rect.w < c.app.bar_height) rect.w = c.app.bar_height;
 
-        if (cfg.resizehints or c.is_floating.curr or m.lt[m.sellt].arrange == null) {
+        if (cfg.resizehints or c.is_floating.now or m.lt[m.sellt].arrange == null) {
             if (!c.hintsvalid) {
                 self.updateSizeHints();
             }
@@ -435,7 +435,7 @@ pub const Client = struct {
                 rect.h = @min(rect.h, max.h);
             }
         }
-        return !c.pos.curr.eq(rect);
+        return !c.pos.now.eq(rect);
     }
 
     /// [dwm] updatewmhints
@@ -567,13 +567,13 @@ pub const Client = struct {
     pub fn showHide(c: *Self) void {
         if (c.isVisible()) {
             // Show clients top-down.
-            _ = X.XMoveWindow(c.app.dpy, c.win, c.pos.curr.x, c.pos.curr.y);
+            _ = X.XMoveWindow(c.app.dpy, c.win, c.pos.now.x, c.pos.now.y);
             const should_resize = r: {
                 if (c.isfullscreen) break :r false;
                 if (c.mon.lt[c.mon.sellt].arrange) |_| break :r true;
-                break :r c.is_floating.curr;
+                break :r c.is_floating.now;
             };
-            if (should_resize) c.hintAndResize(c.pos.curr, false);
+            if (should_resize) c.hintAndResize(c.pos.now, false);
             if (c.snext) |next| next.showHide();
         } else {
             // Hide clients bottom up.
@@ -582,7 +582,7 @@ pub const Client = struct {
             // x-coordinate. Is the goal to send it outside of the screen?
             // But if so, then shouldn't we send it based on the width of the
             // screen instead of the client?
-            _ = X.XMoveWindow(c.app.dpy, c.win, c.width() * -2, c.pos.curr.y);
+            _ = X.XMoveWindow(c.app.dpy, c.win, c.width() * -2, c.pos.now.y);
         }
     }
 
@@ -595,7 +595,7 @@ pub const Client = struct {
         //
         // And what about if we reached the end? Should we wrap around?
         while (c_opt) |c| : (c_opt = c.next) {
-            if (!c.is_floating.curr and c.isVisible()) {
+            if (!c.is_floating.now and c.isVisible()) {
                 return c;
             }
         }

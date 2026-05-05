@@ -299,7 +299,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
         c.applyRules();
     }
     if (X.XGetTransientForHint(z.dpy, w, &trans) != 0) {}
-    var r = &c.*.pos.curr;
+    var r = &c.*.pos.now;
 
     // If client is too far right, shift it left.
     if (r.x + c.width() > c.mon.w.r()) {
@@ -313,7 +313,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     r.y = @max(r.y, c.mon.w.y); // If client is too far up, truncate it.
     c.bw.set(cfg.borderpx);
 
-    wc.border_width = c.bw.curr;
+    wc.border_width = c.bw.now;
     _ = X.XConfigureWindow(z.dpy, w, X.CWBorderWidth, &wc);
     _ = X.XSetWindowBorder(z.dpy, w, z.scheme.get(.Normal).border.pixel);
 
@@ -326,10 +326,10 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
 
     grabbuttons(c, false);
 
-    if (!c.is_floating.curr) {
+    if (!c.is_floating.now) {
         c.is_floating = .init(trans != X.None or c.is_fixed);
     }
-    if (c.is_floating.curr) {
+    if (c.is_floating.now) {
         _ = X.XRaiseWindow(z.dpy, c.win);
     }
     c.attach();
@@ -348,10 +348,10 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     _ = X.XMoveResizeWindow(
         z.dpy,
         c.win,
-        c.pos.curr.x + 2 * @as(i32, @intCast(z.s.w)),
-        c.pos.curr.y,
-        c.pos.curr.w,
-        c.pos.curr.h,
+        c.pos.now.x + 2 * @as(i32, @intCast(z.s.w)),
+        c.pos.now.y,
+        c.pos.now.w,
+        c.pos.now.h,
     ); // dwm: some windows require this.
     // me: I have no idea why. Looks like we're pushing the window off the screen.
 
@@ -427,7 +427,7 @@ fn restack(allocator: Allocator, m: *Monitor) void {
     const has_arrange = m.lt[m.sellt].arrange != null;
 
     const sel = m.sel orelse return;
-    if (sel.is_floating.curr or !has_arrange) {
+    if (sel.is_floating.now or !has_arrange) {
         _ = X.XRaiseWindow(z.dpy, sel.win);
     }
     if (has_arrange) {
@@ -437,7 +437,7 @@ fn restack(allocator: Allocator, m: *Monitor) void {
         };
         var c_opt = m.stack;
         while (c_opt) |c| : (c_opt = c.snext) {
-            if (!c.is_floating.curr and c.isVisible()) {
+            if (!c.is_floating.now and c.isVisible()) {
                 _ = X.XConfigureWindow(z.dpy, c.win, X.CWSibling | X.CWStackMode, &wc);
                 wc.sibling = c.win;
             }
@@ -558,39 +558,39 @@ fn configureRequest(e: *XEvent) void {
     if (wintoclient(ev.window)) |c| {
         if (vmask & X.CWBorderWidth != 0) {
             c.bw.set(ev.border_width);
-        } else if (c.is_floating.curr or z.selmon.lt[z.selmon.sellt].arrange == null) {
+        } else if (c.is_floating.now or z.selmon.lt[z.selmon.sellt].arrange == null) {
             const m = c.mon;
             if (vmask & X.CWX != 0) {
-                c.pos.prev.x = c.pos.curr.x;
-                c.pos.curr.x = m.m.x + ev.x;
+                c.pos.prev.x = c.pos.now.x;
+                c.pos.now.x = m.m.x + ev.x;
             }
             if (vmask & X.CWY != 0) {
-                c.pos.prev.y = c.pos.curr.y;
-                c.pos.curr.y = m.m.y + ev.y;
+                c.pos.prev.y = c.pos.now.y;
+                c.pos.now.y = m.m.y + ev.y;
             }
             if (vmask & X.CWWidth != 0) {
-                c.pos.prev.w = c.pos.curr.w;
-                c.pos.curr.w = @intCast(ev.width);
+                c.pos.prev.w = c.pos.now.w;
+                c.pos.now.w = @intCast(ev.width);
             }
             if (vmask & X.CWHeight != 0) {
-                c.pos.prev.h = c.pos.curr.h;
-                c.pos.curr.h = @intCast(ev.height);
+                c.pos.prev.h = c.pos.now.h;
+                c.pos.now.h = @intCast(ev.height);
             }
-            if (c.pos.curr.r() > m.m.r() and c.is_floating.curr) {
+            if (c.pos.now.r() > m.m.r() and c.is_floating.now) {
                 // Center in x-direction.
-                c.pos.prev.x = c.pos.curr.x;
-                c.pos.curr.x = m.m.x + (@divFloor(@as(i32, @intCast(m.m.w)), 2) - @divFloor(c.width(), 2));
+                c.pos.prev.x = c.pos.now.x;
+                c.pos.now.x = m.m.x + (@divFloor(@as(i32, @intCast(m.m.w)), 2) - @divFloor(c.width(), 2));
             }
-            if (c.pos.curr.b() > m.m.b() and c.is_floating.curr) {
+            if (c.pos.now.b() > m.m.b() and c.is_floating.now) {
                 // Center in y-direction.
-                c.pos.prev.y = c.pos.curr.y;
-                c.pos.curr.y = m.m.y + (@divFloor(@as(i32, @intCast(m.m.h)), 2) - @divFloor(c.height(), 2));
+                c.pos.prev.y = c.pos.now.y;
+                c.pos.now.y = m.m.y + (@divFloor(@as(i32, @intCast(m.m.h)), 2) - @divFloor(c.height(), 2));
             }
             if ((vmask & (X.CWX | X.CWY) != 0) and (vmask & (X.CWWidth | X.CWHeight)) == 0) {
                 c.configure(z.dpy);
             }
             if (c.isVisible()) {
-                const r = &c.pos.curr;
+                const r = &c.pos.now;
                 _ = X.XMoveResizeWindow(z.dpy, c.win, r.x, r.y, r.w, r.h);
             }
         } else {
@@ -746,10 +746,10 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
         switch (ev.atom) {
             X.XA_WM_TRANSIENT_FOR => {
                 var trans: Window = undefined;
-                const b = !c.is_floating.curr and
+                const b = !c.is_floating.now and
                     X.XGetTransientForHint(z.dpy, c.win, &trans) != 0;
                 c.is_floating.set(wintoclient(trans) != null);
-                if (b and c.is_floating.curr) arrange(allocator, c.mon);
+                if (b and c.is_floating.now) arrange(allocator, c.mon);
             },
             X.XA_WM_NORMAL_HINTS => c.hintsvalid = false,
             X.XA_WM_HINTS => {
@@ -788,12 +788,16 @@ fn run(allocator: Allocator) error{OutOfMemory}!void {
     _ = X.XSync(z.dpy, X.False);
     var ev: XEvent = undefined;
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
-        if (handler[@intCast(ev.type)]) |handler_fn| {
-            switch (handler_fn) {
-                .NoAlloc => |f| f(&ev),
-                .AllocCl => |f| f(allocator, &ev),
-                .Alloc => |f| try f(allocator, &ev),
-            }
+        try runOne(allocator, &ev);
+    }
+}
+
+inline fn runOne(allocator: Allocator, ev: *XEvent) error{OutOfMemory}!void {
+    if (handler[@intCast(ev.type)]) |handler_fn| {
+        switch (handler_fn) {
+            .NoAlloc => |f| f(ev),
+            .AllocCl => |f| f(allocator, ev),
+            .Alloc => |f| try f(allocator, ev),
         }
     }
 }
@@ -910,6 +914,94 @@ fn monocle(m: *Monitor) void {
         r.h = m.w.h - 2 * @as(u32, @intCast(c.bw));
         c.hintAndResize(r, false);
     }
+}
+
+/// [dwm] movemouse
+fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
+    var c = z.selmon.sel orelse return;
+    if (c.isfullscreen) return; // No support moving fullscreen windows by mouse.
+    restack(global_allocator, z.selmon);
+
+    // Old client x and y coordinates.
+    const ocx = c.pos.now.x;
+    const ocy = c.pos.now.y;
+
+    const grab_res = X.XGrabPointer(
+        z.dpy,
+        z.root,
+        X.False,
+        X.MOUSEMASK,
+        X.GrabModeAsync,
+        X.GrabModeAsync,
+        X.None,
+        z.cursors.get(.Move),
+        X.CurrentTime,
+    );
+    if (grab_res != X.GrabSuccess) return;
+    var x: c_int = undefined;
+    var y: c_int = undefined;
+    if (!z.getRootPtr(&x, &y)) return;
+    var ev: XEvent = undefined;
+    var lasttime: X.Time = 0;
+    while (true) {
+        _ = X.XMaskEvent(z.dpy, X.MOUSEMASK | X.ExposureMask | X.SubstructureRedirectMask, &ev);
+        switch (ev.type) {
+            X.Expose | X.MapRequest | X.ConfigureRequest => try runOne(global_allocator, &ev),
+            X.MotionNotify => {
+                if (ev.xmotion.time - lasttime <= @divFloor(1000, cfg.refreshrate)) {
+                    continue;
+                }
+                lasttime = ev.xmotion.time;
+                var nx = ocx + (ev.xmotion.x - x);
+                var ny = ocy + (ev.xmotion.y - y);
+                if (@abs(z.selmon.w.x - nx) < cfg.snap) {
+                    nx = z.selmon.w.x;
+                } else if (@abs(z.selmon.w.r() - (nx + c.width())) < cfg.snap) {
+                    nx = z.selmon.w.r() - c.width();
+                }
+                if (@abs(z.selmon.w.y - ny) < cfg.snap) {
+                    ny = z.selmon.w.y;
+                } else if (@abs(z.selmon.w.b() - (ny + c.height())) < cfg.snap) {
+                    ny = z.selmon.w.b() - c.height();
+                }
+                if (!c.is_floating.now and
+                    z.selmon.lt[z.selmon.sellt].arrange != null and
+                    (@abs(nx - c.pos.now.x) > cfg.snap or
+                        @abs(ny - c.pos.now.y) > cfg.snap))
+                {
+                    toggleFloating(undefined);
+                }
+                if (z.selmon.lt[z.selmon.sellt].arrange != null or c.is_floating.now) {
+                    var r = c.pos.now;
+                    r.x = nx;
+                    r.y = ny;
+                    c.hintAndResize(r, true);
+                }
+            },
+            X.ButtonRelease => break,
+            else => {},
+        }
+    }
+    _ = X.XUngrabPointer(z.dpy, X.CurrentTime);
+    const m_opt = c.pos.now.toMonitor(z.mons);
+    if (m_opt != z.selmon) {
+        if (m_opt) |m| {
+            // sendmon(c, m);
+            z.selmon = m;
+            focus(global_allocator, null);
+        }
+    }
+}
+
+/// [dwm] togglefloating
+fn toggleFloating(_: *const Arg) void {
+    const sel = z.selmon.sel orelse return;
+    if (sel.isfullscreen) return; // No support for making fullscreen windows float.
+    sel.is_floating.set(!sel.is_floating.now or sel.is_fixed);
+    if (sel.is_floating.now) {
+        sel.hintAndResize(sel.pos.now, false);
+    }
+    arrange(global_allocator, z.selmon);
 }
 
 /// [dwm] wintomon

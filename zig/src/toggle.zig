@@ -1,23 +1,23 @@
 pub fn toggle(comptime T: type) type {
     return struct {
         const Self = @This();
-        /// Current value.
-        curr: T,
+        /// The value right now.
+        now: T,
         /// Previous value.
         prev: T,
 
         pub fn init(value: T) Self {
-            return .{ .curr = value, .prev = value };
+            return .{ .now = value, .prev = value };
         }
 
         pub fn set(self: *Self, value: T) void {
-            self.prev = self.curr;
-            self.curr = value;
+            self.prev = self.now;
+            self.now = value;
         }
 
-        /// Revert the current state to the previous state.
+        /// Revert the nowent state to the previous state.
         pub fn revert(self: *Self) void {
-            self.curr = self.prev;
+            self.now = self.prev;
         }
     };
 }
