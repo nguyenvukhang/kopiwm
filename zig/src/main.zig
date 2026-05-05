@@ -871,6 +871,12 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
     }
 }
 
+/// [dwm] incnmaster
+fn incNMaster(arg: *const Arg) void {
+    z.selmon.nmaster = @max(z.selmon.nmaster + arg.i, 0);
+    arrange(global_allocator, z.selmon);
+}
+
 /// [dwm] wintomon
 fn wintomon(w: Window) *Monitor {
     var x: c_int = undefined;
