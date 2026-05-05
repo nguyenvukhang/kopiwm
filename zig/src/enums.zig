@@ -85,7 +85,7 @@ pub const Key = struct {
     /// X keysym.
     sym: X.KeySym,
     /// The callback function.
-    func: *const fn (*App, *Arg) void,
+    func: *const fn (*App, *const Arg) void,
     arg: Arg,
 };
 

@@ -439,20 +439,20 @@ fn buttonPress(allocator: Allocator, e: *XEvent) void {
 }
 
 /// [dwm] clientmessage
-fn clientMessage(ev: *XEvent) void {
-    const cme: X.XClientMessageEvent = ev.xclient;
-    var c: *Client = wintoclient(cme.window) orelse return;
+fn clientMessage(e: *XEvent) void {
+    const ev: X.XClientMessageEvent = e.xclient;
+    var c: *Client = wintoclient(ev.window) orelse return;
 
-    if (cme.message_type == z.netatom.get(.WMState)) {
+    if (ev.message_type == z.netatom.get(.WMState)) {
         const fs_atom = z.netatom.get(.WMFullscreen);
-        if (cme.data.l[1] == fs_atom or cme.data.l[2] == fs_atom) {
-            c.setFullscreen(switch (cme.data.l[0]) {
+        if (ev.data.l[1] == fs_atom or ev.data.l[2] == fs_atom) {
+            c.setFullscreen(switch (ev.data.l[0]) {
                 1 => true, // _NET_WM_STATE_ADD
                 2 => !c.isfullscreen, // _NET_WM_STATE_TOGGLE
                 else => false,
             });
         }
-    } else if (cme.message_type == z.netatom.get(.ActiveWindow)) {
+    } else if (ev.message_type == z.netatom.get(.ActiveWindow)) {
         if (c != z.selmon.sel and c.isurgent) {
             c.setUrgent(z.dpy, true);
         }
@@ -591,9 +591,19 @@ fn focusIn(e: *XEvent) void {
 }
 
 /// [dwm] keypress
-fn keyPress(allocator: Allocator, ev: *XEvent) void {
-    _ = allocator;
-    _ = ev;
+fn keyPress(e: *XEvent) void {
+    const ev: X.XKeyEvent = e.xkey;
+
+    // unsigned int i;
+    // KeySym keysym;
+    // XKeyEvent *ev;
+    //
+    const keysym = X.XkbKeycodeToKeysym(z.dpy, @intCast(ev.keycode), 0, 0);
+    for (cfg.keys) |key| {
+        if (keysym == key.sym and CLEANMASK(key.mod) == CLEANMASK(ev.state)) {
+            key.func(&z, &key.arg);
+        }
+    }
 }
 
 /// [dwm] mappingnotify
@@ -663,7 +673,7 @@ fn setupHandler() void {
             X.EnterNotify      => .{ .AllocCl = enterNotify },
             X.Expose           => .{ .AllocCl = expose },
             X.FocusIn          => .{ .NoAlloc = focusIn },
-            X.KeyPress         => .{ .AllocCl = keyPress },
+            X.KeyPress         => .{ .NoAlloc = keyPress },
             X.MapRequest       => .{ .AllocCl = mapRequest },
             X.MappingNotify    => .{ .AllocCl = mappingNotify },
             X.MotionNotify     => .{ .AllocCl = motionNotify },

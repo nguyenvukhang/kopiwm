@@ -4,7 +4,7 @@ const App = @import("app.zig").App;
 const X = @import("c_lib.zig").X;
 const C = @import("c_lib.zig").C;
 
-pub fn spawn(z: *App, arg: *Arg) void {
+pub fn spawn(z: *App, arg: *const Arg) void {
     // var sa: C.struct_sigaction = undefined;
 
     _ = z;
