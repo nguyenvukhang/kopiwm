@@ -583,9 +583,11 @@ fn expose(allocator: Allocator, e: *XEvent) void {
 }
 
 /// [dwm] focusin
-fn focusIn(allocator: Allocator, ev: *XEvent) void {
-    _ = allocator;
-    _ = ev;
+fn focusIn(e: *XEvent) void {
+    const ev: X.XFocusChangeEvent = e.xfocus;
+    if (z.selmon.sel) |sel| {
+        if (ev.window != sel.win) sel.setFocus();
+    }
 }
 
 /// [dwm] keypress
@@ -660,7 +662,7 @@ fn setupHandler() void {
             X.DestroyNotify    => .{ .AllocCl = destroyNotify },
             X.EnterNotify      => .{ .AllocCl = enterNotify },
             X.Expose           => .{ .AllocCl = expose },
-            X.FocusIn          => .{ .AllocCl = focusIn },
+            X.FocusIn          => .{ .NoAlloc = focusIn },
             X.KeyPress         => .{ .AllocCl = keyPress },
             X.MapRequest       => .{ .AllocCl = mapRequest },
             X.MappingNotify    => .{ .AllocCl = mappingNotify },
