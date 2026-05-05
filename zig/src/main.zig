@@ -681,8 +681,14 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
 
 /// [dwm] unmapnotify
 fn unmapNotify(allocator: Allocator, e: *XEvent) void {
-    _ = allocator;
-    _ = e;
+    const ev: X.XUnmapEvent = e.xunmap;
+    if (wintoclient(ev.window)) |c| {
+        if (ev.send_event == 0) {
+            unmanage(allocator, c, false);
+        } else {
+            c.setState(X.WithdrawnState);
+        }
+    }
 }
 
 /// [dwm] run
