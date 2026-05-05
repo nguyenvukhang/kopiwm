@@ -9,6 +9,7 @@ const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
 const Client = @import("client.zig").Client;
 const WM = @import("enums.zig").WM;
+const Layout = @import("layout.zig").Layout;
 const Clk = @import("enums.zig").Clk;
 const Arg = @import("enums.zig").Arg;
 const Net = @import("enums.zig").Net;
@@ -279,6 +280,8 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     focus(allocator, null);
 }
 
+/// [dwm] unmanage
+/// Destroys a client and removes it from the monitor that owns it.
 fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
     const m = c.mon;
     c.detach();
@@ -1082,10 +1085,21 @@ fn updatenumlockmask() void {
 /// [dwm] cleanup
 // Continue to build this up as we go.
 fn cleanup(allocator: Allocator) void {
-    const a: Arg = .{ .ui = ~@as(u32, 0) };
-    view(&a);
-
     log.info("Start cleanup()", .{});
+
+    const a: Arg = .{ .ui = ~@as(u32, 0) };
+    const foo: Layout = .{ .symbol = "", .arrange = null };
+
+    view(&a);
+    z.selmon.lt[z.selmon.sellt] = &foo;
+
+    var m_opt = z.mons;
+    while (m_opt) |m| : (m_opt = m.next) {
+        while (m.stack) |c| {
+            unmanage(allocator, c, false);
+        }
+    }
+    _ = X.XUngrabKey(z.dpy, X.AnyKey, X.AnyModifier, z.root);
     while (z.mons) |mon| {
         cleanupmon(allocator, mon);
     }
@@ -1095,7 +1109,11 @@ fn cleanup(allocator: Allocator) void {
     for (std.enums.values(SchemeState)) |ss| {
         z.drw.scmFree(allocator, z.scheme.get(ss));
     }
+    _ = X.XDestroyWindow(z.dpy, z.wmcheckwin);
     z.drw.deinit(allocator);
+    _ = X.XSync(z.dpy, X.False);
+    _ = X.XSetInputFocus(z.dpy, X.PointerRoot, X.RevertToPointerRoot, X.CurrentTime);
+    _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));
 }
 
 /// [dwm] cleanupmon
