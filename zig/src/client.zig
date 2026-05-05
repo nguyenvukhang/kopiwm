@@ -427,7 +427,7 @@ pub const Client = struct {
         const wmh: *X.XWMHints = X.XGetWMHints(z.dpy, self.win) orelse return;
         defer _ = X.XFree(wmh);
         const wmh_urg = wmh.flags & X.XUrgencyHint != 0;
-        if (self == z.selclient() and wmh_urg) {
+        if (self == z.selmon.sel and wmh_urg) {
             wmh.flags &= ~X.XUrgencyHint;
             _ = X.XSetWMHints(z.dpy, self.win, wmh);
         } else {

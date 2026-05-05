@@ -202,9 +202,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
                 break :blk;
             }
         }
-        c.mon = z.selmon orelse {
-            @panic("Tried unwrapping an optional `selmon`.");
-        };
+        c.mon = z.selmon;
         c.applyRules();
     }
     if (X.XGetTransientForHint(z.dpy, w, &trans) == X.True) {}
@@ -341,7 +339,7 @@ fn buttonpress(allocator: Allocator, e: *XEvent) void {
     const m_opt = wintomon(ev.window);
     if (m_opt) |m| {
         if (m != z.selmon) {
-            if (z.selclient()) |c| unfocus(c, true);
+            if (z.selmon.sel) |c| unfocus(c, true);
             z.selmon = m;
             focus(allocator, null);
         }
@@ -349,33 +347,31 @@ fn buttonpress(allocator: Allocator, e: *XEvent) void {
 
     // Locate the click, and populate the `click` variable.
     // This block searches for the click location in the bar window.
-    if (z.selmon) |selmon| {
-        if (ev.window == selmon.barwin) {
-            var i: usize = 0;
-            var x: u32 = 0;
-            while (true) {
-                x += z.TEXTW(allocator, cfg.tags[i]);
-                i += 1;
-                if (ev.x >= x and i < cfg.tags.len) continue;
-                break;
-            }
-            if (i < cfg.tags.len) {
-                click = .TagBar;
-                arg.ui = @as(u32, 1) << @intCast(i);
-            } else if (ev.x < x + z.TEXTW(allocator, selmon.layout_symbol)) {
-                click = .LtSymbol;
-            } else if (ev.x > selmon.w.w - z.TEXTW(allocator, z.stext.get()) + z.lrpad - 2) {
-                click = .StatusText;
-            } else {
-                click = .WinTitle;
-            }
+    if (ev.window == z.selmon.barwin) {
+        var i: usize = 0;
+        var x: u32 = 0;
+        while (true) {
+            x += z.TEXTW(allocator, cfg.tags[i]);
+            i += 1;
+            if (ev.x >= x and i < cfg.tags.len) continue;
+            break;
+        }
+        if (i < cfg.tags.len) {
+            click = .TagBar;
+            arg.ui = @as(u32, 1) << @intCast(i);
+        } else if (ev.x < x + z.TEXTW(allocator, z.selmon.layout_symbol)) {
+            click = .LtSymbol;
+        } else if (ev.x > z.selmon.w.w - z.TEXTW(allocator, z.stext.get()) + z.lrpad - 2) {
+            click = .StatusText;
+        } else {
+            click = .WinTitle;
         }
     }
     // Locate the click, and populate the `click` variable.
     // This block searches for the click location in the client.
     if (wintoclient(ev.window)) |c| {
         focus(allocator, c);
-        if (z.selmon) |m| restack(allocator, m);
+        restack(allocator, z.selmon);
         _ = X.XAllowEvents(z.dpy, X.ReplayPointer, X.CurrentTime);
         click = .ClientWin;
     }
@@ -571,7 +567,7 @@ fn wintomon(w: Window) ?*Monitor {
 }
 
 /// [dwm] updategeom
-fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
+fn updategeom(allocator: Allocator, selmon: *?*Monitor) error{OutOfMemory}!bool {
     var dirty = false;
     var mons: *Monitor = undefined;
     log.info("Start updategeom", .{});
@@ -592,8 +588,8 @@ fn updategeom(allocator: Allocator) error{OutOfMemory}!bool {
     }
     log.info("updategeom.dirty? {}", .{dirty});
     if (dirty) {
-        z.selmon = mons;
-        z.selmon = wintomon(z.root);
+        selmon.* = mons;
+        selmon.* = wintomon(z.root);
     }
     return dirty;
 }
@@ -628,7 +624,13 @@ fn setup(allocator: Allocator) !void {
     }
     z.lrpad = z.drw.fonts.h;
     z.bar_height = z.drw.fonts.h + 2;
-    _ = try updategeom(allocator);
+    var selmon: ?*Monitor = null;
+    // Make sure that `selmon` is initialized.
+    _ = try updategeom(allocator, &selmon);
+    if (selmon) |m| z.selmon = m else {
+        std.debug.print("App could not find the first selected monitor (dwm: selmon)\n", .{});
+        return;
+    }
 
     // Initialize atoms.
     utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", X.False);
@@ -706,7 +708,7 @@ fn unfocus(client: ?*Client, setfocus: bool) void {
 fn focus(allocator: Allocator, client: ?*Client) void {
     var c_opt = client;
     if (if (c_opt) |c| !c.isVisible() else true) {
-        c_opt = if (z.selmon) |m| m.stack else null;
+        c_opt = z.selmon.stack;
         // Push the pointer forward until c_opt points to the first visible client.
         while (c_opt) |c| : (c_opt = c.snext) {
             if (c.isVisible()) {
@@ -716,10 +718,8 @@ fn focus(allocator: Allocator, client: ?*Client) void {
     }
     // If the currently selected client in the selected monitor is not `c_opt`,
     // then unfocus it.
-    if (z.selmon) |selected_monitor| {
-        if (selected_monitor.sel != c_opt) {
-            unfocus(selected_monitor.sel, false);
-        }
+    if (z.selmon.sel != c_opt) {
+        unfocus(z.selmon.sel, false);
     }
     if (c_opt) |c| {
         z.selmon = c.mon;
@@ -735,7 +735,7 @@ fn focus(allocator: Allocator, client: ?*Client) void {
         _ = X.XSetInputFocus(z.dpy, z.root, X.RevertToPointerRoot, X.CurrentTime);
         _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));
     }
-    if (z.selmon) |m| m.sel = c_opt;
+    z.selmon.sel = c_opt;
     drawbars(allocator);
 }
 
@@ -925,7 +925,7 @@ fn updatestatus(allocator: Allocator) void {
     } else {
         z.stext.set(NAME ++ "-" ++ VERSION);
     }
-    if (z.selmon) |m| drawbar(allocator, m);
+    drawbar(allocator, z.selmon);
 }
 
 fn drawbar(allocator: Allocator, m: *Monitor) void {
@@ -975,9 +975,8 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
             z.drw.drawRect(
                 .{ .x = x + boxs, .y = boxs, .w = boxw, .h = boxw },
                 filled: {
-                    const selmon = z.selmon orelse break :filled false;
-                    const client = selmon.sel orelse break :filled false;
-                    break :filled m == selmon and (client.tags & tag_mask) != 0;
+                    const client = z.selmon.sel orelse break :filled false;
+                    break :filled m == z.selmon and (client.tags & tag_mask) != 0;
                 },
                 (urg & tag_mask) != 0,
             );

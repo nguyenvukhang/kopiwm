@@ -45,7 +45,7 @@ pub const App = struct {
     /// Selected monitor.
     /// TODO: figure out if we can remove this Optional. dwm seems to operate
     /// under the assumption that this is always populated.
-    selmon: ?*Monitor = null,
+    selmon: *Monitor = undefined,
 
     root: Window = undefined,
     wmcheckwin: Window = undefined,
@@ -130,10 +130,5 @@ pub const App = struct {
         }
         _ = X.XFree(tp.value);
         return l;
-    }
-
-    /// Better alternative to self.selmon.?.sel
-    pub inline fn selclient(self: *const Self) ?*Client {
-        return if (self.selmon) |m| m.sel else null;
     }
 };
