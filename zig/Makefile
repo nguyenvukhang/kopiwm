@@ -1,6 +1,9 @@
 GDB_COMMAND_FILE := debug.gdb
 
-current: build
+current: check
+
+check:
+	python3 migrate.py
 
 build:
 	zig build
