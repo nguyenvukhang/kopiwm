@@ -593,11 +593,6 @@ fn focusIn(e: *XEvent) void {
 /// [dwm] keypress
 fn keyPress(e: *XEvent) void {
     const ev: X.XKeyEvent = e.xkey;
-
-    // unsigned int i;
-    // KeySym keysym;
-    // XKeyEvent *ev;
-    //
     const keysym = X.XkbKeycodeToKeysym(z.dpy, @intCast(ev.keycode), 0, 0);
     for (cfg.keys) |key| {
         if (keysym == key.sym and CLEANMASK(key.mod) == CLEANMASK(ev.state)) {
@@ -607,33 +602,37 @@ fn keyPress(e: *XEvent) void {
 }
 
 /// [dwm] mappingnotify
-fn mappingNotify(allocator: Allocator, ev: *XEvent) void {
-    _ = allocator;
-    _ = ev;
+fn mappingNotify(e: *XEvent) void {
+    const ev: *X.XMappingEvent = &e.xmapping;
+    _ = X.XRefreshKeyboardMapping(ev);
+    if (ev.request == X.MappingKeyboard) {
+        grabkeys();
+    }
 }
 
 /// [dwm] maprequest
-fn mapRequest(allocator: Allocator, ev: *XEvent) void {
+fn mapRequest(allocator: Allocator, e: *XEvent) void {
+    const ev: X.XMappingEvent = e.xmapping;
     _ = allocator;
     _ = ev;
 }
 
 /// [dwm] motionnotify
-fn motionNotify(allocator: Allocator, ev: *XEvent) void {
+fn motionNotify(allocator: Allocator, e: *XEvent) void {
     _ = allocator;
-    _ = ev;
+    _ = e;
 }
 
 /// [dwm] propertynotify
-fn propertyNotify(allocator: Allocator, ev: *XEvent) void {
+fn propertyNotify(allocator: Allocator, e: *XEvent) void {
     _ = allocator;
-    _ = ev;
+    _ = e;
 }
 
 /// [dwm] unmapnotify
-fn unmapNotify(allocator: Allocator, ev: *XEvent) void {
+fn unmapNotify(allocator: Allocator, e: *XEvent) void {
     _ = allocator;
-    _ = ev;
+    _ = e;
 }
 
 /// [dwm] run
@@ -675,7 +674,7 @@ fn setupHandler() void {
             X.FocusIn          => .{ .NoAlloc = focusIn },
             X.KeyPress         => .{ .NoAlloc = keyPress },
             X.MapRequest       => .{ .AllocCl = mapRequest },
-            X.MappingNotify    => .{ .AllocCl = mappingNotify },
+            X.MappingNotify    => .{ .NoAlloc = mappingNotify },
             X.MotionNotify     => .{ .AllocCl = motionNotify },
             X.PropertyNotify   => .{ .AllocCl = propertyNotify },
             X.UnmapNotify      => .{ .AllocCl = unmapNotify },
