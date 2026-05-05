@@ -511,7 +511,6 @@ pub const Client = struct {
 
     /// [dwm] applyrules
     pub fn applyRules(self: *Self) void {
-
         // Rule matching.
         self.is_floating.set(false);
         self.tags = 0;

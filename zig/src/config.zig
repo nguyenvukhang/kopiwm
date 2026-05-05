@@ -10,7 +10,7 @@ const BarPosition = @import("enums.zig").BarPosition;
 const Key = @import("enums.zig").Key;
 const Button = @import("enums.zig").Button;
 const Rule = @import("enums.zig").Rule;
-const F = @import("funcs.zig");
+const F = @import("main.zig");
 
 /// border pixel of windows
 pub const borderpx: u32 = 1;

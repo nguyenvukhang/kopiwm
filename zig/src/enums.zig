@@ -85,7 +85,7 @@ pub const Key = struct {
     /// X keysym.
     sym: X.KeySym,
     /// The callback function.
-    func: *const fn (*App, *const Arg) void,
+    func: *const fn (*const Arg) void,
     arg: Arg,
 };
 
@@ -95,7 +95,7 @@ pub const Button = struct {
     mask: c_uint,
     /// See the `Button1`...`Button5` enums in "X11/X.h".
     button: c_uint,
-    func: *const fn (*App, *Arg) void,
+    func: *const fn (*const Arg) void,
     arg: Arg,
 };
 

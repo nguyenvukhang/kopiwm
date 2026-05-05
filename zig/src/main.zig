@@ -596,7 +596,7 @@ fn keyPress(e: *XEvent) void {
     const keysym = X.XkbKeycodeToKeysym(z.dpy, @intCast(ev.keycode), 0, 0);
     for (cfg.keys) |key| {
         if (keysym == key.sym and CLEANMASK(key.mod) == CLEANMASK(ev.state)) {
-            key.func(&z, &key.arg);
+            key.func(&key.arg);
         }
     }
 }
@@ -1159,6 +1159,33 @@ fn updatestatus(allocator: Allocator) void {
     }
     drawbar(allocator, z.selmon);
 }
+
+pub fn spawn(arg: *const Arg) void {
+    // var sa: C.struct_sigaction = undefined;
+    _ = z;
+    _ = arg;
+}
+
+pub fn view(arg: *const Arg) void {
+    if (arg.ui & cfg.TAGMASK == z.selmon.tagset[z.selmon.seltags]) {
+        return; // nothing to do here.
+    }
+    z.selmon.seltags ^= 1; // Toggle selected tagset.
+    if (arg.ui & cfg.TAGMASK != 0) {
+        z.selmon.tagset[z.selmon.seltags] = arg.ui & cfg.TAGMASK;
+    }
+}
+// void view(const Arg *arg) {
+//     if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags]) {
+//         return;
+//     }
+//     selmon->seltags ^= 1; /* toggle sel tagset */
+//     if (arg->ui & TAGMASK) {
+//         selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
+//     }
+//     focus(NULL);
+//     arrange(selmon);
+// }
 
 fn drawbar(allocator: Allocator, m: *Monitor) void {
     if (!m.show_bar) {
