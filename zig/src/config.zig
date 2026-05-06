@@ -90,10 +90,10 @@ pub const keys = [_]Key{
 
 // zig fmt: off
 pub const buttons = [_]Button{
-.{ .click = .WinTitle,   .mask = 0, .button = Button2, .func = F.zoom,      .arg = undefined             },
-.{ .click = .LtSymbol,   .mask = 0, .button = Button3, .func = F.setLayout, .arg = .{ .l = &layouts[2] } },
-.{ .click = .WinTitle,   .mask = 0, .button = Button2, .func = F.zoom,      .arg = undefined             },
-.{ .click = .StatusText, .mask = 0, .button = Button2, .func = F.spawn,     .arg = .{.args = &.{}}       },
+.{ .click = .LtSymbol,   .mask = 0, .button = Button3, .func = @ptrCast(&F.setLayout), .arg = .{ .l = &layouts[2] } },
+.{ .click = .LtSymbol,   .mask = 0, .button = Button2, .func = @ptrCast(&F.setLayout), .arg = .{ .l = &layouts[2] } },
+.{ .click = .WinTitle,   .mask = 0, .button = Button2, .func = @ptrCast(&F.zoom),      .arg = undefined             },
+.{ .click = .StatusText, .mask = 0, .button = Button2, .func = @ptrCast(&F.spawn),     .arg = .{.args = &.{}}       },
 // .{ .click = .ClientWin,  .mask = 0, .button = Button1, .func = F.moveMouse, .arg = undefined             },
 };
 // // zig fmt: on

@@ -106,7 +106,7 @@ pub const Button = struct {
     mask: c_uint,
     /// See the `Button1`...`Button5` enums in "X11/X.h".
     button: c_uint,
-    func: *const fn (*const Arg) void,
+    func: *const fn (*const Arg) error{OutOfMemory}!void,
     arg: Arg,
 };
 

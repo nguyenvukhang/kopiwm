@@ -474,7 +474,7 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
 }
 
 /// (dwm) buttonpress
-fn buttonPress(allocator: Allocator, e: *XEvent) void {
+fn buttonPress(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     const ev: X.XButtonPressedEvent = e.xbutton;
     var click: Clk = .RootWin;
     var arg: Arg = undefined;
@@ -523,9 +523,9 @@ fn buttonPress(allocator: Allocator, e: *XEvent) void {
         if (button.click != click or button.button != ev.button) continue;
         if (CLEANMASK(button.mask) == CLEANMASK(ev.state)) {
             if (click == .TagBar) {
-                button.func(&arg);
+                try button.func(&arg);
             } else {
-                button.func(&button.arg);
+                try button.func(&button.arg);
             }
         }
     }
@@ -817,7 +817,7 @@ fn setupHandler() void {
     while (i < handler.len) : (i += 1) {
         handler[@intCast(i)] = switch (i) {
             // zig fmt: off
-            X.ButtonPress      => .{ .AllocCl = buttonPress },
+            X.ButtonPress      => .{ .Alloc   = buttonPress },
             X.ClientMessage    => .{ .NoAlloc = clientMessage },
             X.ConfigureNotify  => .{ .Alloc   = configurenotify },
             X.ConfigureRequest => .{ .NoAlloc = configureRequest },
