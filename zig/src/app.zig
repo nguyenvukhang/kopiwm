@@ -25,7 +25,7 @@ pub const App = struct {
 
     // Note to new Zig learners: if we try to deference this, we get "error:
     // cannot dereference undefined value."
-    dpy: ?*X.Display = null,
+    dpy: *X.Display = undefined,
 
     screen: c_int = undefined,
 

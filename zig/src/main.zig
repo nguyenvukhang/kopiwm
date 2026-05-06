@@ -26,9 +26,6 @@ const HandlerFn = @import("enums.zig").HandlerFn;
 const NAME = @import("build_opts").name;
 const VERSION = @import("build_opts").version;
 
-// TODO: re-enable this in production.
-const SAID_AND_DONE = true;
-
 // This exists because of config callbacks.
 var global_allocator: Allocator = undefined;
 
@@ -1257,7 +1254,7 @@ fn setup(allocator: Allocator) !void {
     z.s.h = @intCast(X.DisplayHeight(z.dpy, z.screen));
     log.info("width: {d}, height: {d}", .{ z.s.w, z.s.h });
     z.root = X.RootWindow(z.dpy, z.screen);
-    z.drw = .init(z.dpy.?, z.screen, z.root, z.s.w, z.s.h);
+    z.drw = .init(z.dpy, z.screen, z.root, z.s.w, z.s.h);
     {
         const f = try z.drw.fontsetCreate(allocator, &cfg.fonts);
         if (f == null) {
@@ -1631,9 +1628,7 @@ pub fn spawn(arg: *const Arg) void {
     // TODO: handle the failure case by updating the Key struct.
     const pid = std.posix.fork() catch unreachable;
     if (pid == 0) {
-        if (z.dpy) |dpy| {
-            _ = C.close(X.ConnectionNumber(dpy));
-        }
+        _ = C.close(X.ConnectionNumber(z.dpy));
         _ = C.setsid();
 
         var sa: C.struct_sigaction = undefined;
@@ -1933,12 +1928,9 @@ pub fn main() !void {
     z.dpy = X.XOpenDisplay(null) orelse {
         return try stdout.print(NAME ++ ": cannot open display\n", .{});
     };
-    defer {
-        _ = X.XCloseDisplay(z.dpy);
-        log.info("Called XCloseDisplay", .{});
-    }
+    defer _ = X.XCloseDisplay(z.dpy);
 
-    if (SAID_AND_DONE) check_other_wm();
+    check_other_wm();
 
     log.info("Start setup()", .{});
     try setup(allocator);
