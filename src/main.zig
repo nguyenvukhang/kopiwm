@@ -1590,6 +1590,12 @@ fn updatebars() void {
         if (m.barwin != 0) {
             continue;
         }
+        log.info("Bar window: (x={d}, y={d}, w={d}, h={d})", .{
+            m.w.x,
+            m.by,
+            m.w.w,
+            z.bar_height,
+        });
         m.barwin = X.XCreateWindow(
             z.dpy,
             z.root,
@@ -1897,7 +1903,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 }
 
 pub fn main() !void {
-    if (true) return simplemain();
+    if (false) return simplemain();
     log.info("STARTED EXECUTION OF DWMZ", .{});
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -1983,9 +1989,9 @@ pub fn simplemain() !void {
         X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
         &wa,
     );
-    const gc = X.XCreateGC(dpy, win, 0, null);
+    const gc = X.XCreateGC(dpy, rootwin, 0, null);
     _ = X.XSetForeground(dpy, gc, X.WhitePixel(dpy, scr));
-    _ = X.XSelectInput(dpy, win, X.ExposureMask | X.ButtonPressMask);
+    _ = X.XSelectInput(dpy, rootwin, X.ExposureMask | X.ButtonPressMask);
     _ = X.XMapRaised(dpy, win);
 
     var ev: XEvent = undefined;
@@ -1994,8 +2000,8 @@ pub fn simplemain() !void {
         if (ev.type == X.Expose and ev.xexpose.count < 1) {
             // _ = X.XDrawString(dpy, win, gc, 10, 10, "Hello world", 12);
             _ = X.XDrawString(dpy, pixmap, gc, 10, 10, "Hello world", 12);
-            _ = X.XCopyArea(dpy, pixmap, win, gc, 0, 0, w, h, 0, 0);
-            _ = X.XSync(dpy, X.False);
+            // _ = X.XCopyArea(dpy, pixmap, win, gc, 0, 0, w, h, 0, 0);
+            // _ = X.XSync(dpy, X.False);
         } else if (ev.type == X.ButtonPress) {
             break;
         }
