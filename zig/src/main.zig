@@ -1504,13 +1504,28 @@ fn updatenumlockmask() void {
 fn cleanup(allocator: Allocator) void {
     log.info("Start cleanup()", .{});
 
+    // First off, let's print out the current status of everything.
+    var m_opt = z.mons;
+    var i: u32 = 0;
+    var j: u32 = 0;
+    while (m_opt) |m| : (m_opt = m.next) {
+        i += 1;
+        j = 0;
+        log.info("Monitor: #{d}", .{i});
+        while (m.stack) |c| {
+            j += 1;
+            log.info("Client: #{d}", .{j});
+            unmanage(allocator, c, false);
+        }
+    }
+
     const a: Arg = .{ .ui = ~@as(u32, 0) };
     const foo: Layout = .{ .symbol = "", .arrange = null };
 
     view(&a);
     z.selmon.lt[z.selmon.sellt] = &foo;
 
-    var m_opt = z.mons;
+    m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
         while (m.stack) |c| {
             unmanage(allocator, c, false);
