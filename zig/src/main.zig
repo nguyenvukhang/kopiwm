@@ -993,6 +993,98 @@ fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
     }
 }
 
+/// (dwm) resizemouse
+fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
+    var c = z.selmon.sel orelse return;
+    if (c.isfullscreen) return; // No support moving fullscreen windows by mouse.
+    restack(global_allocator, z.selmon);
+
+    // Old client x and y coordinates.
+    const ocx = c.pos.now.x;
+    const ocy = c.pos.now.y;
+
+    const grab_res = X.XGrabPointer(
+        z.dpy,
+        z.root,
+        X.False,
+        X.MOUSEMASK,
+        X.GrabModeAsync,
+        X.GrabModeAsync,
+        X.None,
+        z.cursors.get(.Resize),
+        X.CurrentTime,
+    );
+    if (grab_res != X.GrabSuccess) return;
+    if (c.is_floating.now) {
+        _ = X.XWarpPointer(z.dpy, X.None, c.win, 0, 0, 0, 0, //
+            c.pos.now.w + c.bw.now - 1, c.pos.now.h + c.bw.now - 1);
+    } else {
+        _ = X.XWarpPointer(z.dpy, X.None, z.selmon.barwin, 0, 0, 0, 0, //
+            @intFromFloat(z.selmon.mfact * @as(f32, @floatFromInt(z.selmon.m.w))), //
+            @divFloor(z.selmon.m.h, 2));
+    }
+    var ev: XEvent = undefined;
+    var lasttime: X.Time = 0;
+    while (true) {
+        _ = X.XMaskEvent(z.dpy, X.MOUSEMASK | X.ExposureMask | X.SubstructureRedirectMask, &ev);
+        switch (ev.type) {
+            X.Expose | X.MapRequest | X.ConfigureRequest => try runOne(global_allocator, &ev),
+            X.MotionNotify => {
+                if (ev.xmotion.time - lasttime <= @divFloor(1000, cfg.refreshrate)) {
+                    continue;
+                }
+                lasttime = ev.xmotion.time;
+                const nw: i32 = @max(ev.xmotion.x - ocx - 2 * c.bw.now + 1, 1);
+                const nh: i32 = @max(ev.xmotion.y - ocy - 2 * c.bw.now + 1, 1);
+                if (!c.is_floating.now) {
+                    const f = @as(f32, @floatFromInt(ev.xmotion.x)) /
+                        @as(f32, @floatFromInt(z.selmon.m.w));
+                    if (0.05 <= f and f <= 0.95) {
+                        z.selmon.mfact = f;
+                        arrange(global_allocator, z.selmon);
+                    }
+                    // toggleFloating(undefined);
+                } else if (c.mon.w.x + nw >= z.selmon.w.l() and
+                    c.mon.w.x + nw <= z.selmon.w.r() and
+                    c.mon.w.y + nh >= z.selmon.w.t() and
+                    c.mon.w.y + nh <= z.selmon.w.b())
+                {
+                    if (!c.is_floating.now and
+                        z.selmon.lt[z.selmon.sellt].arrange != null and
+                        (@abs(nw - @as(i32, @intCast(c.pos.now.w))) > cfg.snap or
+                            @abs(nh - @as(i32, @intCast(c.pos.now.h))) > cfg.snap))
+                    {
+                        toggleFloating(undefined);
+                    }
+                }
+                if (z.selmon.lt[z.selmon.sellt].arrange == null or c.is_floating.now) {
+                    var r = c.pos.now;
+                    r.w = @intCast(nw);
+                    r.h = @intCast(nh);
+                    c.hintAndResize(r, true);
+                }
+            },
+            X.ButtonRelease => break,
+            else => {},
+        }
+    }
+    if (c.is_floating.now) {
+        X.XWarpPointer(z.dpy, X.None, c.win, 0, 0, 0, 0, //
+            c.pos.now.w + @as(u32, @intCast(c.bw.now)) - 1, //
+            c.pos.now.h + @as(u32, @intCast(c.bw.now)) - 1);
+    }
+    _ = X.XUngrabPointer(z.dpy, X.CurrentTime);
+    while (X.XCheckMaskEvent(z.py, X.EnterWindowMask, &ev) != 0) {}
+    const m_opt = c.pos.now.toMonitor(z.mons);
+    if (m_opt != z.selmon) {
+        if (m_opt) |m| {
+            sendMon(global_allocator, c, m);
+            z.selmon = m;
+            focus(global_allocator, null);
+        }
+    }
+}
+
 /// (dwm) sendmon
 fn sendMon(allocator: Allocator, c: *Client, m: *Monitor) void {
     if (c.mon == m) return;
