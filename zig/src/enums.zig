@@ -117,7 +117,7 @@ pub const Button = struct {
         func: *const fn (*const Arg) void,
         arg: Arg,
     ) @This() {
-        return .{ .click = click, .mask = mask, .button = button, .func = @ptrCast(func), .arg = arg };
+        return .Init(click, mask, button, @ptrCast(func), arg);
     }
 
     pub fn Init(

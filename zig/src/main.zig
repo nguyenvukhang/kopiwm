@@ -1027,7 +1027,7 @@ fn setMFact(arg: *const Arg) void {
 }
 
 /// (dwm) resizemouse
-fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
+pub fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
     var c = z.selmon.sel orelse return;
     if (c.isfullscreen) return; // No support moving fullscreen windows by mouse.
     restack(global_allocator, z.selmon);
@@ -1050,11 +1050,12 @@ fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
     if (grab_res != X.GrabSuccess) return;
     if (c.is_floating.now) {
         _ = X.XWarpPointer(z.dpy, X.None, c.win, 0, 0, 0, 0, //
-            c.pos.now.w + c.bw.now - 1, c.pos.now.h + c.bw.now - 1);
+            @intCast(c.pos.now.w + c.bw.now - 1), //
+            @intCast(c.pos.now.h + c.bw.now - 1));
     } else {
         _ = X.XWarpPointer(z.dpy, X.None, z.selmon.barwin, 0, 0, 0, 0, //
             @intFromFloat(z.selmon.mfact * @as(f32, @floatFromInt(z.selmon.m.w))), //
-            @divFloor(z.selmon.m.h, 2));
+            @intCast(@divFloor(z.selmon.m.h, 2)));
     }
     var ev: XEvent = undefined;
     var lasttime: X.Time = 0;
@@ -1067,8 +1068,8 @@ fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
                     continue;
                 }
                 lasttime = ev.xmotion.time;
-                const nw: i32 = @max(ev.xmotion.x - ocx - 2 * c.bw.now + 1, 1);
-                const nh: i32 = @max(ev.xmotion.y - ocy - 2 * c.bw.now + 1, 1);
+                const nw: i32 = @max(@as(i32, @intCast(ev.xmotion.x)) - ocx - 2 * @as(i32, @intCast(c.bw.now)) + 1, 1);
+                const nh: i32 = @max(@as(i32, @intCast(ev.xmotion.y)) - ocy - 2 * @as(i32, @intCast(c.bw.now)) + 1, 1);
                 if (!c.is_floating.now) {
                     const f = @as(f32, @floatFromInt(ev.xmotion.x)) /
                         @as(f32, @floatFromInt(z.selmon.m.w));
@@ -1102,12 +1103,12 @@ fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
         }
     }
     if (c.is_floating.now) {
-        X.XWarpPointer(z.dpy, X.None, c.win, 0, 0, 0, 0, //
-            c.pos.now.w + @as(u32, @intCast(c.bw.now)) - 1, //
-            c.pos.now.h + @as(u32, @intCast(c.bw.now)) - 1);
+        _ = X.XWarpPointer(z.dpy, X.None, c.win, 0, 0, 0, 0, //
+            @intCast(c.pos.now.w + c.bw.now - 1), //
+            @intCast(c.pos.now.h + c.bw.now - 1));
     }
     _ = X.XUngrabPointer(z.dpy, X.CurrentTime);
-    while (X.XCheckMaskEvent(z.py, X.EnterWindowMask, &ev) != 0) {}
+    while (X.XCheckMaskEvent(z.dpy, X.EnterWindowMask, &ev) != 0) {}
     const m_opt = c.pos.now.toMonitor(z.mons);
     if (m_opt != z.selmon) {
         if (m_opt) |m| {
@@ -1670,7 +1671,7 @@ fn togglebar(_: *const Arg) void {
 }
 
 /// (dwm) toggletag
-fn toggletag(arg: *const Arg) void {
+pub fn toggleTag(arg: *const Arg) void {
     const mask = switch (arg.*) {
         .ui => |v| v,
         else => return,
@@ -1685,7 +1686,7 @@ fn toggletag(arg: *const Arg) void {
 }
 
 /// (dwm) toggleview
-fn toggleview(arg: *const Arg) void {
+pub fn toggleView(arg: *const Arg) void {
     const mask = switch (arg.*) {
         .ui => |v| v,
         else => return,

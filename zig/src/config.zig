@@ -76,17 +76,17 @@ const col_gray4: []const u8 = "#eeeeee";
 const col_accent_400: []const u8 = "#d8b4fe";
 const col_accent_900: []const u8 = "#581c87";
 
-fn colors_() EnumArray(SchemeState, Scheme([]const u8)) {
-    // As of the time of writing, LSP doesn't quite work here in terms of
-    // suggesting the `SchemeState` as the keys. It will still catch nicely at
-    // comptime though.
+fn initColors() EnumArray(SchemeState, Scheme([]const u8)) {
     var c: EnumArray(SchemeState, Scheme([]const u8)) = undefined;
-    c.set(.Normal, .{ .fg = col_gray3, .bg = col_gray1, .border = col_gray2 });
+    // zig fmt: off
+    c.set(.Normal,   .{ .fg = col_gray3, .bg = col_gray1,      .border = col_gray2      });
     c.set(.Selected, .{ .fg = col_gray1, .bg = col_accent_400, .border = col_accent_900 });
-    c.set(.Bar, .{ .fg = col_gray3, .bg = col_gray2, .border = col_gray2 });
+    c.set(.Bar,      .{ .fg = col_gray3, .bg = col_gray2,      .border = col_gray2      });
+    // zig fmt: on
     return c;
 }
-pub const colors = colors_();
+
+pub const colors = initColors();
 
 const MODKEY = X.Mod4Mask;
 pub const keys = [_]Key{
@@ -95,32 +95,54 @@ pub const keys = [_]Key{
     .{ .mod = MODKEY, .sym = X.XK_space, .func = F.spawn, .arg = .{ .args = &.{"hey"} } },
 };
 
+// { MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
+// { MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+// { MODKEY,                       XK_b,      togglebar,      {0} },
+// { MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
+// { MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
+// { MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
+// { MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
+// { MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+// { MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
+// { MODKEY,                       XK_Return, zoom,           {0} },
+// { MODKEY,                       XK_Tab,    view,           {0} },
+// { MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
+// { MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
+// { MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
+// { MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
+// { MODKEY,                       XK_space,  setlayout,      {0} },
+// { MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
+// { MODKEY,                       XK_0,      view,           {.ui = ~0 } },
+// { MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
+// { MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
+// { MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+// { MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
+// { MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
+// TAGKEYS(                        XK_1,                      0)
+// TAGKEYS(                        XK_2,                      1)
+// TAGKEYS(                        XK_3,                      2)
+// TAGKEYS(                        XK_4,                      3)
+// TAGKEYS(                        XK_5,                      4)
+// TAGKEYS(                        XK_6,                      5)
+// TAGKEYS(                        XK_7,                      6)
+// TAGKEYS(                        XK_8,                      7)
+// TAGKEYS(                        XK_9,                      8)
+// { MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+
 // zig fmt: off
 pub const buttons = [_]Button{
-.init(.LtSymbol,   0, Button1, F.setLayout     , undefined            ),
-.init(.LtSymbol,   0, Button3, F.setLayout     , .{ .l = &layouts[2] }),
-.init(.WinTitle,   0, Button2, F.zoom          , undefined            ),
-.init(.StatusText, 0, Button2, F.spawn         , .{.args = &.{}}      ),
-.Init(.ClientWin,  0, Button1, F.moveMouse     , undefined            ),
-.init(.ClientWin,  0, Button2, F.toggleFloating, undefined            ),
-// .{ .click = .ClientWin,  .mask = 0, .button = Button1, .func = F.moveMouse, .arg = undefined             },
+.init(.LtSymbol,     0,        Button1,   F.setLayout,        undefined            ),
+.init(.LtSymbol,     0,        Button3,   F.setLayout,        .{ .l = &layouts[2] }),
+.init(.WinTitle,     0,        Button2,   F.zoom,             undefined            ),
+.init(.StatusText,   0,        Button2,   F.spawn,            .{.args = &.{}}      ),
+.Init(.ClientWin,    MODKEY,   Button1,   F.moveMouse,        undefined            ),
+.init(.ClientWin,    MODKEY,   Button2,   F.toggleFloating,   undefined            ),
+.Init(.ClientWin,    MODKEY,   Button3,   F.resizeMouse,      undefined            ),
+.init(.TagBar,       0,        Button1,   F.view,             undefined            ),
+.init(.TagBar,       0,        Button3,   F.toggleView,       undefined            ),
+.init(.TagBar,       MODKEY,   Button1,   F.tag,              undefined            ),
+.init(.TagBar,       MODKEY,   Button3,   F.toggleTag,        undefined            ),
 };
 // // zig fmt: on
-
-// static const Button buttons[] = {
-//     /* click                event mask      button          function        argument */
-//     { ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
-//     { ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
-//     { ClkWinTitle,          0,              Button2,        zoom,           {0} },
-//     { ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
-//     { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
-//     { ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
-//     { ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
-//     { ClkTagBar,            0,              Button1,        view,           {0} },
-//     { ClkTagBar,            0,              Button3,        toggleview,     {0} },
-//     { ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
-//     { ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
-// };
-
 
 pub const rules = [_]Rule{};
