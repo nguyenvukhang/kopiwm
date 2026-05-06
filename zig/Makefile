@@ -1,6 +1,6 @@
 GDB_COMMAND_FILE := debug.gdb
 
-current: check build
+current: run
 
 check:
 	python3 migrate.py

@@ -743,7 +743,7 @@ fn motionNotify(allocator: Allocator, e: *XEvent) void {
 fn propertyNotify(allocator: Allocator, e: *XEvent) void {
     const ev: X.XPropertyEvent = e.xproperty;
     if (ev.window == z.root and ev.atom == X.XA_WM_NAME) {
-        updatestatus(allocator);
+        updateStatus(allocator);
     } else if (ev.state == X.PropertyDelete) {
         return; // ignore.
     } else if (wintoclient(ev.window)) |c| {
@@ -1229,7 +1229,11 @@ fn setup(allocator: Allocator) !void {
     var selmon: ?*Monitor = null;
     // Make sure that `selmon` is initialized.
     _ = try updategeom(allocator, &selmon);
-    if (selmon) |m| z.selmon = m else {
+    if (selmon) |m| {
+        z.selmon = m;
+        log.info("Created the first selmon.", .{});
+    } else {
+        log.err("App could not find the first selected monitor (dwm: selmon)", .{});
         std.debug.print("App could not find the first selected monitor (dwm: selmon)\n", .{});
         return;
     }
@@ -1265,7 +1269,7 @@ fn setup(allocator: Allocator) !void {
 
     // Initialize bars.
     updatebars();
-    updatestatus(allocator);
+    updateStatus(allocator);
 
     // Supporting window for NetWMCheck.
     z.wmcheckwin = X.XCreateSimpleWindow(z.dpy, z.root, 0, 0, 1, 1, 0, 0, 0);
@@ -1538,8 +1542,8 @@ fn updatebars() void {
     }
 }
 
-/// (dwm) updatestatus
-fn updatestatus(allocator: Allocator) void {
+/// (dwm) updateStatus
+fn updateStatus(allocator: Allocator) void {
     if (z.getTextProp(z.root, X.XA_WM_NAME, &z.stext.buffer)) |len| {
         z.stext.len = len;
     } else {
