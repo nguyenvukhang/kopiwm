@@ -1235,16 +1235,11 @@ fn setup(allocator: Allocator) !void {
     if (selmon) |m| {
         z.selmon = m;
         log.info("Created the first selmon.", .{});
-        log.info("Might segfault 1???", .{});
-        log.info("Survived! {any}", .{m.show_bar});
-        log.info("Survived! {any}", .{z.selmon.show_bar});
     } else {
         log.err("App could not find the first selected monitor (dwm: selmon)", .{});
         std.debug.print("App could not find the first selected monitor (dwm: selmon)\n", .{});
         return;
     }
-    log.info("Might segfault???", .{});
-    log.info("Survived! {any}", .{z.selmon.show_bar});
 
     log.info("Initializing atoms.", .{});
 
