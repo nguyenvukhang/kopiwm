@@ -1567,6 +1567,7 @@ fn cleanup(allocator: Allocator) void {
     _ = X.XSync(z.dpy, X.False);
     _ = X.XSetInputFocus(z.dpy, X.PointerRoot, X.RevertToPointerRoot, X.CurrentTime);
     _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));
+    log.info("End of cleanup!", .{});
 }
 
 /// (dwm) cleanupmon
@@ -1908,7 +1909,10 @@ pub fn main() !void {
     log.info("STARTED EXECUTION OF DWMZ", .{});
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
+    defer {
+        _ = gpa.deinit();
+        log.info("Closed the allocator", .{});
+    }
     const allocator = gpa.allocator();
     global_allocator = allocator;
 
@@ -1935,7 +1939,10 @@ pub fn main() !void {
     z.dpy = X.XOpenDisplay(null) orelse {
         return try stdout.print(NAME ++ ": cannot open display\n", .{});
     };
-    defer _ = X.XCloseDisplay(z.dpy);
+    defer {
+        _ = X.XCloseDisplay(z.dpy);
+        log.info("Called XCloseDisplay", .{});
+    }
 
     if (SAID_AND_DONE) check_other_wm();
 
