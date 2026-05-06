@@ -743,7 +743,6 @@ fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
 
 /// (dwm) motionnotify
 fn motionNotify(allocator: Allocator, e: *XEvent) void {
-    log.info("Start motionNotify()", .{});
     const ev: X.XMotionEvent = e.xmotion;
     const static = struct {
         var mon: ?*Monitor = null;
@@ -859,11 +858,12 @@ const HandlerFn = union(HandlerFnTag) {
     Alloc: *const fn (Allocator, *XEvent) void,
 };
 
-var handler: [X.LASTEvent]?HandlerFn = undefined;
-fn setupHandler() void {
+const handler: [X.LASTEvent]?HandlerFn = createHandler();
+fn createHandler() [X.LASTEvent]?HandlerFn {
+    var ret: [X.LASTEvent]?HandlerFn = undefined;
     var i: c_int = 0;
-    while (i < handler.len) : (i += 1) {
-        handler[@intCast(i)] = switch (i) {
+    while (i < ret.len) : (i += 1) {
+        ret[@intCast(i)] = switch (i) {
             // zig fmt: off
             X.ButtonPress      => .{ .AllocE   = buttonPress },
             X.ClientMessage    => .{ .NoAlloc  = clientMessage },
@@ -883,6 +883,7 @@ fn setupHandler() void {
             else => null,
         };
     }
+    return ret;
 }
 
 /// (dwm) scan
@@ -1947,7 +1948,6 @@ pub fn main() !void {
     if (SAID_AND_DONE) check_other_wm();
 
     log.info("Start setup()", .{});
-    setupHandler();
     try setup(allocator);
     defer cleanup(allocator);
 
