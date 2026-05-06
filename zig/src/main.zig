@@ -1158,7 +1158,7 @@ fn wintomon(w: Window) *Monitor {
         const r = Rect{ .x = @intCast(x), .y = @intCast(y), .w = 1, .h = 1 };
         // To guarantee a non-null return of `*Monitor`, we deviate a tad from
         // dwm's behaviour and return `selmon` if nothing is found.
-        return r.toMonitor(z.mons) orelse z.selmon;
+        return r.toMonitor(z.mons) orelse (z.mons orelse unreachable);
     }
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
@@ -1176,6 +1176,7 @@ fn updategeom(allocator: Allocator, selmon: *?*Monitor) error{OutOfMemory}!bool 
     {
         // default monitor setup
         mons = z.mons orelse m: {
+            log.info("Created the first monitor! Inserted at z.mons", .{});
             z.mons = try Monitor.init(allocator);
             break :m z.mons.?;
         };
