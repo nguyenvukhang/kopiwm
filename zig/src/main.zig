@@ -1568,6 +1568,19 @@ pub fn spawn(arg: *const Arg) void {
     }
 }
 
+/// (dwm) tag
+pub fn tag(arg: *const Arg) void {
+    const mask = switch (arg.*) {
+        .ui => |v| if (v & cfg.TAGMASK != 0) v else return,
+        else => return,
+    };
+    if (z.selmon.sel) |c| {
+        c.tags = mask & cfg.TAGMASK;
+        focus(global_allocator, null);
+        arrange(global_allocator, z.selmon);
+    }
+}
+
 /// (dwm) view
 pub fn view(arg: *const Arg) void {
     if (arg.ui & cfg.TAGMASK == z.selmon.tagset[z.selmon.seltags]) {
