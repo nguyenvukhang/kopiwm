@@ -1950,7 +1950,50 @@ pub fn main() !void {
     log.info("The end! Starting cleanup...", .{});
 }
 
-pub fn simplemain() !void {}
+pub fn simplemain() !void {
+    const dpy = X.XOpenDisplay(null) orelse {
+        return std.debug.print(NAME ++ ": cannot open display\n", .{});
+    };
+    defer _ = X.XCloseDisplay(dpy);
+
+    const scr = X.DefaultScreen(dpy);
+    const rootwin = X.RootWindow(dpy, scr);
+    // const cmap = X.DefaultColormap(dpy, scr);
+
+    var wa: X.XSetWindowAttributes = .{
+        .override_redirect = X.True,
+        .background_pixmap = X.ParentRelative,
+        .event_mask = X.ButtonPressMask | X.ExposureMask,
+    };
+    const win = X.XCreateWindow(
+        dpy,
+        rootwin,
+        0,
+        0,
+        1920,
+        1080,
+        0,
+        X.DefaultDepth(dpy, scr),
+        X.CopyFromParent,
+        X.DefaultVisual(dpy, scr),
+        X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
+        &wa,
+    );
+    const gc = X.XCreateGC(dpy, win, 0, null);
+    _ = X.XSetForeground(dpy, gc, X.WhitePixel(dpy, scr));
+    _ = X.XSelectInput(dpy, win, X.ExposureMask | X.ButtonPressMask);
+    _ = X.XMapWindow(dpy, win);
+
+    var ev: XEvent = undefined;
+    while (true) {
+        X.XNextEvent(dpy, &ev);
+        if (ev.type == X.Expose and ev.xexpose.count < 1) {
+            _ = X.XDrawString(dpy, win, gc, 10, 10, "Hello world", 12);
+        } else if (ev.type == X.ButtonPress) {
+            break;
+        }
+    }
+}
 
 test {
     _ = @import("small.zig");
