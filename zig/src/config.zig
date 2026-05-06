@@ -81,6 +81,8 @@ pub const keys = [_]Key{
     .{ .mod = MODKEY, .sym = X.XK_space, .func = F.spawn, .arg = .{ .args = &.{"hey"} } },
 };
 
-pub const buttons = [_]Button{};
+pub const buttons = [_]Button{
+    .{ .click = .WinTitle, .mask = 0, .button = X.Button2, .func = F.zoom, .arg = undefined },
+};
 
 pub const rules = [_]Rule{};

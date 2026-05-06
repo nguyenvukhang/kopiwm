@@ -519,13 +519,13 @@ fn buttonPress(allocator: Allocator, e: *XEvent) void {
     }
 
     // Search the `buttons` map for a hit.
-    for (cfg.buttons) |*button| {
+    for (&cfg.buttons) |*button| {
         if (button.click != click or button.button != ev.button) continue;
         if (CLEANMASK(button.mask) == CLEANMASK(ev.state)) {
             if (click == .TagBar) {
-                button.func(&z, &arg);
+                button.func(&arg);
             } else {
-                button.func(&z, &button.arg);
+                button.func(&button.arg);
             }
         }
     }
@@ -1674,13 +1674,24 @@ fn toggletag(arg: *const Arg) void {
         .ui => |v| v,
         else => return,
     };
-    // unsigned int newtags;
-
     const sel = z.selmon.sel orelse return;
-
     const newtags = sel.tags ^ (mask & cfg.TAGMASK);
     if (newtags != 0) {
         sel.tags = newtags;
+        focus(global_allocator, null);
+        arrange(global_allocator, z.selmon);
+    }
+}
+
+/// (dwm) toggleview
+fn toggleview(arg: *const Arg) void {
+    const mask = switch (arg.*) {
+        .ui => |v| v,
+        else => return,
+    };
+    const newtagset = z.selmon.tagset[z.selmon.seltags] ^ (mask & cfg.TAGMASK);
+    if (newtagset != 0) {
+        z.selmon.tagset[z.selmon.seltags] = newtagset;
         focus(global_allocator, null);
         arrange(global_allocator, z.selmon);
     }
@@ -1697,6 +1708,20 @@ pub fn pop(allocator: Allocator, c: *Client) void {
 /// (dwm) quit
 fn quit(_: *const Arg) void {
     z.running = false;
+}
+
+/// (dwm) zoom
+pub fn zoom(_: *const Arg) void {
+    var c: ?*Client = z.selmon.sel orelse return;
+    if (c.?.is_floating.now or z.selmon.lt[z.selmon.sellt].arrange == null) return;
+    const nextTiled: ?*Client = if (z.selmon.clients) |x| x.nextTiled() else null;
+    if (c == nextTiled) {
+        c = if (c.?.next) |x| x.nextTiled() else null;
+        if (c == null) {
+            return;
+        }
+    }
+    pop(global_allocator, c.?);
 }
 
 /// (dwm) drawbar
