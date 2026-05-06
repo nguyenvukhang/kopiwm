@@ -1010,6 +1010,19 @@ fn setLayout(arg: *const Arg) void {
     }
 }
 
+/// (dwm) setmfact
+fn setMFact(arg: *const Arg) void {
+    if (z.selmon.lt[z.selmon.sellt].arrange == null) return;
+    const f: f32 = switch (arg) {
+        .f => |v| v,
+        else => return,
+    };
+    if (0.05 <= f and f <= 0.95) {
+        z.selmon.mfact = f;
+        arrange(global_allocator, z.selmon);
+    }
+}
+
 /// (dwm) resizemouse
 fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
     var c = z.selmon.sel orelse return;
