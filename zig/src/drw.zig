@@ -368,6 +368,7 @@ pub const Drw = struct {
             w = if (invert_) invert else ~invert;
         } else {
             const color = if (invert_) &self.scheme.?.fg else &self.scheme.?.bg;
+            log.debug("Draw a rect({x})", .{color.pixel});
             _ = X.XSetForeground(self.dpy, self.gc, color.pixel);
             _ = X.XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
             if (w < lpad) {
@@ -379,6 +380,7 @@ pub const Drw = struct {
                 X.DefaultVisual(self.dpy, self.screen),
                 X.DefaultColormap(self.dpy, self.screen),
             );
+            if (d == null) log.debug("XftDrawCreate yielded a null", .{});
             x += @intCast(lpad);
             w -= lpad;
         }
@@ -469,6 +471,7 @@ pub const Drw = struct {
                 if (render) {
                     ty = y + @divTrunc(@as(i32, @intCast(h - usedfont.h)), 2) + usedfont.xfont.ascent;
                     const color = if (invert_) &self.scheme.?.bg else &self.scheme.?.fg;
+                    log.debug("Draw string: {s}", .{utf8str});
                     X.XftDrawStringUtf8(d, color, usedfont.xfont, x, ty, utf8str.ptr, @intCast(utf8strlen));
                 }
                 x += @intCast(ew);
