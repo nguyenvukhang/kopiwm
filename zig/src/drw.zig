@@ -25,7 +25,7 @@ pub const Fnt = struct {
     pattern: ?*FcPattern,
     next: ?*Fnt,
 
-    /// [dwm] drw_font_getexts
+    /// (dwm) drw_font_getexts
     pub fn getExts(self: *Self, text: []const u8, w: ?*u32, h: ?*u32) void {
         if (text.len == 0) {
             return;
@@ -55,7 +55,7 @@ pub fn Scheme(comptime T: type) type {
 
 pub const ColorScheme = Scheme(XftColor);
 
-/// [dwm] xfont_create
+/// (dwm) xfont_create
 fn xfontCreate(
     allocator: Allocator,
     drw: *Drw,
@@ -103,7 +103,7 @@ fn xfontCreate(
     return font;
 }
 
-/// [dwm] xfont_free
+/// (dwm) xfont_free
 fn xfontFree(allocator: Allocator, font: *Fnt) void {
     if (font.pattern) |pattern| {
         X.FcPatternDestroy(pattern);
@@ -112,7 +112,7 @@ fn xfontFree(allocator: Allocator, font: *Fnt) void {
     allocator.destroy(font);
 }
 
-/// [dwm] utf8decode
+/// (dwm) utf8decode
 /// Gets the number of bytes required to represent the first utf-8 character in
 /// the string `s` provided.
 fn utf8decode(s: []const u8, codepoint: *u64, err: *bool) u3 {
@@ -169,7 +169,7 @@ pub const Drw = struct {
     /// A linked list of fonts. Guaranteed to have at least one.
     fonts: *Fnt = undefined,
 
-    /// [dwm] drw_create
+    /// (dwm) drw_create
     pub fn init(
         dpy: *Display,
         screen: c_int,
@@ -192,7 +192,7 @@ pub const Drw = struct {
         return drw;
     }
 
-    /// [dwm] drw_resize
+    /// (dwm) drw_resize
     pub fn resize(self: *Self, w: u32, h: u32) void {
         self.w = w;
         self.h = h;
@@ -208,14 +208,14 @@ pub const Drw = struct {
         );
     }
 
-    /// [dwm] drw_free
+    /// (dwm) drw_free
     pub fn deinit(self: *Self, allocator: Allocator) void {
         _ = X.XFreePixmap(self.dpy, self.drawable);
         _ = X.XFreeGC(self.dpy, self.gc);
         fontsetFree(allocator, self.fonts);
     }
 
-    /// [dwm] drw_fontset_create
+    /// (dwm) drw_fontset_create
     pub fn fontsetCreate(
         self: *Self,
         allocator: Allocator,
@@ -236,7 +236,7 @@ pub const Drw = struct {
         return ret;
     }
 
-    /// [dwm] drw_fontset_free
+    /// (dwm) drw_fontset_free
     pub fn fontsetFree(allocator: Allocator, set: ?*Fnt) void {
         if (set) |f| {
             fontsetFree(allocator, f.next);
@@ -244,7 +244,7 @@ pub const Drw = struct {
         }
     }
 
-    /// [dwm] drw_clr_create
+    /// (dwm) drw_clr_create
     pub fn clrCreate(self: *Self, dest: *XftColor, color_name: []const u8) void {
         const result = X.XftColorAllocName(
             self.dpy,
@@ -261,7 +261,7 @@ pub const Drw = struct {
         log.info("clrCreate({s}) --> {x}", .{ color_name, dest.pixel });
     }
 
-    /// [dwm] drw_clr_free
+    /// (dwm) drw_clr_free
     pub fn clrFree(self: *Self, c: *XftColor) void {
         X.XftColorFree(
             self.dpy,
@@ -271,7 +271,7 @@ pub const Drw = struct {
         );
     }
 
-    /// [dwm] drw_scm_create
+    /// (dwm) drw_scm_create
     pub fn scmCreate(
         self: *Self,
         allocator: Allocator,
@@ -284,7 +284,7 @@ pub const Drw = struct {
         return ret;
     }
 
-    /// [dwm] drw_scm_free
+    /// (dwm) drw_scm_free
     pub fn scmFree(self: *Self, allocator: Allocator, scheme: *ColorScheme) void {
         self.clrFree(&scheme.fg);
         self.clrFree(&scheme.bg);
@@ -292,27 +292,27 @@ pub const Drw = struct {
         allocator.destroy(scheme);
     }
 
-    /// [dwm] drw_cur_create
+    /// (dwm) drw_cur_create
     pub fn curCreate(self: *Self, shape: c_uint) Cursor {
         return X.XCreateFontCursor(self.dpy, shape);
     }
 
-    /// [dwm] drw_cur_free
+    /// (dwm) drw_cur_free
     pub fn curFree(self: *Self, cursor: Cursor) void {
         _ = X.XFreeCursor(self.dpy, cursor);
     }
 
-    /// [dwm] drw_setscheme
+    /// (dwm) drw_setscheme
     pub fn setScheme(self: *Self, scheme: *ColorScheme) void {
         self.scheme = scheme;
     }
 
-    /// [dwm] drw_setfontset
+    /// (dwm) drw_setfontset
     pub fn setFontSet(self: *Self, set: *Fnt) void {
         self.fonts = set;
     }
 
-    /// [dwm] drw_rect
+    /// (dwm) drw_rect
     pub fn drawRect(self: *Self, rect: Rect, filled: bool, invert: bool) void {
         const scheme = self.scheme orelse return;
         _ = X.XSetForeground(self.dpy, self.gc, if (invert) scheme.bg.pixel else scheme.fg.pixel);
@@ -335,7 +335,7 @@ pub const Drw = struct {
     //     }
     // }
 
-    /// [dwm] drw_text
+    /// (dwm) drw_text
     /// Question: Is `invert` a bitmask? or a boolean? or a numerical value?
     /// Because based on dwm's source code all three cases kinda doesn't fit.
     pub fn drawText(
@@ -563,7 +563,7 @@ pub const Drw = struct {
         return x + if (render) @as(i32, @intCast(w)) else 0;
     }
 
-    /// [dwm] drw_fontset_getwidth
+    /// (dwm) drw_fontset_getwidth
     pub fn fontSetGetWidth(self: *Self, allocator: Allocator, text: []const u8) u32 {
         log.info("called fontSetGetWidth", .{});
         if (text.len == 0) {
@@ -572,7 +572,7 @@ pub const Drw = struct {
         return @intCast(self.drawText(allocator, .zero, 0, text, 0));
     }
 
-    /// [dwm] drw_map
+    /// (dwm) drw_map
     pub fn map(self: *Self, w: Window, r: Rect) void {
         _ = X.XCopyArea(self.dpy, self.drawable, w, self.gc, r.x, r.y, r.w, r.h, r.x, r.y);
         _ = X.XSync(self.dpy, X.False);

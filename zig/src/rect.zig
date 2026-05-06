@@ -32,7 +32,7 @@ pub const Rect = struct {
         return .{ .x = @intCast(z.x), .y = @intCast(z.y), .w = @intCast(z.width), .h = @intCast(z.height) };
     }
 
-    /// [dwm] recttomon
+    /// (dwm) recttomon
     /// Searches the list of monitors for the one with the biggest intersection
     /// with `self` (using Monitor.w), and returns that one.
     pub fn toMonitor(self: *const Self, mons: ?*Monitor) ?*Monitor {
@@ -74,7 +74,7 @@ pub const Rect = struct {
         return self.y + @as(i32, @intCast(self.h));
     }
 
-    /// [dwm] INTERSECT
+    /// (dwm) INTERSECT
     fn intersect(lhs: *const Self, rhs: *const Self) i32 {
         return @max(0, @min(lhs.r(), rhs.r()) - @max(lhs.x, rhs.x)) *
             @max(0, @min(lhs.b(), rhs.b()) - @max(lhs.y, rhs.y));

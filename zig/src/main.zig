@@ -58,7 +58,7 @@ pub const QuickWrite = struct {
     }
 };
 
-/// [dwm] CLEANMASK
+/// (dwm) CLEANMASK
 fn CLEANMASK(mask: u32) u32 {
     return (mask & ~(z.numlockmask | X.LockMask)) &
         (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod2Mask | X.Mod3Mask | X.Mod4Mask | X.Mod5Mask);
@@ -68,7 +68,7 @@ fn xerrordummy(_: ?*Display, _: [*c]XErrorEvent) callconv(.c) c_int {
     return 0;
 }
 
-/// [dwm] xerrorstart
+/// (dwm) xerrorstart
 fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
     log.info("(xerrorstart)", .{});
     _ = _dpy;
@@ -77,7 +77,7 @@ fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
     std.process.exit(1);
 }
 
-/// [dwm] xerror
+/// (dwm) xerror
 fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
     if (err_event == null) {
@@ -111,7 +111,7 @@ fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
 
 var xerrorlib: ?*const fn (?*Display, [*c]XErrorEvent) callconv(.c) c_int = null;
 
-/// [dwm] checkotherwm
+/// (dwm) checkotherwm
 fn check_other_wm() void {
     xerrorlib = X.XSetErrorHandler(xerrorstart);
     // this causes an error if some other window manager is running
@@ -121,7 +121,7 @@ fn check_other_wm() void {
     _ = X.XSync(z.dpy, X.False);
 }
 
-/// [dwm] dirtomon
+/// (dwm) dirtomon
 /// TODO: See if we can guarantee a non-null pointer.
 fn directionToMonitor(direction: Direction) ?*Monitor {
     var m_opt: ?*Monitor = null;
@@ -145,7 +145,7 @@ fn directionToMonitor(direction: Direction) ?*Monitor {
     return m_opt;
 }
 
-/// [dwm] focusmon
+/// (dwm) focusmon
 fn focusMon(arg: *const Arg) void {
     // Skip base case where there are no monitors to change focus to.
     // TODO: see if we can guarantee that `z.mons` is non-null.
@@ -160,7 +160,7 @@ fn focusMon(arg: *const Arg) void {
     }
 }
 
-/// [dwm] focusstack
+/// (dwm) focusstack
 fn focusStack(arg: *const Arg) void {
     const sel = z.selmon.sel orelse return;
     if (sel.isfullscreen and cfg.lockfullscreen) return;
@@ -203,7 +203,7 @@ fn focusStack(arg: *const Arg) void {
     }
 }
 
-/// [dwm] updatebarpos
+/// (dwm) updatebarpos
 fn updatebarpos(m: *Monitor) void {
     m.w.y = m.m.y;
     m.w.h = m.m.h;
@@ -222,13 +222,13 @@ fn updatebarpos(m: *Monitor) void {
     }
 }
 
-/// [dwm] INTERSECT
+/// (dwm) INTERSECT
 fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
     return @max(0, @min(x + w, m.wx + @as(i32, @intCast(m.ww))) - @max(x, m.wx)) *
         @max(0, @min(y + h, m.wy + @as(i32, @intCast(m.wh))) - @max(y, m.wy));
 }
 
-/// [dwm] wintoclient
+/// (dwm) wintoclient
 /// Searches all the monitors and all of their clients for one that matches
 /// the window search query. Returns the first hit.
 fn wintoclient(w: Window) ?*Client {
@@ -243,7 +243,7 @@ fn wintoclient(w: Window) ?*Client {
     return null;
 }
 
-/// [dwm] getstate
+/// (dwm) getstate
 fn getState(w: Window) i32 {
     var real: X.Atom = undefined;
     var format: c_int = undefined;
@@ -276,7 +276,7 @@ fn getState(w: Window) i32 {
     return result;
 }
 
-/// [dwm] manage
+/// (dwm) manage
 fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOfMemory}!void {
     const c = try allocator.create(Client);
     c.* = .init(&z, w, wa);
@@ -365,7 +365,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     focus(allocator, null);
 }
 
-/// [dwm] unmanage
+/// (dwm) unmanage
 /// Destroys a client and removes it from the monitor that owns it.
 fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
     const m = c.mon;
@@ -389,7 +389,7 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
     arrange(allocator, m);
 }
 
-/// [dwm] updateclientlist
+/// (dwm) updateclientlist
 /// Updates the ClientList property in the X server.
 fn updateClientList() void {
     var m_opt = z.mons;
@@ -414,13 +414,13 @@ fn updateClientList() void {
     }
 }
 
-/// [dwm] arrangemon
+/// (dwm) arrangemon
 fn arrangeMon(m: *Monitor) void {
     m.layout_symbol = m.lt[m.sellt].symbol;
     if (m.lt[m.sellt].arrange) |f| f(m);
 }
 
-/// [dwm] restack
+/// (dwm) restack
 fn restack(allocator: Allocator, m: *Monitor) void {
     drawbar(allocator, m);
 
@@ -449,7 +449,7 @@ fn restack(allocator: Allocator, m: *Monitor) void {
     while (X.XCheckMaskEvent(z.dpy, X.EnterWindowMask, &ev) != 0) {}
 }
 
-/// [dwm] arrange
+/// (dwm) arrange
 fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
     var m_opt: ?*Monitor = null;
     if (monitor) |m| {
@@ -471,7 +471,7 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
     }
 }
 
-/// [dwm] buttonpress
+/// (dwm) buttonpress
 fn buttonPress(allocator: Allocator, e: *XEvent) void {
     const ev: X.XButtonPressedEvent = e.xbutton;
     var click: Clk = .RootWin;
@@ -529,7 +529,7 @@ fn buttonPress(allocator: Allocator, e: *XEvent) void {
     }
 }
 
-/// [dwm] clientmessage
+/// (dwm) clientmessage
 fn clientMessage(e: *XEvent) void {
     const ev: X.XClientMessageEvent = e.xclient;
     var c: *Client = wintoclient(ev.window) orelse return;
@@ -550,7 +550,7 @@ fn clientMessage(e: *XEvent) void {
     }
 }
 
-/// [dwm] configurerequest
+/// (dwm) configurerequest
 fn configureRequest(e: *XEvent) void {
     const ev = e.xconfigurerequest;
     const vmask = ev.value_mask;
@@ -613,7 +613,7 @@ fn configureRequest(e: *XEvent) void {
     _ = X.XSync(z.dpy, X.False);
 }
 
-/// [dwm] configurenotify
+/// (dwm) configurenotify
 fn configurenotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     const ev: X.XConfigureEvent = e.xconfigure;
     if (ev.window != z.root) return;
@@ -622,7 +622,7 @@ fn configurenotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     z.s.h = @intCast(ev.height);
 
     var selmon: ?*Monitor = z.selmon;
-    // TODO: [dwm] updategeom handling sucks, needs to be simplified
+    // TODO: (dwm) updategeom handling sucks, needs to be simplified
     if ((try updategeom(allocator, &selmon)) or dirty) {
         z.drw.resize(z.s.w, z.bar_height);
         updatebars();
@@ -642,13 +642,13 @@ fn configurenotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     }
 }
 
-/// [dwm] destroynotify
+/// (dwm) destroynotify
 fn destroyNotify(allocator: Allocator, e: *XEvent) void {
     const ev: X.XDestroyWindowEvent = e.xdestroywindow;
     if (wintoclient(ev.window)) |c| unmanage(allocator, c, true);
 }
 
-/// [dwm] enternotify
+/// (dwm) enternotify
 fn enterNotify(allocator: Allocator, e: *XEvent) void {
     const ev: X.XCrossingEvent = e.xcrossing;
     if ((ev.mode != X.NotifyNormal or ev.detail == X.NotifyInferior) and ev.window != z.root) {
@@ -665,7 +665,7 @@ fn enterNotify(allocator: Allocator, e: *XEvent) void {
     focus(allocator, c);
 }
 
-/// [dwm] expose
+/// (dwm) expose
 fn expose(allocator: Allocator, e: *XEvent) void {
     const ev: X.XExposeEvent = e.xexpose;
     if (ev.count == 0) {
@@ -673,7 +673,7 @@ fn expose(allocator: Allocator, e: *XEvent) void {
     }
 }
 
-/// [dwm] focusin
+/// (dwm) focusin
 fn focusIn(e: *XEvent) void {
     const ev: X.XFocusChangeEvent = e.xfocus;
     if (z.selmon.sel) |sel| {
@@ -681,7 +681,7 @@ fn focusIn(e: *XEvent) void {
     }
 }
 
-/// [dwm] keypress
+/// (dwm) keypress
 fn keyPress(e: *XEvent) void {
     const ev: X.XKeyEvent = e.xkey;
     const keysym = X.XkbKeycodeToKeysym(z.dpy, @intCast(ev.keycode), 0, 0);
@@ -692,7 +692,7 @@ fn keyPress(e: *XEvent) void {
     }
 }
 
-/// [dwm] mappingnotify
+/// (dwm) mappingnotify
 fn mappingNotify(e: *XEvent) void {
     const ev: *X.XMappingEvent = &e.xmapping;
     _ = X.XRefreshKeyboardMapping(ev);
@@ -701,7 +701,7 @@ fn mappingNotify(e: *XEvent) void {
     }
 }
 
-/// [dwm] maprequest
+/// (dwm) maprequest
 fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     const ev: X.XMapRequestEvent = e.xmaprequest;
     var wa: X.XWindowAttributes = undefined;
@@ -714,7 +714,7 @@ fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     }
 }
 
-/// [dwm] motionnotify
+/// (dwm) motionnotify
 fn motionNotify(allocator: Allocator, e: *XEvent) void {
     const ev: X.XMotionEvent = e.xmotion;
     const static = struct {
@@ -735,7 +735,7 @@ fn motionNotify(allocator: Allocator, e: *XEvent) void {
     static.mon = m_opt;
 }
 
-/// [dwm] propertynotify
+/// (dwm) propertynotify
 fn propertyNotify(allocator: Allocator, e: *XEvent) void {
     const ev: X.XPropertyEvent = e.xproperty;
     if (ev.window == z.root and ev.atom == X.XA_WM_NAME) {
@@ -770,7 +770,7 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
     }
 }
 
-/// [dwm] unmapnotify
+/// (dwm) unmapnotify
 fn unmapNotify(allocator: Allocator, e: *XEvent) void {
     const ev: X.XUnmapEvent = e.xunmap;
     if (wintoclient(ev.window)) |c| {
@@ -782,7 +782,7 @@ fn unmapNotify(allocator: Allocator, e: *XEvent) void {
     }
 }
 
-/// [dwm] run
+/// (dwm) run
 /// main event loop
 fn run(allocator: Allocator) error{OutOfMemory}!void {
     _ = X.XSync(z.dpy, X.False);
@@ -835,7 +835,7 @@ fn setupHandler() void {
     }
 }
 
-/// [dwm] scan
+/// (dwm) scan
 fn scan(allocator: Allocator) error{OutOfMemory}!void {
     var wa: X.XWindowAttributes = undefined;
     var num: c_uint = undefined;
@@ -875,13 +875,13 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
     }
 }
 
-/// [dwm] incnmaster
+/// (dwm) incnmaster
 fn incNMaster(arg: *const Arg) void {
     z.selmon.nmaster = @max(z.selmon.nmaster + arg.i, 0);
     arrange(global_allocator, z.selmon);
 }
 
-/// [dwm] killclient
+/// (dwm) killclient
 fn killClient(_: *const Arg) void {
     const sel = z.selmon.sel orelse return;
     if (!sel.sendEvent(z.wmatom.get(.Delete))) {
@@ -895,7 +895,7 @@ fn killClient(_: *const Arg) void {
     }
 }
 
-/// [dwm] monocle
+/// (dwm) monocle
 fn monocle(m: *Monitor) void {
     var c_opt = m.clients;
     var n: u32 = 0;
@@ -916,7 +916,7 @@ fn monocle(m: *Monitor) void {
     }
 }
 
-/// [dwm] movemouse
+/// (dwm) movemouse
 fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
     var c = z.selmon.sel orelse return;
     if (c.isfullscreen) return; // No support moving fullscreen windows by mouse.
@@ -993,6 +993,7 @@ fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
     }
 }
 
+/// (dwm) sendmon
 fn sendMon(allocator: Allocator, c: *Client, m: *Monitor) void {
     if (c.mon == m) return;
     unfocus(c, true);
@@ -1009,7 +1010,7 @@ fn sendMon(allocator: Allocator, c: *Client, m: *Monitor) void {
     arrange(allocator, null);
 }
 
-/// [dwm] togglefloating
+/// (dwm) togglefloating
 fn toggleFloating(_: *const Arg) void {
     const sel = z.selmon.sel orelse return;
     if (sel.isfullscreen) return; // No support for making fullscreen windows float.
@@ -1020,7 +1021,7 @@ fn toggleFloating(_: *const Arg) void {
     arrange(global_allocator, z.selmon);
 }
 
-/// [dwm] wintomon
+/// (dwm) wintomon
 fn wintomon(w: Window) *Monitor {
     var x: c_int = undefined;
     var y: c_int = undefined;
@@ -1038,7 +1039,7 @@ fn wintomon(w: Window) *Monitor {
     return z.selmon;
 }
 
-/// [dwm] updategeom
+/// (dwm) updategeom
 fn updategeom(allocator: Allocator, selmon: *?*Monitor) error{OutOfMemory}!bool {
     var dirty = false;
     var mons: *Monitor = undefined;
@@ -1066,7 +1067,7 @@ fn updategeom(allocator: Allocator, selmon: *?*Monitor) error{OutOfMemory}!bool 
     return dirty;
 }
 
-/// [dwm] setup
+/// (dwm) setup
 fn setup(allocator: Allocator) !void {
     var utf8string: X.Atom = undefined;
     var sa: C.struct_sigaction = undefined;
@@ -1165,7 +1166,7 @@ fn setup(allocator: Allocator) !void {
     focus(allocator, null);
 }
 
-/// [dwm] unfocus
+/// (dwm) unfocus
 fn unfocus(client: ?*Client, setfocus: bool) void {
     const c = client orelse return;
     grabbuttons(c, false);
@@ -1176,7 +1177,7 @@ fn unfocus(client: ?*Client, setfocus: bool) void {
     }
 }
 
-/// [dwm] focus
+/// (dwm) focus
 fn focus(allocator: Allocator, client: ?*Client) void {
     var c_opt = client;
     if (if (c_opt) |c| !c.isVisible() else true) {
@@ -1211,7 +1212,7 @@ fn focus(allocator: Allocator, client: ?*Client) void {
     drawbars(allocator);
 }
 
-/// [dwm] drawbars
+/// (dwm) drawbars
 fn drawbars(allocator: Allocator) void {
     var m_opt: ?*Monitor = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
@@ -1219,7 +1220,7 @@ fn drawbars(allocator: Allocator) void {
     }
 }
 
-/// [dwm] grabbuttons
+/// (dwm) grabbuttons
 fn grabbuttons(c: *Client, focused: bool) void {
     updatenumlockmask();
     const modifiers: [4]c_uint = .{ 0, X.LockMask, z.numlockmask, z.numlockmask | X.LockMask };
@@ -1258,7 +1259,7 @@ fn grabbuttons(c: *Client, focused: bool) void {
     }
 }
 
-/// [dwm] grabkeys
+/// (dwm) grabkeys
 fn grabkeys() void {
     updatenumlockmask();
     const modifiers: [4]c_uint = .{ 0, X.LockMask, z.numlockmask, z.numlockmask | X.LockMask };
@@ -1296,7 +1297,7 @@ fn grabkeys() void {
     log.info("grabkeys() finished!", .{});
 }
 
-/// [dwm] updatenumlockmask
+/// (dwm) updatenumlockmask
 fn updatenumlockmask() void {
     log.info("Called updatenumlockmask", .{});
     z.numlockmask = 0;
@@ -1316,7 +1317,7 @@ fn updatenumlockmask() void {
     }
 }
 
-/// [dwm] cleanup
+/// (dwm) cleanup
 // Continue to build this up as we go.
 fn cleanup(allocator: Allocator) void {
     log.info("Start cleanup()", .{});
@@ -1350,7 +1351,7 @@ fn cleanup(allocator: Allocator) void {
     _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));
 }
 
-/// [dwm] cleanupmon
+/// (dwm) cleanupmon
 fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
     log.info("Start cleanupmon()", .{});
     const mons: *Monitor = z.mons orelse return;
@@ -1375,7 +1376,7 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
     allocator.destroy(mon);
 }
 
-/// [dwm] updatebars
+/// (dwm) updatebars
 fn updatebars() void {
     var wa: X.XSetWindowAttributes = .{
         .override_redirect = X.True,
@@ -1408,7 +1409,7 @@ fn updatebars() void {
     }
 }
 
-/// [dwm] updatestatus
+/// (dwm) updatestatus
 fn updatestatus(allocator: Allocator) void {
     if (z.getTextProp(z.root, X.XA_WM_NAME, &z.stext.buffer)) |len| {
         z.stext.len = len;
@@ -1424,7 +1425,7 @@ pub fn spawn(arg: *const Arg) void {
     _ = arg;
 }
 
-/// [dwm] view
+/// (dwm) view
 pub fn view(arg: *const Arg) void {
     if (arg.ui & cfg.TAGMASK == z.selmon.tagset[z.selmon.seltags]) {
         return; // nothing to do here.
@@ -1437,7 +1438,7 @@ pub fn view(arg: *const Arg) void {
     arrange(global_allocator, z.selmon);
 }
 
-/// [dwm] drawbar
+/// (dwm) drawbar
 fn drawbar(allocator: Allocator, m: *Monitor) void {
     if (!m.show_bar) {
         return;

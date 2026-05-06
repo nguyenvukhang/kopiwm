@@ -62,7 +62,7 @@ pub const Client = struct {
         };
     }
 
-    /// [dwm] updatetitle
+    /// (dwm) updatetitle
     pub fn updateTitle(self: *Self) void {
         const z = self.app;
         if (z.getTextProp(self.win, z.netatom.get(.WMName), &self.name.buffer)) |len| {
@@ -74,13 +74,13 @@ pub const Client = struct {
         }
     }
 
-    /// [dwm] ISVISIBLE
+    /// (dwm) ISVISIBLE
     pub fn isVisible(self: *Self) bool {
         const m = self.mon;
         return self.tags & m.tagset[m.seltags] != 0;
     }
 
-    /// [dwm] seturgent
+    /// (dwm) seturgent
     /// Sets the client's urgent state to `urgent`.
     pub fn setUrgent(self: *Self, dpy: ?*Display, urgent: bool) void {
         self.isurgent = urgent;
@@ -110,14 +110,14 @@ pub const Client = struct {
         return null;
     }
 
-    /// [dwm] attach
+    /// (dwm) attach
     /// Puts `self` at the front of the Monitor's (self.mon) linked list.
     pub fn attach(self: *Self) void {
         self.next = self.mon.clients;
         self.mon.clients = self;
     }
 
-    /// [dwm] attachstack
+    /// (dwm) attachstack
     /// Puts `self` at the front of the Monitor's (self.mon) linked list, but
     /// for the stack list.
     pub fn attachStack(self: *Self) void {
@@ -125,14 +125,14 @@ pub const Client = struct {
         self.mon.stack = self;
     }
 
-    /// [dwm] detach
+    /// (dwm) detach
     pub fn detach(self: *Self) void {
         if (self.getPtr()) |c| {
             c.* = self.snext;
         }
     }
 
-    /// [dwm] detachstack
+    /// (dwm) detachstack
     pub fn detachStack(self: *Self) void {
         if (self.getStackPtr()) |c| {
             c.* = self.snext;
@@ -149,7 +149,7 @@ pub const Client = struct {
         }
     }
 
-    /// [dwm] setfocus
+    /// (dwm) setfocus
     pub fn setFocus(self: *Self) void {
         const z = self.app;
         if (!self.neverfocus) {
@@ -168,7 +168,7 @@ pub const Client = struct {
         _ = self.sendEvent(z.wmatom.get(.TakeFocus));
     }
 
-    /// [dwm] sendevent
+    /// (dwm) sendevent
     /// Returns true upon successful execution.
     pub fn sendEvent(self: *Self, proto: Atom) bool {
         const z = self.app;
@@ -197,17 +197,17 @@ pub const Client = struct {
         return exists;
     }
 
-    /// [dwm] WIDTH
+    /// (dwm) WIDTH
     pub inline fn width(self: *const Self) i32 {
         return @as(i32, @intCast(self.pos.now.w)) + 2 * self.bw.now;
     }
 
-    /// [dwm] HEIGHT
+    /// (dwm) HEIGHT
     pub inline fn height(self: *const Self) i32 {
         return @as(i32, @intCast(self.pos.now.h)) + 2 * self.bw.now;
     }
 
-    /// [dwm] configure
+    /// (dwm) configure
     pub fn configure(self: *const Self, dpy: ?*Display) void {
         var xconf = self.pos.now.toX(X.XConfigureEvent);
         xconf.type = X.ConfigureNotify;
@@ -221,7 +221,7 @@ pub const Client = struct {
         _ = X.XSendEvent(dpy, self.win, X.False, X.StructureNotifyMask, &event);
     }
 
-    /// [dwm] getatomprop
+    /// (dwm) getatomprop
     fn getAtomProp(self: *Self, dpy: ?*Display, prop: Atom) ?Atom {
         var da: Atom = undefined; // dummy atom.
         var atom: Atom = undefined;
@@ -254,7 +254,7 @@ pub const Client = struct {
         return atom;
     }
 
-    /// [dwm] setfullscreen
+    /// (dwm) setfullscreen
     pub fn setFullscreen(self: *Self, fullscreen: bool) void {
         const z = self.app;
         if (fullscreen and !self.isfullscreen) {
@@ -293,7 +293,7 @@ pub const Client = struct {
         }
     }
 
-    /// [dwm] updatewindowtype
+    /// (dwm) updatewindowtype
     pub fn updateWindowType(self: *Self) void {
         const z = self.app;
         const net = z.netatom;
@@ -305,7 +305,7 @@ pub const Client = struct {
         }
     }
 
-    /// [dwm] resizeclient
+    /// (dwm) resizeclient
     /// Resize the X window, and also update its border width.
     pub fn resize(self: *Self, rect: Rect) void {
         const z = self.app;
@@ -319,13 +319,13 @@ pub const Client = struct {
         _ = X.XSync(z.dpy, X.False);
     }
 
-    /// [dwm] resize
+    /// (dwm) resize
     pub fn hintAndResize(self: *Self, target: Rect, interact: bool) void {
         var t = target;
         if (self.applySizeHints(&t, interact)) self.resize(t);
     }
 
-    /// [dwm] applysizehints
+    /// (dwm) applysizehints
     /// Called during client window resize operations. `rect` is the originally
     /// suggested resize target. After applying size hints, `rect` will be
     /// updated to be a more correct resize target. Returns true if the final
@@ -439,7 +439,7 @@ pub const Client = struct {
         return !c.pos.now.eq(rect);
     }
 
-    /// [dwm] updatewmhints
+    /// (dwm) updatewmhints
     pub fn updateWMHints(self: *Self) void {
         const z = self.app;
         const wmh: *X.XWMHints = X.XGetWMHints(z.dpy, self.win) orelse return;
@@ -458,7 +458,7 @@ pub const Client = struct {
         }
     }
 
-    /// [dwm] updatesizehints
+    /// (dwm) updatesizehints
     pub fn updateSizeHints(self: *Self) void {
         var hint: X.XSizeHints = undefined;
         var msize: c_long = undefined;
@@ -512,7 +512,7 @@ pub const Client = struct {
         self.hintsvalid = true;
     }
 
-    /// [dwm] applyrules
+    /// (dwm) applyrules
     pub fn applyRules(self: *Self) void {
         // Rule matching.
         self.is_floating.set(false);
@@ -546,7 +546,7 @@ pub const Client = struct {
         }
     }
 
-    /// [dwm] setclientstate
+    /// (dwm) setclientstate
     pub fn setState(self: *Self, state: u32) void {
         const data: [2]u32 = .{ state, X.None };
         const z = self.app;
@@ -562,7 +562,7 @@ pub const Client = struct {
         );
     }
 
-    /// [dwm] showhide
+    /// (dwm) showhide
     /// Refreshes the show-hide state of the entire linked list of Clients in
     /// the stack.
     pub fn showHide(c: *Self) void {
@@ -587,7 +587,7 @@ pub const Client = struct {
         }
     }
 
-    /// [dwm] nexttiled
+    /// (dwm) nexttiled
     pub fn nextTiled(self: *Self) ?*Self {
         var c_opt: ?*Self = self;
         // TODO: Again, figure out why this isn't using snext. Shouldn't the stack

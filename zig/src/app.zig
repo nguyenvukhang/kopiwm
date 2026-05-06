@@ -74,7 +74,7 @@ pub const App = struct {
         return z;
     }
 
-    /// [dwm] TEXTW
+    /// (dwm) TEXTW
     pub fn TEXTW(self: *Self, allocator: Allocator, text: []const u8) u32 {
         return self.drw.fontSetGetWidth(allocator, text) + self.lrpad;
     }
@@ -92,7 +92,7 @@ pub const App = struct {
         };
     }
 
-    /// [dwm] getrootptr
+    /// (dwm) getrootptr
     pub fn getRootPtr(self: *const Self, x: *c_int, y: *c_int) bool {
         var w: Window = undefined;
         var d_int: c_int = undefined; // dummy c_int.
@@ -105,7 +105,7 @@ pub const App = struct {
 
     /// Gets the property of a window in text form, and writes it to `buffer`.
     /// Returns the number of valid bytes written to the buffer.
-    /// [dwm] gettextprop
+    /// (dwm) gettextprop
     pub fn getTextProp(self: *const Self, w: Window, atom: X.Atom, buffer: []u8) ?usize {
         if (buffer.len == 0) return null;
         var tp: X.XTextProperty = undefined;

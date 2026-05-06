@@ -39,8 +39,8 @@ for root, subdirs, files in walk(__cwd__):
     for file in files:
         with open(file, "r") as f:
             text = f.read()
-        lines = filter(lambda l: "/// [dwm]" in l, text.splitlines())
-        lines = map(lambda l: l.split("/// [dwm]", maxsplit=1)[1], lines)
+        lines = filter(lambda l: "/// (dwm)" in l, text.splitlines())
+        lines = map(lambda l: l.split("/// (dwm)", maxsplit=1)[1], lines)
         lines = map(str.strip, lines)
         for line in lines:
             try:

@@ -52,7 +52,7 @@ pub const Monitor = struct {
         &cfg.layouts[1 % cfg.layouts.len],
     },
 
-    /// [dwm] createmon
+    /// (dwm) createmon
     pub fn init(allocator: Allocator) error{OutOfMemory}!*Self {
         var m = try allocator.create(Self);
         m.* = .{};

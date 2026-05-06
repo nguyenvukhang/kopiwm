@@ -6,7 +6,7 @@ pub fn N(comptime T: type) usize {
     return @import("std").meta.fields(T).len;
 }
 
-/// [dwm] WM* atoms.
+/// (dwm) WM* atoms.
 pub const WM = enum(u8) {
     Protocols,
     Delete,
@@ -14,7 +14,7 @@ pub const WM = enum(u8) {
     TakeFocus,
 };
 
-/// [dwm] Net* atoms.
+/// (dwm) Net* atoms.
 pub const Net = enum(u8) {
     Supported,
     WMName,
@@ -27,7 +27,7 @@ pub const Net = enum(u8) {
     ClientList,
 };
 
-/// [dwm] Clk* enums.
+/// (dwm) Clk* enums.
 pub const Clk = enum {
     /// User clicked on one of the tags in the tags list (traditionally located
     /// at the top-left) in the bar window.
@@ -46,7 +46,7 @@ pub const Clk = enum {
     RootWin,
 };
 
-/// [dwm] Cur* enums.
+/// (dwm) Cur* enums.
 /// The different possible states of the mouse cursor.
 pub const CursorState = enum {
     Normal,
