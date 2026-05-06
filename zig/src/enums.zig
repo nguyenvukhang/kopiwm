@@ -1,6 +1,8 @@
 const X = @import("c_lib.zig").X;
 const App = @import("app.zig").App;
 const Layout = @import("layout.zig").Layout;
+const DwmError = @import("errors.zig").DwmError;
+const LazyFn = @import("lazy_fn.zig").LazyFn;
 
 /// Count the number of enum variants that exist.
 pub fn N(comptime T: type) usize {
@@ -62,52 +64,29 @@ pub const SchemeState = enum {
     Bar,
 };
 
-pub const ArgTag = enum {
-    /// Integer.
-    i,
-    /// Unsigned integer.
-    ui,
-    /// Float.
-    f,
-    /// Direction. (used for relative navigation.)
-    d,
-    /// Layout.
-    l,
-    /// String.
-    s,
-    /// List of strings. (used for cli args.)
-    args,
-};
-
-pub const Arg = union(ArgTag) {
-    i: i32,
-    ui: u32,
-    f: f32,
-    d: Direction,
-    l: *const Layout,
-    s: []const u8,
-    // args: []const [*:0]const u8,
-    args: [*:null]const ?[*:0]const u8,
-};
-
 pub const Key = struct {
     /// Modifier keys, in any.
     mod: c_uint,
     /// X keysym.
     sym: X.KeySym,
-    /// The callback function.
-    func: *const fn (*const Arg) void,
-    arg: Arg,
+    lf: LazyFn,
+
+    pub fn init(mod: c_uint, sym: X.KeySym, lf: LazyFn) @This() {
+        return .{ .mod = mod, .sym = sym, .lf = lf };
+    }
 };
 
 /// A mouse button.
 pub const Button = struct {
     click: Clk,
     mask: c_uint,
-    /// See the `Button1`...`Button5` enums in "X11/X.h".
+    /// One of `Button1`...`Button5` enums in "X11/X.h".
     button: c_uint,
-    func: *const fn (*const Arg) void,
-    arg: Arg,
+    lf: LazyFn,
+
+    pub fn init(click: Clk, mask: c_uint, button: c_uint, lf: LazyFn) @This() {
+        return .{ .click = click, .mask = mask, .button = button, .lf = lf };
+    }
 };
 
 pub const BarPosition = enum { top, bottom };

@@ -258,7 +258,6 @@ pub const Drw = struct {
             std.process.exit(1);
         }
         dest.pixel |= 0xff << 24;
-        log.info("clrCreate({s}) --> {x}", .{ color_name, dest.pixel });
     }
 
     /// (dwm) drw_clr_free
@@ -346,7 +345,6 @@ pub const Drw = struct {
         text_to_draw: []const u8,
         invert: u32,
     ) i32 {
-        log.info("called drawText(\"{s}\")", .{text_to_draw});
         const INVALID = "�";
         var text: []const u8 = text_to_draw;
         var x = rect.x;
@@ -397,11 +395,9 @@ pub const Drw = struct {
         }
 
         if (state.ellipsis_width == null and render) {
-            log.info("Get ellipsis width!", .{});
             state.ellipsis_width = self.fontSetGetWidth(allocator, "...");
         }
         if (state.invalid_width == null and render) {
-            log.info("Get invalid character width!", .{});
             state.invalid_width = self.fontSetGetWidth(allocator, INVALID);
         }
 
@@ -505,7 +501,6 @@ pub const Drw = struct {
                 charexists = false;
                 usedfont = f;
             } else {
-                log.warn("Using fallback font", .{});
                 // Regardless of whether or not a fallback font is found, the
                 // character must be drawn.
                 charexists = true;
@@ -565,10 +560,7 @@ pub const Drw = struct {
 
     /// (dwm) drw_fontset_getwidth
     pub fn fontSetGetWidth(self: *Self, allocator: Allocator, text: []const u8) u32 {
-        log.info("called fontSetGetWidth", .{});
-        if (text.len == 0) {
-            return 0;
-        }
+        if (text.len == 0) return 0;
         return @intCast(self.drawText(allocator, .zero, 0, text, 0));
     }
 

@@ -139,13 +139,13 @@ pub const Client = struct {
         }
 
         if (self == self.mon.sel) {
-            var opt = self.mon.stack;
-            while (opt) |c| : (opt = c.snext) {
+            var c_opt = self.mon.stack;
+            while (c_opt) |c| : (c_opt = c.snext) {
                 if (c.isVisible()) {
-                    self.mon.sel = c;
                     break;
                 }
             }
+            self.mon.sel = c_opt;
         }
     }
 
