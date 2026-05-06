@@ -376,7 +376,9 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
     c.detach();
     c.detachStack();
 
-    std.testing.expect(c.mon.stack == null);
+    if (c.mon.stack != null) {
+        @panic("stack should be null after detach");
+    }
 
     if (!destroyed) {
         _ = X.XGrabServer(z.dpy); // dwm: Avoid race conditions.
@@ -1517,11 +1519,13 @@ fn cleanup(allocator: Allocator) void {
         var m_opt = z.mons;
         var i: u32 = 0;
         var j: u32 = 0;
+        var c_opt: ?*Client = null;
         while (m_opt) |m| : (m_opt = m.next) {
             i += 1;
             j = 0;
             log.info("Monitor: #{d}", .{i});
-            while (m.stack) |_| {
+            c_opt = m.stack;
+            while (c_opt) |c| : (c_opt = c.snext) {
                 j += 1;
                 log.info("Client: #{d}", .{j});
             }
