@@ -16,4 +16,5 @@ pub const fc = @cImport({
 pub const C = @cImport({
     @cInclude("locale.h");
     @cInclude("signal.h");
+    @cInclude("unistd.h");
 });

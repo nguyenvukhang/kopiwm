@@ -76,7 +76,9 @@ pub const colors = colors_();
 
 const MODKEY = X.Mod4Mask;
 pub const keys = [_]Key{
-    .{ .mod = MODKEY, .sym = X.XK_space, .func = F.spawn, .arg = undefined },
+    // TODO: test to see if we DON'T specify null at the end of an args array,
+    // will there still be a null there thanks to Zig?
+    .{ .mod = MODKEY, .sym = X.XK_space, .func = F.spawn, .arg = .{ .args = &.{"hey"} } },
 };
 
 pub const buttons = [_]Button{};

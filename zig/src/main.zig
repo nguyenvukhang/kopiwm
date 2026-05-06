@@ -18,6 +18,8 @@ const Rect = @import("rect.zig").Rect;
 const SchemeState = @import("enums.zig").SchemeState;
 const ColorScheme = @import("drw.zig").ColorScheme;
 const N = @import("enums.zig").N;
+const ForkError = std.posix.ForkError;
+
 const NAME = @import("build_opts").name;
 const VERSION = @import("build_opts").version;
 
@@ -1541,10 +1543,29 @@ fn updatestatus(allocator: Allocator) void {
     drawbar(allocator, z.selmon);
 }
 
+/// (dwm) spawn
 pub fn spawn(arg: *const Arg) void {
-    // var sa: C.struct_sigaction = undefined;
-    _ = z;
-    _ = arg;
+    const args = switch (arg.*) {
+        .args => |value| value,
+        else => return,
+    };
+    // TODO: handle the failure case by updating the Key struct.
+    const pid = std.posix.fork() catch unreachable;
+    if (pid == 0) {
+        if (z.dpy) |dpy| {
+            _ = C.close(X.ConnectionNumber(dpy));
+        }
+        _ = C.setsid();
+
+        var sa: C.struct_sigaction = undefined;
+        _ = C.sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+        sa.__sigaction_handler.sa_handler = C.SIG_DFL;
+        _ = C.sigaction(C.SIGCHLD, &sa, null);
+        std.posix.execvpeZ(args[0].?, args, &.{null}) catch {
+            @panic("execvp failed.");
+        };
+    }
 }
 
 /// (dwm) view

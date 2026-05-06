@@ -73,8 +73,10 @@ pub const ArgTag = enum {
     d,
     /// Layout.
     l,
-    /// Strings. (used for cli args.)
+    /// String.
     s,
+    /// List of strings. (used for cli args.)
+    args,
 };
 
 pub const Arg = union(ArgTag) {
@@ -82,8 +84,10 @@ pub const Arg = union(ArgTag) {
     ui: u32,
     f: f32,
     d: Direction,
-    l: Layout,
+    l: *const Layout,
     s: []const u8,
+    // args: []const [*:0]const u8,
+    args: [*:null]const ?[*:0]const u8,
 };
 
 pub const Key = struct {
