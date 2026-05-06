@@ -375,6 +375,9 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
     const m = c.mon;
     c.detach();
     c.detachStack();
+
+    std.testing.expect(c.mon.stack == null);
+
     if (!destroyed) {
         _ = X.XGrabServer(z.dpy); // dwm: Avoid race conditions.
         _ = X.XSetErrorHandler(xerrordummy);
@@ -387,6 +390,7 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
         _ = X.XSetErrorHandler(xerror);
         _ = X.XUngrabServer(z.dpy);
     }
+    log.info("Freed client!", .{});
     allocator.destroy(c);
     focus(allocator, null);
     updateClientList();
@@ -1351,6 +1355,7 @@ fn setup(allocator: Allocator) !void {
 /// (dwm) unfocus
 fn unfocus(client: ?*Client, setfocus: bool) void {
     const c = client orelse return;
+    log.info("Unfocusing client at: {*}", .{c});
     grabbuttons(c, false);
     _ = X.XSetWindowBorder(z.dpy, c.win, z.scheme.get(.Normal).border.pixel);
     if (setfocus) {
@@ -1361,6 +1366,7 @@ fn unfocus(client: ?*Client, setfocus: bool) void {
 
 /// (dwm) focus
 fn focus(allocator: Allocator, client: ?*Client) void {
+    log.info("Called focus()", .{});
     var c_opt = client;
     if (if (c_opt) |c| !c.isVisible() else true) {
         // Push the pointer forward until c_opt points to the first visible client.
@@ -1371,9 +1377,11 @@ fn focus(allocator: Allocator, client: ?*Client) void {
             }
         }
     }
+    log.info("still the same? {}", .{c_opt == client});
     // If the currently selected client in the selected monitor is not `c_opt`,
     // then unfocus it.
     if (z.selmon.sel != c_opt) {
+        log.info("Focus calls unfocus", .{});
         unfocus(z.selmon.sel, false);
     }
     if (c_opt) |c| {
@@ -1505,17 +1513,18 @@ fn cleanup(allocator: Allocator) void {
     log.info("Start cleanup()", .{});
 
     // First off, let's print out the current status of everything.
-    var m_opt = z.mons;
-    var i: u32 = 0;
-    var j: u32 = 0;
-    while (m_opt) |m| : (m_opt = m.next) {
-        i += 1;
-        j = 0;
-        log.info("Monitor: #{d}", .{i});
-        while (m.stack) |c| {
-            j += 1;
-            log.info("Client: #{d}", .{j});
-            unmanage(allocator, c, false);
+    {
+        var m_opt = z.mons;
+        var i: u32 = 0;
+        var j: u32 = 0;
+        while (m_opt) |m| : (m_opt = m.next) {
+            i += 1;
+            j = 0;
+            log.info("Monitor: #{d}", .{i});
+            while (m.stack) |_| {
+                j += 1;
+                log.info("Client: #{d}", .{j});
+            }
         }
     }
 
@@ -1525,9 +1534,10 @@ fn cleanup(allocator: Allocator) void {
     view(&a);
     z.selmon.lt[z.selmon.sellt] = &foo;
 
-    m_opt = z.mons;
+    var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
         while (m.stack) |c| {
+            log.info("Unmanaging client at: {*}", .{c});
             unmanage(allocator, c, false);
         }
     }
