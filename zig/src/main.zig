@@ -817,19 +817,19 @@ fn unmapNotify(allocator: Allocator, e: *XEvent) void {
 fn run(allocator: Allocator) DwmError!void {
     _ = X.XSync(z.dpy, X.False);
     var ev: XEvent = undefined;
+    const start = std.time.timestamp();
     while (true) {
+        const now = std.time.timestamp();
+        if (@abs(now - start) > 20) {
+            log.info("Timeout!", .{});
+            break;
+        }
         const res = X.XNextEvent(z.dpy, &ev);
         // log.debug("Running? {any}, outcome? {d}", .{ z.running, res });
         if (z.running and res == X.Success) {
-            runOne(allocator, &ev) catch |err| {
-                const err_msg = switch (err) {
-                    error.FontCreateError => "FontCreate",
-                    error.SomeOtherError => "SomeOther",
-                    error.OutOfMemory => "OOM",
-                };
-                log.err("Error in main loop! ({s}). Breaking.", .{err_msg});
-                return err;
-            };
+            try runOne(allocator, &ev);
+        } else {
+            break;
         }
     }
 }
@@ -1767,6 +1767,7 @@ pub fn pop(allocator: Allocator, c: *Client) void {
 
 /// (dwm) quit
 pub fn quit(_: *const Arg) void {
+    log.info("Call it quits", .{});
     z.running = false;
 }
 
