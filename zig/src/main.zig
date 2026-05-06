@@ -9,10 +9,10 @@ const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
 const Client = @import("client.zig").Client;
 const WM = @import("enums.zig").WM;
-const Direction = @import("enums.zig").Direction;
+const Direction = @import("lazy_fn.zig").Direction;
 const Layout = @import("layout.zig").Layout;
 const Clk = @import("enums.zig").Clk;
-const Arg = @import("enums.zig").Arg;
+const Arg = @import("lazy_fn.zig").Arg;
 const Net = @import("enums.zig").Net;
 const Rect = @import("rect.zig").Rect;
 const SchemeState = @import("enums.zig").SchemeState;
@@ -525,10 +525,13 @@ fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
     for (&cfg.buttons) |*button| {
         if (button.click != click or button.button != ev.button) continue;
         if (CLEANMASK(button.mask) == CLEANMASK(ev.state)) {
-            if (click == .TagBar) {
-                try button.lf.func(&arg);
-            } else {
-                try button.lf.func(&button.lf.arg);
+            const arg2 = switch (click) {
+                .TagBar => &arg,
+                else => &button.lf.arg,
+            };
+            switch (button.lf.func) {
+                .MightError => |f| try f(arg2),
+                .NoError => |f| f(arg2),
             }
         }
     }
@@ -700,7 +703,10 @@ fn keyPress(e: *XEvent) DwmError!void {
     const keysym = X.XkbKeycodeToKeysym(z.dpy, @intCast(ev.keycode), 0, 0);
     for (cfg.keys) |key| {
         if (keysym == key.sym and CLEANMASK(key.mod) == CLEANMASK(ev.state)) {
-            try key.lf.func(&key.lf.arg);
+            switch (key.lf.func) {
+                .MightError => |f| try f(&key.lf.arg),
+                .NoError => |f| f(&key.lf.arg),
+            }
         }
     }
 }
@@ -756,15 +762,13 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
     log.info("Start propertyNotify()", .{});
     const ev: X.XPropertyEvent = e.xproperty;
     if (ev.window == z.root and ev.atom == X.XA_WM_NAME) {
-        log.debug("propertyNotify::branch 1", .{});
         updateStatus(allocator);
     } else if (ev.state == X.PropertyDelete) {
-        log.debug("propertyNotify::branch 2", .{});
         return; // ignore.
     } else if (wintoclient(ev.window)) |c| {
-        log.debug("propertyNotify::branch 3", .{});
         switch (ev.atom) {
             X.XA_WM_TRANSIENT_FOR => {
+                log.debug("propertyNotify::XA_WM_TRANSIENT_FOR", .{});
                 var trans: Window = undefined;
                 const b = !c.is_floating.now and
                     X.XGetTransientForHint(z.dpy, c.win, &trans) != 0;
@@ -773,18 +777,23 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
             },
             X.XA_WM_NORMAL_HINTS => c.hintsvalid = false,
             X.XA_WM_HINTS => {
+                log.debug("propertyNotify::XA_WM_HINTS", .{});
                 c.updateWMHints();
                 drawbars(allocator);
             },
-            else => {},
+            else => {
+                log.debug("propertyNotify::no switch", .{});
+            },
         }
         if (ev.atom == X.XA_WM_NAME or ev.atom == z.netatom.get(.WMName)) {
+            log.debug("propertyNotify::updateTitle", .{});
             c.updateTitle();
             if (c == c.mon.sel) {
                 drawbar(allocator, c.mon);
             }
         }
         if (ev.atom == z.netatom.get(.WMWindowType)) {
+            log.debug("propertyNotify::updateWindowType", .{});
             c.updateWindowType();
         }
     }
@@ -810,10 +819,15 @@ fn run(allocator: Allocator) DwmError!void {
     var ev: XEvent = undefined;
     while (true) {
         const res = X.XNextEvent(z.dpy, &ev);
-        log.debug("Running? {any}, outcome? {d}", .{ z.running, res });
+        // log.debug("Running? {any}, outcome? {d}", .{ z.running, res });
         if (z.running and res == X.Success) {
             runOne(allocator, &ev) catch |err| {
-                log.err("Error in main loop! breaking.", .{});
+                const err_msg = switch (err) {
+                    error.FontCreateError => "FontCreate",
+                    error.SomeOtherError => "SomeOther",
+                    error.OutOfMemory => "OOM",
+                };
+                log.err("Error in main loop! ({s}). Breaking.", .{err_msg});
                 return err;
             };
         }
@@ -823,16 +837,20 @@ fn run(allocator: Allocator) DwmError!void {
 inline fn runOne(allocator: Allocator, ev: *XEvent) DwmError!void {
     if (handler[@intCast(ev.type)]) |handler_fn| {
         switch (handler_fn) {
-            .NoAlloc => |f| try f(ev),
-            .Alloc => |f| try f(allocator, ev),
+            .NoAllocE => |f| try f(ev),
+            .AllocE => |f| try f(allocator, ev),
+            .NoAlloc => |f| f(ev),
+            .Alloc => |f| f(allocator, ev),
         }
     }
 }
 
-const HandlerFnTag = enum { NoAlloc, Alloc };
+const HandlerFnTag = enum { NoAllocE, AllocE, NoAlloc, Alloc };
 const HandlerFn = union(HandlerFnTag) {
-    NoAlloc: *const fn (*XEvent) DwmError!void,
-    Alloc: *const fn (Allocator, *XEvent) DwmError!void,
+    NoAllocE: *const fn (*XEvent) DwmError!void,
+    AllocE: *const fn (Allocator, *XEvent) DwmError!void,
+    NoAlloc: *const fn (*XEvent) void,
+    Alloc: *const fn (Allocator, *XEvent) void,
 };
 
 var handler: [X.LASTEvent]?HandlerFn = undefined;
@@ -841,20 +859,20 @@ fn setupHandler() void {
     while (i < handler.len) : (i += 1) {
         handler[@intCast(i)] = switch (i) {
             // zig fmt: off
-            X.ButtonPress      => .{ .Alloc   = buttonPress },
-            X.ClientMessage    => .{ .NoAlloc = @ptrCast(&clientMessage) },
-            X.ConfigureNotify  => .{ .Alloc   = configureNotify },
-            X.ConfigureRequest => .{ .NoAlloc = @ptrCast(&configureRequest) },
-            X.DestroyNotify    => .{ .Alloc   = @ptrCast(&destroyNotify) },
-            X.EnterNotify      => .{ .Alloc   = @ptrCast(&enterNotify) },
-            X.Expose           => .{ .Alloc   = @ptrCast(&expose) },
-            X.FocusIn          => .{ .NoAlloc = @ptrCast(&focusIn) },
-            X.KeyPress         => .{ .NoAlloc = keyPress },
-            X.MapRequest       => .{ .Alloc   = mapRequest },
-            X.MappingNotify    => .{ .NoAlloc = @ptrCast(&mappingNotify) },
-            X.MotionNotify     => .{ .Alloc   = @ptrCast(&motionNotify) },
-            X.PropertyNotify   => .{ .Alloc   = @ptrCast(&propertyNotify) },
-            X.UnmapNotify      => .{ .Alloc   = @ptrCast(&unmapNotify) },
+            X.ButtonPress      => .{ .AllocE   = buttonPress },
+            X.ClientMessage    => .{ .NoAlloc  = clientMessage },
+            X.ConfigureNotify  => .{ .AllocE   = configureNotify },
+            X.ConfigureRequest => .{ .NoAlloc  = configureRequest },
+            X.DestroyNotify    => .{ .Alloc    = destroyNotify },
+            X.EnterNotify      => .{ .Alloc    = enterNotify },
+            X.Expose           => .{ .Alloc    = expose },
+            X.FocusIn          => .{ .NoAlloc  = focusIn },
+            X.KeyPress         => .{ .NoAllocE = keyPress },
+            X.MapRequest       => .{ .AllocE   = mapRequest },
+            X.MappingNotify    => .{ .NoAlloc  = mappingNotify },
+            X.MotionNotify     => .{ .Alloc    = motionNotify },
+            X.PropertyNotify   => .{ .Alloc    = propertyNotify },
+            X.UnmapNotify      => .{ .Alloc    = unmapNotify },
             // zig fmt: on
             else => null,
         };

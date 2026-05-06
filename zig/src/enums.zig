@@ -2,6 +2,7 @@ const X = @import("c_lib.zig").X;
 const App = @import("app.zig").App;
 const Layout = @import("layout.zig").Layout;
 const DwmError = @import("errors.zig").DwmError;
+const LazyFn = @import("lazy_fn.zig").LazyFn;
 
 /// Count the number of enum variants that exist.
 pub fn N(comptime T: type) usize {
@@ -61,48 +62,6 @@ pub const SchemeState = enum {
     Normal,
     Selected,
     Bar,
-};
-
-pub const ArgTag = enum {
-    /// Integer.
-    i,
-    /// Unsigned integer.
-    ui,
-    /// Float.
-    f,
-    /// Direction. (used for relative navigation.)
-    d,
-    /// Layout.
-    l,
-    /// String.
-    s,
-    /// List of strings. (used for cli args.)
-    args,
-};
-
-pub const Arg = union(ArgTag) {
-    i: i32,
-    ui: u32,
-    f: f32,
-    d: Direction,
-    l: *const Layout,
-    s: []const u8,
-    // TODO: figure out if we can get away with setting this as []const []const u8.
-    args: [*:null]const ?[*:0]const u8,
-};
-
-/// The general lazy function.
-pub const LazyFn = struct {
-    func: *const fn (*const Arg) DwmError!void,
-    arg: Arg,
-
-    pub fn f(func: *const fn (*const Arg) void, arg: Arg) @This() {
-        return .{ .func = @ptrCast(func), .arg = arg };
-    }
-
-    pub fn F(func: *const fn (*const Arg) DwmError!void, arg: Arg) @This() {
-        return .{ .func = func, .arg = arg };
-    }
 };
 
 pub const Key = struct {
