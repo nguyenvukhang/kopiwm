@@ -1438,6 +1438,19 @@ pub fn view(arg: *const Arg) void {
     arrange(global_allocator, z.selmon);
 }
 
+/// (dwm) pop
+pub fn pop(allocator: Allocator, c: *Client) void {
+    c.detach();
+    c.attach();
+    focus(allocator, c);
+    arrange(allocator, c.mon);
+}
+
+/// (dwm) quit
+fn quit(_: *const Arg) void {
+    z.running = false;
+}
+
 /// (dwm) drawbar
 fn drawbar(allocator: Allocator, m: *Monitor) void {
     if (!m.show_bar) {
