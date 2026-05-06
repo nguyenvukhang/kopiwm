@@ -1604,6 +1604,7 @@ fn updatebars() void {
             X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
             &wa,
         );
+        log.info("XCreateWindow for barwin={d}", .{m.barwin});
         _ = X.XDefineCursor(z.dpy, m.barwin, z.cursors.get(.Normal));
         _ = X.XMapRaised(z.dpy, m.barwin);
         _ = X.XSetClassHint(z.dpy, m.barwin, &ch);
