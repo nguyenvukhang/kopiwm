@@ -1814,6 +1814,13 @@ pub fn zoom(_: *const Arg) void {
 fn drawbar(allocator: Allocator, m: *Monitor) void {
     log.info("drawbar(show={}, height={d}, {*})", .{ m.show_bar, z.bar_height, m });
 
+    if (true) {
+        z.drw.setScheme(z.scheme.get(.Normal));
+        z.drw.drawRect(.{ .x = 0, .y = 0, .w = 100, .h = 100 }, true, false);
+        z.drw.map(m.barwin, .{ .x = 0, .y = 0, .w = m.w.w, .h = z.bar_height });
+        return;
+    }
+
     if (!m.show_bar) return;
 
     var tw: u32 = 0;
@@ -1834,7 +1841,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
             .h = z.bar_height,
         }, 0, z.stext.get(), 0);
     }
-    log.debug("Drawn status text({}). tw={d}", .{m == z.selmon, tw});
+    log.debug("Drawn status text({}). tw={d}", .{ m == z.selmon, tw });
 
     var c_opt = m.clients;
     while (c_opt) |c| : (c_opt = c.next) {
