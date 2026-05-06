@@ -1224,19 +1224,28 @@ fn setup(allocator: Allocator) !void {
             return;
         }
     }
+    log.info("Initialized drw", .{});
     z.lrpad = z.drw.fonts.h;
     z.bar_height = z.drw.fonts.h + 2;
+
     var selmon: ?*Monitor = null;
     // Make sure that `selmon` is initialized.
     _ = try updategeom(allocator, &selmon);
     if (selmon) |m| {
         z.selmon = m;
         log.info("Created the first selmon.", .{});
+        log.info("Might segfault 1???", .{});
+        log.info("Survived! {any}", .{m.show_bar});
+        log.info("Survived! {any}", .{z.selmon.show_bar});
     } else {
         log.err("App could not find the first selected monitor (dwm: selmon)", .{});
         std.debug.print("App could not find the first selected monitor (dwm: selmon)\n", .{});
         return;
     }
+    log.info("Might segfault???", .{});
+    log.info("Survived! {any}", .{z.selmon.show_bar});
+
+    log.info("Initializing atoms.", .{});
 
     // Initialize atoms.
     utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", X.False);
@@ -1254,6 +1263,8 @@ fn setup(allocator: Allocator) !void {
     z.netatom.set(.WMWindowType, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE", X.False));
     z.netatom.set(.WMWindowTypeDialog, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE_DIALOG", X.False));
     z.netatom.set(.ClientList, X.XInternAtom(z.dpy, "_NET_CLIENT_LIST", X.False));
+
+    log.info("Initializing cursors.", .{});
 
     // Initialize cursors.
     z.cursors.set(.Normal, z.drw.curCreate(X.XC_left_ptr));
