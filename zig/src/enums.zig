@@ -91,6 +91,20 @@ pub const Arg = union(ArgTag) {
     args: [*:null]const ?[*:0]const u8,
 };
 
+/// The general lazy function.
+pub const LazyFn = struct {
+    func: *const fn (*const Arg) DwmError!void,
+    arg: Arg,
+
+    pub fn f(func: *const fn (*const Arg) void, arg: Arg) @This() {
+        return .{ .func = @ptrCast(func), .arg = arg };
+    }
+
+    pub fn F(func: *const fn (*const Arg) DwmError!void, arg: Arg) @This() {
+        return .{ .func = func, .arg = arg };
+    }
+};
+
 pub const Key = struct {
     /// Modifier keys, in any.
     mod: c_uint,
@@ -107,27 +121,15 @@ pub const Button = struct {
     mask: c_uint,
     /// See the `Button1`...`Button5` enums in "X11/X.h".
     button: c_uint,
-    func: *const fn (*const Arg) DwmError!void,
-    arg: Arg,
+    lf: LazyFn,
 
     pub fn init(
         click: Clk,
         mask: c_uint,
         button: c_uint,
-        func: *const fn (*const Arg) void,
-        arg: Arg,
+        lf: LazyFn,
     ) @This() {
-        return .Init(click, mask, button, @ptrCast(func), arg);
-    }
-
-    pub fn Init(
-        click: Clk,
-        mask: c_uint,
-        button: c_uint,
-        func: *const fn (*const Arg) error{OutOfMemory}!void,
-        arg: Arg,
-    ) @This() {
-        return .{ .click = click, .mask = mask, .button = button, .func = func, .arg = arg };
+        return .{ .click = click, .mask = mask, .button = button, .lf = lf };
     }
 };
 

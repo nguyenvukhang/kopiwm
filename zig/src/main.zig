@@ -524,9 +524,9 @@ fn buttonPress(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
         if (button.click != click or button.button != ev.button) continue;
         if (CLEANMASK(button.mask) == CLEANMASK(ev.state)) {
             if (click == .TagBar) {
-                try button.func(&arg);
+                try button.lf.func(&arg);
             } else {
-                try button.func(&button.arg);
+                try button.lf.func(&button.lf.arg);
             }
         }
     }

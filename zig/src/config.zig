@@ -10,7 +10,7 @@ const BarPosition = @import("enums.zig").BarPosition;
 const Key = @import("enums.zig").Key;
 const Button = @import("enums.zig").Button;
 const Rule = @import("enums.zig").Rule;
-const F = @import("main.zig");
+const M = @import("main.zig");
 
 pub const BUTTONMASK = X.ButtonPressMask | X.ButtonReleaseMask;
 pub const MOUSEMASK = BUTTONMASK | X.PointerMotionMask;
@@ -64,9 +64,9 @@ pub const show_bar: bool = true;
 pub const bar_pos: BarPosition = .top;
 
 pub const layouts = [_]lt.Layout{
-    .{ .symbol = "[]=", .arrange = F.tile },
+    .{ .symbol = "[]=", .arrange = M.tile },
     .{ .symbol = "><>", .arrange = null },
-    .{ .symbol = "[M]", .arrange = F.monocle },
+    .{ .symbol = "[M]", .arrange = M.monocle },
 };
 
 const col_gray1: []const u8 = "#222222";
@@ -92,7 +92,7 @@ const MODKEY = X.Mod4Mask;
 pub const keys = [_]Key{
     // TODO: test to see if we DON'T specify null at the end of an args array,
     // will there still be a null there thanks to Zig?
-    .{ .mod = MODKEY, .sym = X.XK_space, .func = F.spawn, .arg = .{ .args = &.{"hey"} } },
+    .{ .mod = MODKEY, .sym = X.XK_space, .func = M.spawn, .arg = .{ .args = &.{"hey"} } },
 };
 
 // { MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
@@ -131,17 +131,17 @@ pub const keys = [_]Key{
 
 // zig fmt: off
 pub const buttons = [_]Button{
-.init(.LtSymbol,     0,        Button1,   F.setLayout,        undefined            ),
-.init(.LtSymbol,     0,        Button3,   F.setLayout,        .{ .l = &layouts[2] }),
-.init(.WinTitle,     0,        Button2,   F.zoom,             undefined            ),
-.init(.StatusText,   0,        Button2,   F.spawn,            .{.args = &.{}}      ),
-.Init(.ClientWin,    MODKEY,   Button1,   F.moveMouse,        undefined            ),
-.init(.ClientWin,    MODKEY,   Button2,   F.toggleFloating,   undefined            ),
-.Init(.ClientWin,    MODKEY,   Button3,   F.resizeMouse,      undefined            ),
-.init(.TagBar,       0,        Button1,   F.view,             undefined            ),
-.init(.TagBar,       0,        Button3,   F.toggleView,       undefined            ),
-.init(.TagBar,       MODKEY,   Button1,   F.tag,              undefined            ),
-.init(.TagBar,       MODKEY,   Button3,   F.toggleTag,        undefined            ),
+.init(.LtSymbol,     0,        Button1,   .f( M.setLayout,        undefined             )),
+.init(.LtSymbol,     0,        Button3,   .f( M.setLayout,        .{ .l = &layouts[2] } )),
+.init(.WinTitle,     0,        Button2,   .f( M.zoom,             undefined             )),
+.init(.StatusText,   0,        Button2,   .f( M.spawn,            .{.args = &.{}}       )),
+.init(.ClientWin,    MODKEY,   Button1,   .F( M.moveMouse,        undefined             )),
+.init(.ClientWin,    MODKEY,   Button2,   .f( M.toggleFloating,   undefined             )),
+.init(.ClientWin,    MODKEY,   Button3,   .F( M.resizeMouse,      undefined             )),
+.init(.TagBar,       0,        Button1,   .f( M.view,             undefined             )),
+.init(.TagBar,       0,        Button3,   .f( M.toggleView,       undefined             )),
+.init(.TagBar,       MODKEY,   Button1,   .f( M.tag,              undefined             )),
+.init(.TagBar,       MODKEY,   Button3,   .f( M.toggleTag,        undefined             )),
 };
 // // zig fmt: on
 
