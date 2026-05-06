@@ -1986,7 +1986,7 @@ pub fn simplemain() !void {
 
     var ev: XEvent = undefined;
     while (true) {
-        X.XNextEvent(dpy, &ev);
+        _ = X.XNextEvent(dpy, &ev);
         if (ev.type == X.Expose and ev.xexpose.count < 1) {
             _ = X.XDrawString(dpy, win, gc, 10, 10, "Hello world", 12);
         } else if (ev.type == X.ButtonPress) {
