@@ -3,6 +3,8 @@ const App = @import("app.zig").App;
 const Layout = @import("layout.zig").Layout;
 const DwmError = @import("errors.zig").DwmError;
 const LazyFn = @import("lazy_fn.zig").LazyFn;
+const XEvent = X.XEvent;
+const Allocator = @import("std").mem.Allocator;
 
 /// Count the number of enum variants that exist.
 pub fn N(comptime T: type) usize {
@@ -115,9 +117,10 @@ pub const Size = struct {
     }
 };
 
-/// Symbolizes a movement, used for navigating to the next/previous entity
-/// (Monitor/Client/Window).
-pub const Direction = enum {
-    Next,
-    Prev,
+pub const HandlerFnTag = enum { NoAllocE, AllocE, NoAlloc, Alloc };
+pub const HandlerFn = union(HandlerFnTag) {
+    NoAllocE: *const fn (*XEvent) DwmError!void,
+    AllocE: *const fn (Allocator, *XEvent) DwmError!void,
+    NoAlloc: *const fn (*XEvent) void,
+    Alloc: *const fn (Allocator, *XEvent) void,
 };

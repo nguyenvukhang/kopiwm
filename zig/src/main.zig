@@ -21,6 +21,7 @@ const N = @import("enums.zig").N;
 const ForkError = std.posix.ForkError;
 const MOUSEMASK = @import("config.zig").MOUSEMASK;
 const DwmError = @import("errors.zig").DwmError;
+const HandlerFn = @import("enums.zig").HandlerFn;
 
 const NAME = @import("build_opts").name;
 const VERSION = @import("build_opts").version;
@@ -849,14 +850,6 @@ inline fn runOne(allocator: Allocator, ev: *XEvent) DwmError!void {
         }
     }
 }
-
-const HandlerFnTag = enum { NoAllocE, AllocE, NoAlloc, Alloc };
-const HandlerFn = union(HandlerFnTag) {
-    NoAllocE: *const fn (*XEvent) DwmError!void,
-    AllocE: *const fn (Allocator, *XEvent) DwmError!void,
-    NoAlloc: *const fn (*XEvent) void,
-    Alloc: *const fn (Allocator, *XEvent) void,
-};
 
 const handler: [X.LASTEvent]?HandlerFn = createHandler();
 fn createHandler() [X.LASTEvent]?HandlerFn {
