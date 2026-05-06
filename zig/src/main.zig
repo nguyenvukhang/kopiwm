@@ -919,7 +919,7 @@ pub fn monocle(m: *Monitor) void {
 }
 
 /// (dwm) movemouse
-fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
+pub fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
     var c = z.selmon.sel orelse return;
     if (c.isfullscreen) return; // No support moving fullscreen windows by mouse.
     restack(global_allocator, z.selmon);
@@ -996,10 +996,10 @@ fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
 }
 
 /// (dwm) setlayout
-fn setLayout(arg: *const Arg) void {
+pub fn setLayout(arg: *const Arg) void {
     // TODO: check all other instances of tagged access of args. Make sure to
     // use a switch statement before indexing.
-    const lt: *const Layout = switch (arg) {
+    const lt: *const Layout = switch (arg.*) {
         .l => |lt| lt,
         else => return,
     };

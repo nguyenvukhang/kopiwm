@@ -86,7 +86,7 @@ pub const Arg = union(ArgTag) {
     d: Direction,
     l: *const Layout,
     s: []const u8,
-    // args: []const [*:0]const u8,
+    // TODO: figure out if we can get away with setting this as []const []const u8.
     args: [*:null]const ?[*:0]const u8,
 };
 

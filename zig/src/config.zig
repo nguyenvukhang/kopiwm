@@ -12,6 +12,12 @@ const Button = @import("enums.zig").Button;
 const Rule = @import("enums.zig").Rule;
 const F = @import("main.zig");
 
+const Button1 = X.Button1;
+const Button2 = X.Button2;
+const Button3 = X.Button3;
+const Button4 = X.Button4;
+const Button5 = X.Button5;
+
 /// Number of pixels to snap during movement.
 pub const snap: i32 = 32;
 
@@ -52,6 +58,7 @@ pub const bar_pos: BarPosition = .top;
 
 pub const layouts = [_]lt.Layout{
     .{ .symbol = "[]=", .arrange = F.tile },
+    .{ .symbol = "><>", .arrange = null },
     .{ .symbol = "[M]", .arrange = F.monocle },
 };
 
@@ -81,8 +88,22 @@ pub const keys = [_]Key{
     .{ .mod = MODKEY, .sym = X.XK_space, .func = F.spawn, .arg = .{ .args = &.{"hey"} } },
 };
 
+// zig fmt: off
 pub const buttons = [_]Button{
-    .{ .click = .WinTitle, .mask = 0, .button = X.Button2, .func = F.zoom, .arg = undefined },
+.{ .click = .WinTitle,   .mask = 0, .button = Button2, .func = F.zoom,      .arg = undefined             },
+.{ .click = .LtSymbol,   .mask = 0, .button = Button3, .func = F.setLayout, .arg = .{ .l = &layouts[2] } },
+.{ .click = .WinTitle,   .mask = 0, .button = Button2, .func = F.zoom,      .arg = undefined             },
+.{ .click = .StatusText, .mask = 0, .button = Button2, .func = F.spawn,     .arg = .{.args = &.{}}       },
+// .{ .click = .ClientWin,  .mask = 0, .button = Button1, .func = F.moveMouse, .arg = undefined             },
 };
+// // zig fmt: on
+
+// { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
+// { ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
+// { ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
+// { ClkTagBar,            0,              Button1,        view,           {0} },
+// { ClkTagBar,            0,              Button3,        toggleview,     {0} },
+// { ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
+// { ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
 
 pub const rules = [_]Rule{};
