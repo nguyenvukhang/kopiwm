@@ -1824,6 +1824,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 
     // draw status first so it can be overdrawn by tags later
     if (m == z.selmon) { // status is only drawn on selected monitor
+        log.debug("drawbar: draw the status because this is the selected monitor.", .{});
         z.drw.setScheme(z.scheme.get(.Normal));
         tw = z.TEXTW(allocator, z.stext.get());
         _ = z.drw.drawText(allocator, .{

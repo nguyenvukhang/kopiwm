@@ -322,18 +322,6 @@ pub const Drw = struct {
         }
     }
 
-    //     void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h,
-    //               int filled, int invert) {
-    //     XSetForeground(drw->dpy, drw->gc,
-    //                    invert ? drw->scheme[ColBg].pixel
-    //                           : drw->scheme[ColFg].pixel);
-    //     if (filled) {
-    //         XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
-    //     } else {
-    //         XDrawRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w - 1, h - 1);
-    //     }
-    // }
-
     /// (dwm) drw_text
     /// Question: Is `invert` a bitmask? or a boolean? or a numerical value?
     /// Because based on dwm's source code all three cases kinda doesn't fit.
@@ -345,6 +333,7 @@ pub const Drw = struct {
         text_to_draw: []const u8,
         invert: u32,
     ) i32 {
+        log.debug("drw_text({s})", .{text_to_draw});
         const INVALID = "�";
         var text: []const u8 = text_to_draw;
         var x = rect.x;
@@ -392,6 +381,9 @@ pub const Drw = struct {
             );
             x += @intCast(lpad);
             w -= lpad;
+        }
+        defer {
+            if (d) |draw| X.XftDrawDestroy(draw);
         }
 
         if (state.ellipsis_width == null and render) {
@@ -554,7 +546,6 @@ pub const Drw = struct {
                 }
             }
         }
-        if (d) |draw| X.XftDrawDestroy(draw);
         return x + if (render) @as(i32, @intCast(w)) else 0;
     }
 
