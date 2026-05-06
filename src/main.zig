@@ -206,7 +206,7 @@ pub fn focusStack(arg: *const Arg) void {
 }
 
 /// (dwm) updatebarpos
-fn updatebarpos(m: *Monitor) void {
+fn updateBarPosition(m: *Monitor) void {
     m.w.y = m.m.y;
     m.w.h = m.m.h;
     if (m.show_bar) {
@@ -1225,7 +1225,7 @@ fn updategeom(allocator: Allocator, selmon: *?*Monitor) error{OutOfMemory}!bool 
             mons.w.h = z.s.h;
             mons.m.w = z.s.w;
             mons.m.h = z.s.h;
-            updatebarpos(mons);
+            updateBarPosition(mons);
         }
     }
     log.info("updategeom.dirty? {}", .{dirty});
@@ -1734,7 +1734,7 @@ pub fn tile(m: *Monitor) void {
 /// (dwm) togglebar
 pub fn toggleBar(_: *const Arg) void {
     z.selmon.show_bar = !z.selmon.show_bar;
-    updatebarpos(z.selmon);
+    updateBarPosition(z.selmon);
     _ = X.XMoveResizeWindow(
         z.dpy,
         z.selmon.barwin,
@@ -1897,6 +1897,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 }
 
 pub fn main() !void {
+    if (true) return simplemain();
     log.info("STARTED EXECUTION OF DWMZ", .{});
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -1948,6 +1949,8 @@ pub fn main() !void {
 
     log.info("The end! Starting cleanup...", .{});
 }
+
+pub fn simplemain() !void {}
 
 test {
     _ = @import("small.zig");
