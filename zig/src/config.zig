@@ -51,8 +51,8 @@ pub const show_bar: bool = true;
 pub const bar_pos: BarPosition = .top;
 
 pub const layouts = [_]lt.Layout{
-    .{ .symbol = "[]=", .arrange = lt.tile },
-    .{ .symbol = "[M]", .arrange = lt.monocle },
+    .{ .symbol = "[]=", .arrange = F.tile },
+    .{ .symbol = "[M]", .arrange = F.monocle },
 };
 
 const col_gray1: []const u8 = "#222222";

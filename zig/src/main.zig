@@ -898,7 +898,7 @@ fn killClient(_: *const Arg) void {
 }
 
 /// (dwm) monocle
-fn monocle(m: *Monitor) void {
+pub fn monocle(m: *Monitor) void {
     var c_opt = m.clients;
     var n: u32 = 0;
     while (c_opt) |c| : (c_opt = c.next) {
@@ -912,8 +912,8 @@ fn monocle(m: *Monitor) void {
     c_opt = (c_opt orelse return).nextTiled();
     while (c_opt) |c| : (c_opt = c.nextTiled()) {
         var r = m.w;
-        r.w = m.w.w - 2 * @as(u32, @intCast(c.bw));
-        r.h = m.w.h - 2 * @as(u32, @intCast(c.bw));
+        r.w = m.w.w - 2 * @as(u32, @intCast(c.bw.now));
+        r.h = m.w.h - 2 * @as(u32, @intCast(c.bw.now));
         c.hintAndResize(r, false);
     }
 }
@@ -1606,6 +1606,51 @@ pub fn view(arg: *const Arg) void {
     }
     focus(global_allocator, null);
     arrange(global_allocator, z.selmon);
+}
+
+/// (dwm) tile
+pub fn tile(m: *Monitor) void {
+    var n: i32 = 0;
+    var c_opt = if (m.clients) |c| c.nextTiled() else null;
+    while (c_opt) |c| : (c_opt = c.next) n += 1;
+    if (n == 0) return;
+    const mw: u32 = if (n > m.nmaster)
+        (if (m.nmaster != 0) @intFromFloat(@as(f32, @floatFromInt(m.w.w)) * m.mfact) else 0)
+    else
+        m.w.w;
+
+    var i: i32 = 0;
+    var my: i32 = 0; // master's y
+    var ty: i32 = 0; // non-master's y
+    c_opt = if (m.clients) |c| c.nextTiled() else null;
+    while (c_opt) |c| : ({
+        c_opt = c.next;
+        i += 1;
+    }) {
+        if (i < m.nmaster) {
+            const h = @divFloor(m.w.h - my, @min(n, m.nmaster) - i);
+            c.hintAndResize(.{
+                .x = m.w.x,
+                .y = m.w.y + my,
+                .w = @intCast(mw - (2 * c.bw.now)),
+                .h = @intCast(h - (2 * c.bw.now)),
+            }, false);
+            if (my + @as(u32, @intCast(c.height())) < m.w.h) {
+                my += @as(u32, @intCast(c.height()));
+            }
+        } else {
+            const h = @divFloor(m.w.h - ty, n - i);
+            c.hintAndResize(.{
+                .x = m.w.x + mw,
+                .y = m.w.y + @as(i32, @intCast(ty)),
+                .w = m.w.w - mw - 2 * c.bw.now,
+                .h = h - 2 * c.bw.now,
+            }, false);
+            if (ty + c.height() < m.w.h) {
+                ty += c.height();
+            }
+        }
+    }
 }
 
 /// (dwm) pop
