@@ -1368,7 +1368,10 @@ fn unfocus(client: ?*Client, setfocus: bool) void {
 
 /// (dwm) focus
 fn focus(allocator: Allocator, client: ?*Client) void {
-    log.info("Called focus()", .{});
+    if (client) |c| {
+        log.info("Called focus({*})", .{c});
+    } else log.info("Called focus(null)", .{});
+
     var c_opt = client;
     if (if (c_opt) |c| !c.isVisible() else true) {
         // Push the pointer forward until c_opt points to the first visible client.
@@ -1494,7 +1497,6 @@ fn grabkeys() void {
 
 /// (dwm) updatenumlockmask
 fn updatenumlockmask() void {
-    log.info("Called updatenumlockmask", .{});
     z.numlockmask = 0;
     const modmap = X.XGetModifierMapping(z.dpy);
     if (modmap == null) {
@@ -1538,9 +1540,11 @@ fn cleanup(allocator: Allocator) void {
     const a: Arg = .{ .ui = ~@as(u32, 0) };
     const foo: Layout = .{ .symbol = "", .arrange = null };
 
+    log.info("Cleanup calls view()", .{});
     view(&a);
     z.selmon.lt[z.selmon.sellt] = &foo;
 
+    log.info("Cleanup starts on stacks", .{});
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
         while (m.stack) |c| {
