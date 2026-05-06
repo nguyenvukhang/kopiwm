@@ -48,6 +48,7 @@ pub const Client = struct {
     next: ?*Self = null,
     /// Next client in the display stack.
     snext: ?*Self = null,
+    /// The parent monitor to this client.
     mon: *Monitor = undefined,
     win: Window,
 

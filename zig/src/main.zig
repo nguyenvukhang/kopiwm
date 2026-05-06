@@ -986,11 +986,27 @@ fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
     const m_opt = c.pos.now.toMonitor(z.mons);
     if (m_opt != z.selmon) {
         if (m_opt) |m| {
-            // sendmon(c, m);
+            sendMon(global_allocator, c, m);
             z.selmon = m;
             focus(global_allocator, null);
         }
     }
+}
+
+fn sendMon(allocator: Allocator, c: *Client, m: *Monitor) void {
+    if (c.mon == m) return;
+    unfocus(c, true);
+    c.detach();
+    c.detachStack();
+    c.mon = m;
+    c.tags = m.tagset[m.seltags]; // Assign tags of target monitor.
+    c.attach();
+    c.attachStack();
+    if (c.isfullscreen) {
+        c.hintAndResize(m.w);
+    }
+    focus(allocator, null);
+    arrange(allocator, null);
 }
 
 /// [dwm] togglefloating

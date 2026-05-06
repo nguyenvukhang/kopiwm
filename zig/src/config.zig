@@ -20,6 +20,12 @@ pub const borderpx: u32 = 1;
 
 pub const tags = [_][]const u8{ "1", "2", "3", "4", "T" };
 
+// Amazingly, Zig throws a COMPILE ERROR if `tags.len` is >= 32. This is because
+// the maximum meaningful left-shift is by 31 for a u32 type, and so Zig
+// takes a u5 as the left-shift amount. Which means that `tags.len` will first
+// be casted to a u5 and panics with "type 'u5' cannot represent integer ..." if
+// it's too large. At which point, either don't use that many tags, or change
+// the tag mask to use more bits.
 pub const TAGMASK: u32 = (@as(u32, 1) << tags.len) - 1;
 
 pub const fonts = [_][]const u8{"monospace:size=10"};
