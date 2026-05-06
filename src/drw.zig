@@ -201,6 +201,13 @@ pub const Drw = struct {
         return drw;
     }
 
+    /// (dwm) drw_free
+    pub fn deinit(self: *Self, allocator: Allocator) void {
+        _ = X.XFreePixmap(self.dpy, self.drawable);
+        _ = X.XFreeGC(self.dpy, self.gc);
+        fontsetFree(allocator, self.fonts);
+    }
+
     /// (dwm) drw_resize
     pub fn resize(self: *Self, w: u32, h: u32) void {
         self.w = w;
@@ -215,13 +222,6 @@ pub const Drw = struct {
             h,
             @intCast(X.DefaultDepth(self.dpy, self.screen)),
         );
-    }
-
-    /// (dwm) drw_free
-    pub fn deinit(self: *Self, allocator: Allocator) void {
-        _ = X.XFreePixmap(self.dpy, self.drawable);
-        _ = X.XFreeGC(self.dpy, self.gc);
-        fontsetFree(allocator, self.fonts);
     }
 
     /// (dwm) drw_fontset_create

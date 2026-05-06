@@ -1956,8 +1956,12 @@ pub fn simplemain() !void {
     };
     defer _ = X.XCloseDisplay(dpy);
 
+    const w = 100;
+    const h = 100;
+
     const scr = X.DefaultScreen(dpy);
     const rootwin = X.RootWindow(dpy, scr);
+    const pixmap = X.XCreatePixmap(dpy, rootwin, w, h, @intCast(X.DefaultDepth(dpy, scr)));
     // const cmap = X.DefaultColormap(dpy, scr);
 
     var wa: X.XSetWindowAttributes = .{
@@ -1970,8 +1974,8 @@ pub fn simplemain() !void {
         rootwin,
         0,
         0,
-        1920,
-        1080,
+        w,
+        h,
         0,
         X.DefaultDepth(dpy, scr),
         X.CopyFromParent,
@@ -1982,13 +1986,16 @@ pub fn simplemain() !void {
     const gc = X.XCreateGC(dpy, win, 0, null);
     _ = X.XSetForeground(dpy, gc, X.WhitePixel(dpy, scr));
     _ = X.XSelectInput(dpy, win, X.ExposureMask | X.ButtonPressMask);
-    _ = X.XMapWindow(dpy, win);
+    _ = X.XMapRaised(dpy, win);
 
     var ev: XEvent = undefined;
     while (true) {
         _ = X.XNextEvent(dpy, &ev);
         if (ev.type == X.Expose and ev.xexpose.count < 1) {
-            _ = X.XDrawString(dpy, win, gc, 10, 10, "Hello world", 12);
+            // _ = X.XDrawString(dpy, win, gc, 10, 10, "Hello world", 12);
+            _ = X.XDrawString(dpy, pixmap, gc, 10, 10, "Hello world", 12);
+            _ = X.XCopyArea(dpy, pixmap, win, gc, 0, 0, w, h, 0, 0);
+            _ = X.XSync(dpy, X.False);
         } else if (ev.type == X.ButtonPress) {
             break;
         }
