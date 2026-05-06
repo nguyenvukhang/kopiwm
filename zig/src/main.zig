@@ -1581,6 +1581,20 @@ pub fn tag(arg: *const Arg) void {
     }
 }
 
+/// (dwm) tagmon
+pub fn tagMonitor(arg: *const Arg) void {
+    const direction = switch (arg.*) {
+        .d => |v| v,
+        else => return,
+    };
+
+    const sel = z.selmon.sel orelse return;
+    const mons = z.mons orelse return;
+    if (mons.next == null) return;
+
+    sendMon(global_allocator, sel, directionToMonitor(direction));
+}
+
 /// (dwm) view
 pub fn view(arg: *const Arg) void {
     if (arg.ui & cfg.TAGMASK == z.selmon.tagset[z.selmon.seltags]) {
