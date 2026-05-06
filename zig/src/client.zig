@@ -36,7 +36,7 @@ pub const Client = struct {
     sz: ClientSizes = undefined,
     hintsvalid: bool = undefined,
     /// Border width.
-    bw: toggle(i32),
+    bw: toggle(u32),
     /// Bitmask of active tags.
     tags: u32 = 0,
     is_fixed: bool = undefined,
@@ -199,12 +199,12 @@ pub const Client = struct {
 
     /// (dwm) WIDTH
     pub inline fn width(self: *const Self) i32 {
-        return @as(i32, @intCast(self.pos.now.w)) + 2 * self.bw.now;
+        return @intCast(self.pos.now.w + 2 * self.bw.now);
     }
 
     /// (dwm) HEIGHT
     pub inline fn height(self: *const Self) i32 {
-        return @as(i32, @intCast(self.pos.now.h)) + 2 * self.bw.now;
+        return @intCast(self.pos.now.h + 2 * self.bw.now);
     }
 
     /// (dwm) configure
@@ -214,7 +214,7 @@ pub const Client = struct {
         xconf.display = dpy;
         xconf.event = self.win;
         xconf.window = self.win;
-        xconf.border_width = self.bw.now;
+        xconf.border_width = @intCast(self.bw.now);
         xconf.above = X.None;
         xconf.override_redirect = X.False;
         var event = X.XEvent{ .xconfigure = xconf };
@@ -310,7 +310,7 @@ pub const Client = struct {
     pub fn resize(self: *Self, rect: Rect) void {
         const z = self.app;
         var wc = rect.toX(X.XWindowChanges);
-        wc.border_width = self.bw.now;
+        wc.border_width = @intCast(self.bw.now);
         const flags =
             X.CWX | X.CWY | X.CWWidth | X.CWHeight | X.CWBorderWidth;
         _ = X.XConfigureWindow(z.dpy, self.win, flags, &wc);
@@ -338,6 +338,7 @@ pub const Client = struct {
         rect.w = @max(1, rect.w);
         rect.h = @max(1, rect.h);
 
+        const bw: i32 = @intCast(c.bw.now);
         if (interact) {
             if (rect.x > c.app.s.w) {
                 // left-most point is beyond the limits of the current monitor.
@@ -347,17 +348,17 @@ pub const Client = struct {
                 // top-most point is beyond the limits of the current monitor.
                 rect.y = @as(i32, @intCast(c.app.s.h)) - c.height();
             }
-            if (rect.r() + 2 * c.bw.now < 0) {
+            if (rect.r() + 2 * bw < 0) {
                 rect.x = 0;
             }
-            if (rect.b() + 2 * c.bw.now < 0) {
+            if (rect.b() + 2 * bw < 0) {
                 rect.y = 0;
             }
         } else {
             if (rect.x >= m.w.r()) rect.x = m.w.r() - c.width();
             if (rect.y >= m.w.b()) rect.y = m.w.b() - c.height();
-            if (rect.r() + 2 * c.bw.now <= m.w.x) rect.x = m.w.x;
-            if (rect.b() + 2 * c.bw.now <= m.w.y) rect.y = m.w.y;
+            if (rect.r() + 2 * bw <= m.w.x) rect.x = m.w.x;
+            if (rect.b() + 2 * bw <= m.w.y) rect.y = m.w.y;
         }
 
         if (rect.h < c.app.bar_height) rect.h = c.app.bar_height;

@@ -315,7 +315,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     r.y = @max(r.y, c.mon.w.y); // If client is too far up, truncate it.
     c.bw.set(cfg.borderpx);
 
-    wc.border_width = c.bw.now;
+    wc.border_width = @intCast(c.bw.now);
     _ = X.XConfigureWindow(z.dpy, w, X.CWBorderWidth, &wc);
     _ = X.XSetWindowBorder(z.dpy, w, z.scheme.get(.Normal).border.pixel);
 
@@ -377,7 +377,7 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
         _ = X.XGrabServer(z.dpy); // dwm: Avoid race conditions.
         _ = X.XSetErrorHandler(xerrordummy);
         _ = X.XSelectInput(z.dpy, c.win, X.NoEventMask);
-        var wc: X.XWindowChanges = .{ .border_width = c.bw.prev };
+        var wc: X.XWindowChanges = .{ .border_width = @intCast(c.bw.prev) };
         _ = X.XConfigureWindow(z.dpy, c.win, X.CWBorderWidth, &wc); // restore border
         _ = X.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
         c.setState(X.WithdrawnState);
@@ -559,7 +559,7 @@ fn configureRequest(e: *XEvent) void {
 
     if (wintoclient(ev.window)) |c| {
         if (vmask & X.CWBorderWidth != 0) {
-            c.bw.set(ev.border_width);
+            c.bw.set(@intCast(ev.border_width));
         } else if (c.is_floating.now or z.selmon.lt[z.selmon.sellt].arrange == null) {
             const m = c.mon;
             if (vmask & X.CWX != 0) {
@@ -1610,7 +1610,7 @@ pub fn view(arg: *const Arg) void {
 
 /// (dwm) tile
 pub fn tile(m: *Monitor) void {
-    var n: i32 = 0;
+    var n: u32 = 0;
     var c_opt = if (m.clients) |c| c.nextTiled() else null;
     while (c_opt) |c| : (c_opt = c.next) n += 1;
     if (n == 0) return;
@@ -1619,7 +1619,7 @@ pub fn tile(m: *Monitor) void {
     else
         m.w.w;
 
-    var i: i32 = 0;
+    var i: u32 = 0;
     var my: i32 = 0; // master's y
     var ty: i32 = 0; // non-master's y
     c_opt = if (m.clients) |c| c.nextTiled() else null;
@@ -1628,21 +1628,21 @@ pub fn tile(m: *Monitor) void {
         i += 1;
     }) {
         if (i < m.nmaster) {
-            const h = @divFloor(m.w.h - my, @min(n, m.nmaster) - i);
+            const h = @divFloor(m.w.h - @as(u32, @intCast(my)), @min(n, m.nmaster) - i);
             c.hintAndResize(.{
                 .x = m.w.x,
                 .y = m.w.y + my,
                 .w = @intCast(mw - (2 * c.bw.now)),
                 .h = @intCast(h - (2 * c.bw.now)),
             }, false);
-            if (my + @as(u32, @intCast(c.height())) < m.w.h) {
-                my += @as(u32, @intCast(c.height()));
+            if (my + c.height() < m.w.h) {
+                my += c.height();
             }
         } else {
-            const h = @divFloor(m.w.h - ty, n - i);
+            const h = @divFloor(m.w.h - @as(u32, @intCast(ty)), n - i);
             c.hintAndResize(.{
-                .x = m.w.x + mw,
-                .y = m.w.y + @as(i32, @intCast(ty)),
+                .x = m.w.x + @as(i32, @intCast(mw)),
+                .y = m.w.y + ty,
                 .w = m.w.w - mw - 2 * c.bw.now,
                 .h = h - 2 * c.bw.now,
             }, false);
