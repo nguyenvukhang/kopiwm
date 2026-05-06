@@ -828,7 +828,7 @@ fn run(allocator: Allocator) DwmError!void {
         const now = std.time.timestamp();
         if (@abs(now - start) > 20) {
             log.info("Timeout!", .{});
-            break;
+            @panic("End please");
         }
         const res = X.XNextEvent(z.dpy, &ev);
         // log.debug("Running? {any}, outcome? {d}", .{ z.running, res });
@@ -1387,6 +1387,7 @@ fn focus(allocator: Allocator, client: ?*Client) void {
         unfocus(z.selmon.sel, false);
     }
     if (c_opt) |c| {
+        log.info("focus.c_opt exists", .{});
         z.selmon = c.mon;
         // if the client (that's about to be focused) is urgent, then put it at
         // ease for it is about to be tended to.
@@ -1397,10 +1398,12 @@ fn focus(allocator: Allocator, client: ?*Client) void {
         _ = X.XSetWindowBorder(z.dpy, c.win, z.scheme.get(.Selected).border.pixel);
         c.setFocus();
     } else {
+        log.info("focus.c_opt is null", .{});
         _ = X.XSetInputFocus(z.dpy, z.root, X.RevertToPointerRoot, X.CurrentTime);
         _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));
     }
     z.selmon.sel = c_opt;
+    if (z.selmon.sel) |c| log.info("Set selmon.sel to {*}", .{c});
     drawbars(allocator);
 }
 
