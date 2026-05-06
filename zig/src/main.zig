@@ -150,7 +150,7 @@ fn directionToMonitor(direction: Direction) ?*Monitor {
 }
 
 /// (dwm) focusmon
-fn focusMon(arg: *const Arg) void {
+pub fn focusMon(arg: *const Arg) void {
     // Skip base case where there are no monitors to change focus to.
     // TODO: see if we can guarantee that `z.mons` is non-null.
     const mons = z.mons orelse return;
@@ -165,7 +165,7 @@ fn focusMon(arg: *const Arg) void {
 }
 
 /// (dwm) focusstack
-fn focusStack(arg: *const Arg) void {
+pub fn focusStack(arg: *const Arg) void {
     const sel = z.selmon.sel orelse return;
     if (sel.isfullscreen and cfg.lockfullscreen) return;
     var c_opt: ?*Client = null;
@@ -495,7 +495,7 @@ fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
         var i: usize = 0;
         var x: u32 = 0;
         while (true) {
-            x += z.TEXTW(allocator, cfg.tags[i]);
+            x += z.TEXTW(allocator, cfg.tags[i].text);
             i += 1;
             if (ev.x >= x and i < cfg.tags.len) continue;
             break;
@@ -878,13 +878,17 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
 }
 
 /// (dwm) incnmaster
-fn incNMaster(arg: *const Arg) void {
-    z.selmon.nmaster = @max(z.selmon.nmaster + arg.i, 0);
+pub fn incNMaster(arg: *const Arg) void {
+    const i = switch (arg.*) {
+        .i => |v| v,
+        else => return,
+    };
+    z.selmon.nmaster = @intCast(@max(@as(i32, @intCast(z.selmon.nmaster)) + i, 0));
     arrange(global_allocator, z.selmon);
 }
 
 /// (dwm) killclient
-fn killClient(_: *const Arg) void {
+pub fn killClient(_: *const Arg) void {
     const sel = z.selmon.sel orelse return;
     if (!sel.sendEvent(z.wmatom.get(.Delete))) {
         _ = X.XGrabServer(z.dpy);
@@ -1013,9 +1017,9 @@ pub fn setLayout(arg: *const Arg) void {
 }
 
 /// (dwm) setmfact
-fn setMFact(arg: *const Arg) void {
+pub fn setMFact(arg: *const Arg) void {
     if (z.selmon.lt[z.selmon.sellt].arrange == null) return;
-    const f: f32 = switch (arg) {
+    const f: f32 = switch (arg.*) {
         .f => |v| v,
         else => return,
     };
@@ -1593,7 +1597,9 @@ pub fn tagMonitor(arg: *const Arg) void {
     const mons = z.mons orelse return;
     if (mons.next == null) return;
 
-    sendMon(global_allocator, sel, directionToMonitor(direction));
+    if (directionToMonitor(direction)) |m| {
+        sendMon(global_allocator, sel, m);
+    }
 }
 
 /// (dwm) view
@@ -1655,7 +1661,7 @@ pub fn tile(m: *Monitor) void {
 }
 
 /// (dwm) togglebar
-fn togglebar(_: *const Arg) void {
+pub fn toggleBar(_: *const Arg) void {
     z.selmon.show_bar = !z.selmon.show_bar;
     updatebarpos(z.selmon);
     _ = X.XMoveResizeWindow(
@@ -1707,7 +1713,7 @@ pub fn pop(allocator: Allocator, c: *Client) void {
 }
 
 /// (dwm) quit
-fn quit(_: *const Arg) void {
+pub fn quit(_: *const Arg) void {
     z.running = false;
 }
 
@@ -1758,7 +1764,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     var x: i32 = 0;
     var w: u32 = 0;
     for (0..cfg.tags.len) |i| {
-        w = z.TEXTW(allocator, cfg.tags[i]);
+        w = z.TEXTW(allocator, cfg.tags[i].text);
         const tag_mask = @as(u32, 1) << @intCast(i);
         const selected = (m.tagset[m.seltags] & tag_mask) != 0;
         z.drw.setScheme(z.scheme.get(if (selected) .Selected else .Normal));
@@ -1766,7 +1772,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
             allocator,
             .{ .x = x, .y = 0, .w = w, .h = z.bar_height },
             z.lrpad / 2,
-            cfg.tags[i],
+            cfg.tags[i].text,
             urg & tag_mask,
         );
         if ((occ & tag_mask) != 0) {
