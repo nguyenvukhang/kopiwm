@@ -12,11 +12,18 @@ const Button = @import("enums.zig").Button;
 const Rule = @import("enums.zig").Rule;
 const F = @import("main.zig");
 
+pub const BUTTONMASK = X.ButtonPressMask | X.ButtonReleaseMask;
+pub const MOUSEMASK = BUTTONMASK | X.PointerMotionMask;
+
+// AwesomeWM provides a very helpful graphic here:
+// https://awesomewm.org/doc/api/libraries/mouse.html
+
+/// Left click.
 const Button1 = X.Button1;
+/// Middle click.
 const Button2 = X.Button2;
+/// Right click.
 const Button3 = X.Button3;
-const Button4 = X.Button4;
-const Button5 = X.Button5;
 
 /// Number of pixels to snap during movement.
 pub const snap: i32 = 32;
@@ -90,20 +97,30 @@ pub const keys = [_]Key{
 
 // zig fmt: off
 pub const buttons = [_]Button{
-.{ .click = .LtSymbol,   .mask = 0, .button = Button3, .func = @ptrCast(&F.setLayout), .arg = .{ .l = &layouts[2] } },
-.{ .click = .LtSymbol,   .mask = 0, .button = Button2, .func = @ptrCast(&F.setLayout), .arg = .{ .l = &layouts[2] } },
-.{ .click = .WinTitle,   .mask = 0, .button = Button2, .func = @ptrCast(&F.zoom),      .arg = undefined             },
-.{ .click = .StatusText, .mask = 0, .button = Button2, .func = @ptrCast(&F.spawn),     .arg = .{.args = &.{}}       },
+.init(.LtSymbol,   0, Button1, F.setLayout     , undefined            ),
+.init(.LtSymbol,   0, Button3, F.setLayout     , .{ .l = &layouts[2] }),
+.init(.WinTitle,   0, Button2, F.zoom          , undefined            ),
+.init(.StatusText, 0, Button2, F.spawn         , .{.args = &.{}}      ),
+.Init(.ClientWin,  0, Button1, F.moveMouse     , undefined            ),
+.init(.ClientWin,  0, Button2, F.toggleFloating, undefined            ),
 // .{ .click = .ClientWin,  .mask = 0, .button = Button1, .func = F.moveMouse, .arg = undefined             },
 };
 // // zig fmt: on
 
-// { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
-// { ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
-// { ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
-// { ClkTagBar,            0,              Button1,        view,           {0} },
-// { ClkTagBar,            0,              Button3,        toggleview,     {0} },
-// { ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
-// { ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
+// static const Button buttons[] = {
+//     /* click                event mask      button          function        argument */
+//     { ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
+//     { ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
+//     { ClkWinTitle,          0,              Button2,        zoom,           {0} },
+//     { ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+//     { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
+//     { ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
+//     { ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
+//     { ClkTagBar,            0,              Button1,        view,           {0} },
+//     { ClkTagBar,            0,              Button3,        toggleview,     {0} },
+//     { ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
+//     { ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
+// };
+
 
 pub const rules = [_]Rule{};

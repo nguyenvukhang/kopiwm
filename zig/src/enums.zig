@@ -1,6 +1,7 @@
 const X = @import("c_lib.zig").X;
 const App = @import("app.zig").App;
 const Layout = @import("layout.zig").Layout;
+const DwmError = @import("errors.zig").DwmError;
 
 /// Count the number of enum variants that exist.
 pub fn N(comptime T: type) usize {
@@ -106,8 +107,28 @@ pub const Button = struct {
     mask: c_uint,
     /// See the `Button1`...`Button5` enums in "X11/X.h".
     button: c_uint,
-    func: *const fn (*const Arg) error{OutOfMemory}!void,
+    func: *const fn (*const Arg) DwmError!void,
     arg: Arg,
+
+    pub fn init(
+        click: Clk,
+        mask: c_uint,
+        button: c_uint,
+        func: *const fn (*const Arg) void,
+        arg: Arg,
+    ) @This() {
+        return .{ .click = click, .mask = mask, .button = button, .func = @ptrCast(func), .arg = arg };
+    }
+
+    pub fn Init(
+        click: Clk,
+        mask: c_uint,
+        button: c_uint,
+        func: *const fn (*const Arg) error{OutOfMemory}!void,
+        arg: Arg,
+    ) @This() {
+        return .{ .click = click, .mask = mask, .button = button, .func = func, .arg = arg };
+    }
 };
 
 pub const BarPosition = enum { top, bottom };

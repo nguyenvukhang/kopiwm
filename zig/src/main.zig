@@ -19,6 +19,7 @@ const SchemeState = @import("enums.zig").SchemeState;
 const ColorScheme = @import("drw.zig").ColorScheme;
 const N = @import("enums.zig").N;
 const ForkError = std.posix.ForkError;
+const MOUSEMASK = @import("config.zig").MOUSEMASK;
 
 const NAME = @import("build_opts").name;
 const VERSION = @import("build_opts").version;
@@ -932,7 +933,7 @@ pub fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
         z.dpy,
         z.root,
         X.False,
-        X.MOUSEMASK,
+        MOUSEMASK,
         X.GrabModeAsync,
         X.GrabModeAsync,
         X.None,
@@ -946,7 +947,7 @@ pub fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
     var ev: XEvent = undefined;
     var lasttime: X.Time = 0;
     while (true) {
-        _ = X.XMaskEvent(z.dpy, X.MOUSEMASK | X.ExposureMask | X.SubstructureRedirectMask, &ev);
+        _ = X.XMaskEvent(z.dpy, MOUSEMASK | X.ExposureMask | X.SubstructureRedirectMask, &ev);
         switch (ev.type) {
             X.Expose | X.MapRequest | X.ConfigureRequest => try runOne(global_allocator, &ev),
             X.MotionNotify => {
@@ -1039,7 +1040,7 @@ fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
         z.dpy,
         z.root,
         X.False,
-        X.MOUSEMASK,
+        MOUSEMASK,
         X.GrabModeAsync,
         X.GrabModeAsync,
         X.None,
@@ -1058,7 +1059,7 @@ fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
     var ev: XEvent = undefined;
     var lasttime: X.Time = 0;
     while (true) {
-        _ = X.XMaskEvent(z.dpy, X.MOUSEMASK | X.ExposureMask | X.SubstructureRedirectMask, &ev);
+        _ = X.XMaskEvent(z.dpy, MOUSEMASK | X.ExposureMask | X.SubstructureRedirectMask, &ev);
         switch (ev.type) {
             X.Expose | X.MapRequest | X.ConfigureRequest => try runOne(global_allocator, &ev),
             X.MotionNotify => {
@@ -1128,14 +1129,14 @@ fn sendMon(allocator: Allocator, c: *Client, m: *Monitor) void {
     c.attach();
     c.attachStack();
     if (c.isfullscreen) {
-        c.hintAndResize(m.w);
+        c.resize(m.w);
     }
     focus(allocator, null);
     arrange(allocator, null);
 }
 
 /// (dwm) togglefloating
-fn toggleFloating(_: *const Arg) void {
+pub fn toggleFloating(_: *const Arg) void {
     const sel = z.selmon.sel orelse return;
     if (sel.isfullscreen) return; // No support for making fullscreen windows float.
     sel.is_floating.set(!sel.is_floating.now or sel.is_fixed);
