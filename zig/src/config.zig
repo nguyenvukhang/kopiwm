@@ -92,7 +92,8 @@ const MODKEY = X.Mod4Mask;
 pub const keys = [_]Key{
     // TODO: test to see if we DON'T specify null at the end of an args array,
     // will there still be a null there thanks to Zig?
-    .{ .mod = MODKEY, .sym = X.XK_space, .func = M.spawn, .arg = .{ .args = &.{"hey"} } },
+    .init(MODKEY, X.XK_space, .f(M.spawn, .{ .args = &.{"hey"} })),
+    // .{ .mod = MODKEY, .sym = X.XK_space, .func = M.spawn, .arg = .{ .args = &.{"hey"} } },
 };
 
 // { MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },

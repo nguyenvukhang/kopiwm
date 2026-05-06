@@ -20,6 +20,7 @@ const ColorScheme = @import("drw.zig").ColorScheme;
 const N = @import("enums.zig").N;
 const ForkError = std.posix.ForkError;
 const MOUSEMASK = @import("config.zig").MOUSEMASK;
+const DwmError = @import("errors.zig").DwmError;
 
 const NAME = @import("build_opts").name;
 const VERSION = @import("build_opts").version;
@@ -475,7 +476,7 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
 }
 
 /// (dwm) buttonpress
-fn buttonPress(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
+fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
     const ev: X.XButtonPressedEvent = e.xbutton;
     var click: Clk = .RootWin;
     var arg: Arg = undefined;
@@ -685,12 +686,12 @@ fn focusIn(e: *XEvent) void {
 }
 
 /// (dwm) keypress
-fn keyPress(e: *XEvent) void {
+fn keyPress(e: *XEvent) DwmError!void {
     const ev: X.XKeyEvent = e.xkey;
     const keysym = X.XkbKeycodeToKeysym(z.dpy, @intCast(ev.keycode), 0, 0);
     for (cfg.keys) |key| {
         if (keysym == key.sym and CLEANMASK(key.mod) == CLEANMASK(ev.state)) {
-            key.func(&key.arg);
+            try key.lf.func(&key.lf.arg);
         }
     }
 }
@@ -787,7 +788,7 @@ fn unmapNotify(allocator: Allocator, e: *XEvent) void {
 
 /// (dwm) run
 /// main event loop
-fn run(allocator: Allocator) error{OutOfMemory}!void {
+fn run(allocator: Allocator) DwmError!void {
     _ = X.XSync(z.dpy, X.False);
     var ev: XEvent = undefined;
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
@@ -795,21 +796,19 @@ fn run(allocator: Allocator) error{OutOfMemory}!void {
     }
 }
 
-inline fn runOne(allocator: Allocator, ev: *XEvent) error{OutOfMemory}!void {
+inline fn runOne(allocator: Allocator, ev: *XEvent) DwmError!void {
     if (handler[@intCast(ev.type)]) |handler_fn| {
         switch (handler_fn) {
-            .NoAlloc => |f| f(ev),
-            .AllocCl => |f| f(allocator, ev),
+            .NoAlloc => |f| try f(ev),
             .Alloc => |f| try f(allocator, ev),
         }
     }
 }
 
-const HandlerFnTag = enum { NoAlloc, AllocCl, Alloc };
+const HandlerFnTag = enum { NoAlloc, Alloc };
 const HandlerFn = union(HandlerFnTag) {
-    NoAlloc: *const fn (*XEvent) void,
-    AllocCl: *const fn (Allocator, *XEvent) void,
-    Alloc: *const fn (Allocator, *XEvent) error{OutOfMemory}!void,
+    NoAlloc: *const fn (*XEvent) DwmError!void,
+    Alloc: *const fn (Allocator, *XEvent) DwmError!void,
 };
 var handler: [X.LASTEvent]?HandlerFn = undefined;
 
@@ -819,19 +818,19 @@ fn setupHandler() void {
         handler[@intCast(i)] = switch (i) {
             // zig fmt: off
             X.ButtonPress      => .{ .Alloc   = buttonPress },
-            X.ClientMessage    => .{ .NoAlloc = clientMessage },
+            X.ClientMessage    => .{ .NoAlloc = @ptrCast(&clientMessage) },
             X.ConfigureNotify  => .{ .Alloc   = configurenotify },
-            X.ConfigureRequest => .{ .NoAlloc = configureRequest },
-            X.DestroyNotify    => .{ .AllocCl = destroyNotify },
-            X.EnterNotify      => .{ .AllocCl = enterNotify },
-            X.Expose           => .{ .AllocCl = expose },
-            X.FocusIn          => .{ .NoAlloc = focusIn },
+            X.ConfigureRequest => .{ .NoAlloc = @ptrCast(&configureRequest) },
+            X.DestroyNotify    => .{ .Alloc   = @ptrCast(&destroyNotify) },
+            X.EnterNotify      => .{ .Alloc   = @ptrCast(&enterNotify) },
+            X.Expose           => .{ .Alloc   = @ptrCast(&expose) },
+            X.FocusIn          => .{ .NoAlloc = @ptrCast(&focusIn) },
             X.KeyPress         => .{ .NoAlloc = keyPress },
             X.MapRequest       => .{ .Alloc   = mapRequest },
-            X.MappingNotify    => .{ .NoAlloc = mappingNotify },
-            X.MotionNotify     => .{ .AllocCl = motionNotify },
-            X.PropertyNotify   => .{ .AllocCl = propertyNotify },
-            X.UnmapNotify      => .{ .AllocCl = unmapNotify },
+            X.MappingNotify    => .{ .NoAlloc = @ptrCast(&mappingNotify) },
+            X.MotionNotify     => .{ .Alloc   = @ptrCast(&motionNotify) },
+            X.PropertyNotify   => .{ .Alloc   = @ptrCast(&propertyNotify) },
+            X.UnmapNotify      => .{ .Alloc   = @ptrCast(&unmapNotify) },
             // zig fmt: on
             else => null,
         };
@@ -920,7 +919,7 @@ pub fn monocle(m: *Monitor) void {
 }
 
 /// (dwm) movemouse
-pub fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
+pub fn moveMouse(_: *const Arg) DwmError!void {
     var c = z.selmon.sel orelse return;
     if (c.isfullscreen) return; // No support moving fullscreen windows by mouse.
     restack(global_allocator, z.selmon);
@@ -1027,7 +1026,7 @@ fn setMFact(arg: *const Arg) void {
 }
 
 /// (dwm) resizemouse
-pub fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
+pub fn resizeMouse(_: *const Arg) DwmError!void {
     var c = z.selmon.sel orelse return;
     if (c.isfullscreen) return; // No support moving fullscreen windows by mouse.
     restack(global_allocator, z.selmon);

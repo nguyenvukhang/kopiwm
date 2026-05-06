@@ -110,25 +110,22 @@ pub const Key = struct {
     mod: c_uint,
     /// X keysym.
     sym: X.KeySym,
-    /// The callback function.
-    func: *const fn (*const Arg) void,
-    arg: Arg,
+    lf: LazyFn,
+
+    pub fn init(mod: c_uint, sym: X.KeySym, lf: LazyFn) @This() {
+        return .{ .mod = mod, .sym = sym, .lf = lf };
+    }
 };
 
 /// A mouse button.
 pub const Button = struct {
     click: Clk,
     mask: c_uint,
-    /// See the `Button1`...`Button5` enums in "X11/X.h".
+    /// One of `Button1`...`Button5` enums in "X11/X.h".
     button: c_uint,
     lf: LazyFn,
 
-    pub fn init(
-        click: Clk,
-        mask: c_uint,
-        button: c_uint,
-        lf: LazyFn,
-    ) @This() {
+    pub fn init(click: Clk, mask: c_uint, button: c_uint, lf: LazyFn) @This() {
         return .{ .click = click, .mask = mask, .button = button, .lf = lf };
     }
 };
