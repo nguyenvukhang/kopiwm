@@ -32,7 +32,7 @@ pub const Monitor = struct {
     /// Index of selected tags (indexes `self.tagset`).
     seltags: u1 = 0,
     /// Index of selected layout (indexes `self.lt`).
-    sellt: u1 = undefined,
+    sellt: u1 = 0,
     /// A couple of bitmasks, only ever to be indexed by `seltags`.
     tagset: [2]u32 = .{ 1, 1 },
     /// false means hide bar.
@@ -47,6 +47,9 @@ pub const Monitor = struct {
 
     next: ?*Self = null,
     barwin: Window = undefined,
+    /// Keep two layouts in memory so that toggling back to the previous one is
+    /// easy.
+    /// TODO: use the `toggle` data structure for this to improve clarity.
     lt: [2]*const Layout = .{
         &cfg.layouts[0],
         &cfg.layouts[1 % cfg.layouts.len],

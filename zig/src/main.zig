@@ -993,6 +993,23 @@ fn moveMouse(_: *const Arg) error{OutOfMemory}!void {
     }
 }
 
+/// (dwm) setlayout
+fn setLayout(arg: *const Arg) void {
+    // TODO: check all other instances of tagged access of args. Make sure to
+    // use a switch statement before indexing.
+    const lt: *const Layout = switch (arg) {
+        .l => |lt| lt,
+        else => return,
+    };
+    z.selmon.lt[z.selmon.sellt] = lt;
+    z.selmon.layout_symbol = lt.symbol;
+    if (z.selmon.sel) |_| {
+        arrange(global_allocator, z.selmon);
+    } else {
+        drawbar(global_allocator, z.selmon);
+    }
+}
+
 /// (dwm) resizemouse
 fn resizeMouse(_: *const Arg) error{OutOfMemory}!void {
     var c = z.selmon.sel orelse return;

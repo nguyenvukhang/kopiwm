@@ -1,5 +1,6 @@
 const X = @import("c_lib.zig").X;
 const App = @import("app.zig").App;
+const Layout = @import("layout.zig").Layout;
 
 /// Count the number of enum variants that exist.
 pub fn N(comptime T: type) usize {
@@ -70,6 +71,8 @@ pub const ArgTag = enum {
     f,
     /// Direction. (used for relative navigation.)
     d,
+    /// Layout.
+    l,
     /// Strings. (used for cli args.)
     s,
 };
@@ -79,6 +82,7 @@ pub const Arg = union(ArgTag) {
     ui: u32,
     f: f32,
     d: Direction,
+    l: Layout,
     s: []const u8,
 };
 
