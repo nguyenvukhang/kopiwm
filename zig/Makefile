@@ -25,3 +25,8 @@ install:
 log:
 	# nvim ~/.local/share/xorg/Xorg.0.log
 	nvim ~/.local/share/xorg/dwm.log
+
+recovery:
+	Xorg -configure
+	dpkg --configure -a
+	# and then reboot (logging out is not enough for some reason)

@@ -774,7 +774,6 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
     } else if (wintoclient(ev.window)) |c| {
         switch (ev.atom) {
             X.XA_WM_TRANSIENT_FOR => {
-                log.debug("propertyNotify::XA_WM_TRANSIENT_FOR", .{});
                 var trans: Window = undefined;
                 const b = !c.is_floating.now and
                     X.XGetTransientForHint(z.dpy, c.win, &trans) != 0;
@@ -1269,7 +1268,7 @@ fn setup(allocator: Allocator) !void {
     }
     log.info("Initialized drw", .{});
     z.lrpad = z.drw.fonts.h;
-    z.bar_height = z.drw.fonts.h + 2;
+    z.bar_height = 20;
 
     var selmon: ?*Monitor = null;
     // Make sure that `selmon` is initialized.
@@ -1813,7 +1812,7 @@ pub fn zoom(_: *const Arg) void {
 
 /// (dwm) drawbar
 fn drawbar(allocator: Allocator, m: *Monitor) void {
-    log.info("drawbar({*})", .{m});
+    log.info("drawbar(show={}, height={d}, {*})", .{ m.show_bar, z.bar_height, m });
 
     if (!m.show_bar) return;
 
@@ -1834,6 +1833,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
             .h = z.bar_height,
         }, 0, z.stext.get(), 0);
     }
+    log.debug("Got into here of drawbar", .{});
 
     var c_opt = m.clients;
     while (c_opt) |c| : (c_opt = c.next) {
@@ -1867,6 +1867,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
         }
         x += @intCast(w);
     }
+    log.debug("Got into here (2) of drawbar", .{});
 
     w = z.TEXTW(allocator, m.layout_symbol);
     z.drw.setScheme(z.scheme.get(.Normal));
