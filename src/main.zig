@@ -364,6 +364,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     c.mon.sel = c;
     arrange(allocator, c.mon);
     _ = X.XMapWindow(z.dpy, c.win);
+    log.info("XMapWindow({d})", .{c.win});
     focus(allocator, null);
 }
 
@@ -1586,7 +1587,7 @@ fn updatebars() void {
     var ch = z.classHint();
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
-        if (m.barwin == 0) {
+        if (m.barwin != 0) {
             continue;
         }
         m.barwin = X.XCreateWindow(

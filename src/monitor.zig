@@ -46,7 +46,7 @@ pub const Monitor = struct {
     stack: ?*Client = null,
 
     next: ?*Self = null,
-    barwin: Window = undefined,
+    barwin: Window = 0,
     /// Keep two layouts in memory so that toggling back to the previous one is
     /// easy.
     /// TODO: use the `toggle` data structure for this to improve clarity.
