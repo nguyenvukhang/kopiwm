@@ -1363,8 +1363,8 @@ fn unfocus(client: ?*Client, setfocus: bool) void {
 /// (dwm) focus
 fn focus(allocator: Allocator, client: ?*Client) void {
     if (client) |c| {
-        log.info("Called focus({*})", .{c});
-    } else log.info("Called focus(null)", .{});
+        log.info("focus({*})", .{c});
+    } else log.info("focus(null)", .{});
 
     var c_opt = client;
     if (if (c_opt) |c| !c.isVisible() else true) {
@@ -1376,7 +1376,6 @@ fn focus(allocator: Allocator, client: ?*Client) void {
             }
         }
     }
-    log.info("still the same? {}", .{c_opt == client});
     // If the currently selected client in the selected monitor is not `c_opt`,
     // then unfocus it.
     if (z.selmon.sel != c_opt) {
@@ -1384,7 +1383,6 @@ fn focus(allocator: Allocator, client: ?*Client) void {
         unfocus(z.selmon.sel, false);
     }
     if (c_opt) |c| {
-        log.info("focus.c_opt exists", .{});
         z.selmon = c.mon;
         // if the client (that's about to be focused) is urgent, then put it at
         // ease for it is about to be tended to.
@@ -1395,12 +1393,10 @@ fn focus(allocator: Allocator, client: ?*Client) void {
         _ = X.XSetWindowBorder(z.dpy, c.win, z.scheme.get(.Selected).border.pixel);
         c.setFocus();
     } else {
-        log.info("focus.c_opt is null", .{});
         _ = X.XSetInputFocus(z.dpy, z.root, X.RevertToPointerRoot, X.CurrentTime);
         _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));
     }
     z.selmon.sel = c_opt;
-    if (z.selmon.sel) |c| log.info("Set selmon.sel to {*}", .{c});
     drawbars(allocator);
 }
 
@@ -1465,6 +1461,7 @@ fn grabkeys() void {
     const syms: [*]X.KeySym =
         X.XGetKeyboardMapping(z.dpy, @intCast(start), end - start + 1, &skip) orelse
         return;
+    defer _ = X.XFree(syms);
 
     var keycode = start;
     while (keycode < end) : (keycode += 1) {
@@ -1485,8 +1482,6 @@ fn grabkeys() void {
             }
         }
     }
-    _ = X.XFree(syms);
-    log.info("grabkeys() finished!", .{});
 }
 
 /// (dwm) updatenumlockmask
@@ -1798,7 +1793,7 @@ pub fn pop(allocator: Allocator, c: *Client) void {
 
 /// (dwm) quit
 pub fn quit(_: *const Arg) void {
-    log.info("Call it quits", .{});
+    log.info("quit() called.", .{});
     z.running = false;
 }
 
@@ -1818,9 +1813,9 @@ pub fn zoom(_: *const Arg) void {
 
 /// (dwm) drawbar
 fn drawbar(allocator: Allocator, m: *Monitor) void {
-    if (!m.show_bar) {
-        return;
-    }
+    log.info("drawbar({*})", .{m});
+
+    if (!m.show_bar) return;
 
     var tw: u32 = 0;
     const boxs = z.drw.fonts.h / 9;
