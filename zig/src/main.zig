@@ -1653,6 +1653,21 @@ pub fn tile(m: *Monitor) void {
     }
 }
 
+/// (dwm) togglebar
+fn togglebar(_: *const Arg) void {
+    z.selmon.show_bar = !z.selmon.show_bar;
+    updatebarpos(z.selmon);
+    _ = X.XMoveResizeWindow(
+        z.dpy,
+        z.selmon.barwin,
+        z.selmon.w.x,
+        z.selmon.by,
+        z.selmon.w.w,
+        z.bar_height,
+    );
+    arrange(global_allocator, z.selmon);
+}
+
 /// (dwm) pop
 pub fn pop(allocator: Allocator, c: *Client) void {
     c.detach();
