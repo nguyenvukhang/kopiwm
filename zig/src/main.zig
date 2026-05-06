@@ -1834,7 +1834,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
             .h = z.bar_height,
         }, 0, z.stext.get(), 0);
     }
-    log.debug("Got into here of drawbar", .{});
+    log.debug("Drawn status text({}). tw={d}", .{m == z.selmon, tw});
 
     var c_opt = m.clients;
     while (c_opt) |c| : (c_opt = c.next) {

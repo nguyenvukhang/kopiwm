@@ -173,7 +173,7 @@ pub const Drw = struct {
     pub fn init(
         dpy: *Display,
         screen: c_int,
-        window: Window,
+        root: Window,
         /// width
         w: u32,
         /// height
@@ -184,9 +184,9 @@ pub const Drw = struct {
             .h = h,
             .dpy = dpy,
             .screen = screen,
-            .root = window,
-            .drawable = X.XCreatePixmap(dpy, window, w, h, @intCast(X.DefaultDepth(dpy, screen))),
-            .gc = X.XCreateGC(dpy, window, 0, null),
+            .root = root,
+            .drawable = X.XCreatePixmap(dpy, root, w, h, @intCast(X.DefaultDepth(dpy, screen))),
+            .gc = X.XCreateGC(dpy, root, 0, null),
         };
         _ = X.XSetLineAttributes(dpy, drw.gc, 1, X.LineSolid, X.CapButt, X.JoinMiter);
         return drw;
@@ -368,7 +368,7 @@ pub const Drw = struct {
             w = if (invert_) invert else ~invert;
         } else {
             const color = if (invert_) &self.scheme.?.fg else &self.scheme.?.bg;
-            log.debug("Draw a rect({x})", .{color.pixel});
+            log.debug("Draw a rect({x}) @ (x={d}, y={d}, w={d}, h={d})", .{color.pixel, x, y, w, h});
             _ = X.XSetForeground(self.dpy, self.gc, color.pixel);
             _ = X.XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
             if (w < lpad) {
@@ -380,7 +380,7 @@ pub const Drw = struct {
                 X.DefaultVisual(self.dpy, self.screen),
                 X.DefaultColormap(self.dpy, self.screen),
             );
-            if (d == null) log.debug("XftDrawCreate yielded a null", .{});
+            if (d == null) log.err("XftDrawCreate yielded a null", .{});
             x += @intCast(lpad);
             w -= lpad;
         }
@@ -471,7 +471,7 @@ pub const Drw = struct {
                 if (render) {
                     ty = y + @divTrunc(@as(i32, @intCast(h - usedfont.h)), 2) + usedfont.xfont.ascent;
                     const color = if (invert_) &self.scheme.?.bg else &self.scheme.?.fg;
-                    log.debug("Draw string: {s}", .{utf8str});
+                    log.debug("Draw string: {s} @ x={d}", .{ utf8str, x });
                     X.XftDrawStringUtf8(d, color, usedfont.xfont, x, ty, utf8str.ptr, @intCast(utf8strlen));
                 }
                 x += @intCast(ew);
