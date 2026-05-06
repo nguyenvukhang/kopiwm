@@ -26,9 +26,9 @@ pub const Monitor = struct {
     /// Bar geometry.
     by: i32 = undefined,
     /// Current monitor rect.
-    m: Rect = undefined,
+    m: Rect = .zero,
     /// Current window rect.
-    w: Rect = undefined,
+    w: Rect = .zero,
     /// Index of selected tags (indexes `self.tagset`).
     seltags: u1 = 0,
     /// Index of selected layout (indexes `self.lt`).
