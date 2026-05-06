@@ -22,6 +22,14 @@ pub fn fstr(comptime N: usize) type {
             @memcpy(self.buffer[0..self.len], value[0..self.len]);
         }
 
+        pub fn cstr(self: *Self) ?[*c]u8 {
+            if (self.len < capacity) {
+                self.buffer[self.len] = 0; // set the terminating NUL byte.
+                return &self.buffer;
+            }
+            return null;
+        }
+
         pub fn contains(self: *Self, substring: []const u8) bool {
             return mem.containsAtLeast(u8, self.get(), 1, substring);
         }

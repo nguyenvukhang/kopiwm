@@ -1,5 +1,6 @@
 //! By convention, root.zig is the root source file when making a library.
 const std = @import("std");
+const log = std.log;
 const build_opts = @import("build_opts");
 const X = @import("c_lib.zig").X;
 const Net = @import("enums.zig").Net;
@@ -56,7 +57,7 @@ pub const App = struct {
     scheme: EnumArray(SchemeState, *ColorScheme) = undefined,
 
     /// The only purpose for this is to patch for `updatebars`.
-    updatebars_buffer: [16]u8 = undefined,
+    updatebars_buffer: fstr(16) = undefined,
 
     /// Status bar text.
     stext: fstr(256) = undefined,
@@ -67,8 +68,7 @@ pub const App = struct {
 
     pub fn init() Self {
         var z = Self{};
-        const n = @min(build_opts.name.len, z.updatebars_buffer.len);
-        @memcpy(z.updatebars_buffer[0..n], build_opts.name[0..n]);
+        z.updatebars_buffer.set(build_opts.name);
         return z;
     }
 
@@ -84,10 +84,9 @@ pub const App = struct {
     }
 
     pub fn classHint(self: *Self) X.XClassHint {
-        return .{
-            .res_class = &self.updatebars_buffer,
-            .res_name = &self.updatebars_buffer,
-        };
+        log.info("Class Hint: {s}", .{self.updatebars_buffer.get()});
+        const slice = self.updatebars_buffer.cstr().?;
+        return .{ .res_class = slice, .res_name = slice };
     }
 
     /// (dwm) getrootptr
