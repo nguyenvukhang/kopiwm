@@ -1668,6 +1668,24 @@ fn togglebar(_: *const Arg) void {
     arrange(global_allocator, z.selmon);
 }
 
+/// (dwm) toggletag
+fn toggletag(arg: *const Arg) void {
+    const mask = switch (arg.*) {
+        .ui => |v| v,
+        else => return,
+    };
+    // unsigned int newtags;
+
+    const sel = z.selmon.sel orelse return;
+
+    const newtags = sel.tags ^ (mask & cfg.TAGMASK);
+    if (newtags != 0) {
+        sel.tags = newtags;
+        focus(global_allocator, null);
+        arrange(global_allocator, z.selmon);
+    }
+}
+
 /// (dwm) pop
 pub fn pop(allocator: Allocator, c: *Client) void {
     c.detach();
