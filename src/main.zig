@@ -501,8 +501,10 @@ fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
         var x: u32 = 0;
         while (true) {
             x += z.TEXTW(allocator, cfg.tags[i].text);
-            i += 1;
-            if (ev.x >= x and i < cfg.tags.len) continue;
+            if (ev.x >= x) {
+                i += 1;
+                if (i < cfg.tags.len) continue;
+            }
             break;
         }
         if (i < cfg.tags.len) {
