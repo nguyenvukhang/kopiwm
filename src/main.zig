@@ -1575,7 +1575,7 @@ fn updateBars() void {
     }
 }
 
-/// (dwm) updateStatus
+/// (dwm) updatestatus
 fn updateStatus(allocator: Allocator) void {
     if (z.getTextProp(z.root, X.XA_WM_NAME, &z.stext.buffer)) |len| {
         z.stext.len = len;
