@@ -125,47 +125,60 @@ const termcmd: [*:null]const ?[*:0]const u8 = &.{"xterm"};
 const base_keys = [_]Key{
     // TODO: test to see if we DON'T specify null at the end of an args array,
     // will there still be a null there thanks to Zig?
-    .init(MODKEY,             X.XK_p,      .f(M.spawn,          .{ .args = launchcmd  })),
-    .init(MODKEY | ShiftMask, X.XK_Return, .f(M.spawn,          .{ .args = termcmd    })),
-    .init(MODKEY,             X.XK_b,      .f(M.toggleBar,      undefined              )),
-    .init(MODKEY,             X.XK_j,      .f(M.focusStack,     .{ .d = .Next         })),
-    .init(MODKEY,             X.XK_k,      .f(M.focusStack,     .{ .d = .Prev         })),
-    .init(MODKEY,             X.XK_i,      .f(M.incNMaster,     .{ .i =  1            })),
-    .init(MODKEY,             X.XK_d,      .f(M.incNMaster,     .{ .i = -1            })),
-    .init(MODKEY,             X.XK_h,      .f(M.setMFact,       .{ .f =  0.05         })),
-    .init(MODKEY,             X.XK_l,      .f(M.incNMaster,     .{ .f = -0.05         })),
-    .init(MODKEY,             X.XK_Return, .f(M.zoom,           undefined              )),
-    .init(MODKEY,             X.XK_Tab,    .f(M.view,           undefined              )),
-    .init(MODKEY|ShiftMask,   X.XK_c,      .f(M.killClient,     undefined              )),
-    .init(MODKEY,             X.XK_t,      .f(M.setLayout,      .{ .l = &layouts[0]   })),
-    .init(MODKEY,             X.XK_f,      .f(M.setLayout,      .{ .l = &layouts[1]   })),
-    .init(MODKEY,             X.XK_m,      .f(M.setLayout,      .{ .l = &layouts[2]   })),
-    .init(MODKEY,             X.XK_space,  .f(M.setLayout,      undefined              )),
-    .init(MODKEY|ShiftMask,   X.XK_space,  .f(M.toggleFloating, undefined              )),
-    .init(MODKEY,             X.XK_0,      .f(M.view,           .{ .ui = ~@as(u32, 0) })),
-    .init(MODKEY|ShiftMask,   X.XK_0,      .f(M.tag,            .{ .ui = ~@as(u32, 0) })),
-    .init(MODKEY,             X.XK_comma,  .f(M.focusMon,       .{ .d = .Prev         })),
-    .init(MODKEY,             X.XK_period, .f(M.focusMon,       .{ .d = .Next         })),
-    .init(MODKEY|ShiftMask,   X.XK_comma,  .f(M.tagMonitor,     .{ .d = .Prev         })),
-    .init(MODKEY|ShiftMask,   X.XK_period, .f(M.tagMonitor,     .{ .d = .Next         })),
-    .init(MODKEY|ShiftMask,   X.XK_q,      .f(M.quit,           undefined              )),
+    .init(MODKEY,            X.XK_p,      .f(M.spawn,          .{ .args = launchcmd  })),
+    .init(MODKEY|ShiftMask,  X.XK_Return, .f(M.spawn,          .{ .args = termcmd    })),
+    .init(MODKEY,            X.XK_b,      .f(M.toggleBar,      undefined              )),
+    .init(MODKEY,            X.XK_j,      .f(M.focusStack,     .{ .d = .Next         })),
+    .init(MODKEY,            X.XK_k,      .f(M.focusStack,     .{ .d = .Prev         })),
+    .init(MODKEY,            X.XK_i,      .f(M.incNMaster,     .{ .i =  1            })),
+    .init(MODKEY,            X.XK_d,      .f(M.incNMaster,     .{ .i = -1            })),
+    .init(MODKEY,            X.XK_h,      .f(M.setMFact,       .{ .f =  0.05         })),
+    .init(MODKEY,            X.XK_l,      .f(M.incNMaster,     .{ .f = -0.05         })),
+    .init(MODKEY,            X.XK_Return, .f(M.zoom,           undefined              )),
+    .init(MODKEY,            X.XK_Tab,    .f(M.view,           undefined              )),
+    .init(MODKEY|ShiftMask,  X.XK_c,      .f(M.killClient,     undefined              )),
+    .init(MODKEY,            X.XK_t,      .f(M.setLayout,      .{ .l = &layouts[0]   })),
+    .init(MODKEY,            X.XK_f,      .f(M.setLayout,      .{ .l = &layouts[1]   })),
+    .init(MODKEY,            X.XK_m,      .f(M.setLayout,      .{ .l = &layouts[2]   })),
+    .init(MODKEY,            X.XK_space,  .f(M.setLayout,      undefined              )),
+    .init(MODKEY|ShiftMask,  X.XK_space,  .f(M.toggleFloating, undefined              )),
+    .init(MODKEY,            X.XK_0,      .f(M.view,           .{ .ui = ~@as(u32, 0) })),
+    .init(MODKEY|ShiftMask,  X.XK_0,      .f(M.tag,            .{ .ui = ~@as(u32, 0) })),
+    .init(MODKEY,            X.XK_comma,  .f(M.focusMon,       .{ .d = .Prev         })),
+    .init(MODKEY,            X.XK_period, .f(M.focusMon,       .{ .d = .Next         })),
+    .init(MODKEY|ShiftMask,  X.XK_comma,  .f(M.tagMonitor,     .{ .d = .Prev         })),
+    .init(MODKEY|ShiftMask,  X.XK_period, .f(M.tagMonitor,     .{ .d = .Next         })),
+    .init(MODKEY|ShiftMask,  X.XK_q,      .f(M.quit,           undefined              )),
 };
 // zig fmt: on
 
-const K: usize = base_keys.len + 4 * tags.len;
+/// A template of what's to be mapped for each tag available.
+const tag_keys_template = [_]Key{
+    // zig fmt: off
+    .init(MODKEY,                       0, .f(M.view,       .{ .ui = 0 })),
+    .init(MODKEY|ControlMask,           0, .f(M.toggleView, .{ .ui = 0 })),
+    .init(MODKEY|ShiftMask,             0, .f(M.tag,        .{ .ui = 0 })),
+    .init(MODKEY|ShiftMask|ControlMask, 0, .f(M.toggleTag,  .{ .ui = 0 })),
+    // zig fmt: on
+};
+
+/// The total number of key maps.
+const K: usize = base_keys.len + tag_keys_template.len * tags.len;
+
 fn initKeys() [K]Key {
     var arr: [K]Key = undefined;
     @memcpy(arr[0..base_keys.len], &base_keys);
+    var per_tag = tag_keys_template;
+    const T = tag_keys_template.len;
+    var j = base_keys.len;
     for (0..tags.len) |i| {
-        const key = tags[i].key;
-        const j = base_keys.len + i * 4;
-        const arg: Arg = .{ .ui = @as(u32, 1) << @intCast(i) }; // tag's bitmask
-        // zig fmt: off
-        arr[j + 0] = .init(MODKEY,                       key, .f(M.view,       arg));
-        arr[j + 1] = .init(MODKEY|ControlMask,           key, .f(M.toggleView, arg));
-        arr[j + 2] = .init(MODKEY|ShiftMask,             key, .f(M.tag,        arg));
-        arr[j + 3] = .init(MODKEY|ShiftMask|ControlMask, key, .f(M.toggleTag,  arg));
-        // zig fmt: on
+        const tag_mask = @as(u32, 1) << @intCast(i);
+        for (&per_tag) |*key| {
+            key.sym = tags[i].key;
+            key.lf.arg = .{ .ui = tag_mask };
+        }
+        @memcpy(arr[j..j + T], &per_tag);
+        j += T;
     }
     return arr;
 }
