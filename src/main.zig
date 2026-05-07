@@ -1865,7 +1865,6 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
         }
         x += @intCast(w);
     }
-    log.debug("Got into here (2) of drawbar", .{});
 
     w = z.TEXTW(allocator, m.layout_symbol);
     z.drw.setScheme(z.scheme.get(.Normal));

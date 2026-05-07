@@ -481,7 +481,6 @@ pub const Drw = struct {
                 if (render) {
                     ty = y + @divTrunc(@as(i32, @intCast(h - usedfont.h)), 2) + usedfont.xfont.ascent;
                     const color = if (invert_) &self.scheme.?.bg else &self.scheme.?.fg;
-                    log.debug("Draw string: {s} @ x={d}", .{ utf8str, x });
                     X.XftDrawStringUtf8(d, color, usedfont.xfont, x, ty, utf8str.ptr, @intCast(utf8strlen));
                 }
                 x += @intCast(ew);
