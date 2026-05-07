@@ -1591,6 +1591,7 @@ pub fn spawn(arg: *const Arg) void {
         .args => |value| value,
         else => return,
     };
+    log.info("Called spawn()", .{});
     // TODO: handle the failure case by updating the Key struct.
     const pid = std.posix.fork() catch unreachable;
     if (pid == 0) {
