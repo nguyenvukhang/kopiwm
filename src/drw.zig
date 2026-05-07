@@ -58,7 +58,7 @@ pub const ColorScheme = Scheme(XftColor);
 /// (dwm) xfont_create
 fn xfontCreate(
     allocator: Allocator,
-    drw: *Drw,
+    drw: *const Drw,
     fontname: []const u8,
     font_pattern: ?*FcPattern,
 ) error{ OutOfMemory, FontCreateError }!*Fnt {
@@ -175,11 +175,13 @@ pub const Drw = struct {
     drawable: Drawable,
     gc: X.GC,
     scheme: ?*ColorScheme = null,
-    /// A linked list of fonts. Guaranteed to have at least one.
-    fonts: *Fnt = undefined,
+    /// A linked list of fonts. Guaranteed to have at least one after calling
+    /// fontsetCreate.
+    fonts: *Fnt,
 
     /// (dwm) drw_create
     pub fn init(
+        allocator: Allocator,
         dpy: *Display,
         screen: c_int,
         root: Window,
@@ -187,8 +189,9 @@ pub const Drw = struct {
         w: u32,
         /// height
         h: u32,
-    ) Self {
-        const drw: Self = .{
+        fonts: []const []const u8,
+    ) error{ OutOfMemory, FontCreateError }!Self {
+        var drw: Self = .{
             .w = w,
             .h = h,
             .dpy = dpy,
@@ -196,8 +199,14 @@ pub const Drw = struct {
             .root = root,
             .drawable = X.XCreatePixmap(dpy, root, w, h, @intCast(X.DefaultDepth(dpy, screen))),
             .gc = X.XCreateGC(dpy, root, 0, null),
+            .fonts = undefined,
         };
         _ = X.XSetLineAttributes(dpy, drw.gc, 1, X.LineSolid, X.CapButt, X.JoinMiter);
+        drw.fonts = try drw.fontsetCreate(allocator, fonts) orelse {
+            // Empty linked list. No fonts loaded.
+            std.debug.print("no fonts could be loaded.\n", .{});
+            return error.FontCreateError;
+        };
         return drw;
     }
 
@@ -226,7 +235,7 @@ pub const Drw = struct {
 
     /// (dwm) drw_fontset_create
     pub fn fontsetCreate(
-        self: *Self,
+        self: *const Self,
         allocator: Allocator,
         fonts: []const []const u8,
     ) error{ OutOfMemory, FontCreateError }!?*Fnt {
@@ -239,9 +248,6 @@ pub const Drw = struct {
             cur.next = ret;
             ret = cur;
         }
-        self.fonts = ret orelse {
-            @panic("fontsetCreate could not find any viable fonts.");
-        };
         return ret;
     }
 

@@ -27,12 +27,12 @@ pub const App = struct {
     // cannot dereference undefined value."
     dpy: *X.Display = undefined,
 
-    screen: c_int = undefined,
+    screen: c_int = 0,
 
     /// Screen size.
     /// Apparently dwm updates this in `void configurenotify(XEvent *)`, and
     /// that's probably how multipe monitors are supported.
-    s: Size = undefined,
+    s: Size = .zero,
 
     drw: Drw = undefined,
 
@@ -46,21 +46,19 @@ pub const App = struct {
     /// Selected monitor.
     selmon: *Monitor = undefined,
 
-    root: Window = undefined,
-    wmcheckwin: Window = undefined,
+    root: Window = 0,
+    wmcheckwin: Window = 0,
 
-    wmatom: EnumArray(WM, Atom) = undefined,
-    netatom: EnumArray(Net, Atom) = undefined,
-
-    cursors: EnumArray(CursorState, Cursor) = undefined,
-
-    scheme: EnumArray(SchemeState, *ColorScheme) = undefined,
+    wmatom: EnumArray(WM, Atom) = .empty,
+    netatom: EnumArray(Net, Atom) = .empty,
+    cursors: EnumArray(CursorState, Cursor) = .empty,
+    scheme: EnumArray(SchemeState, *ColorScheme) = .empty,
 
     /// The only purpose for this is to patch for `updatebars`.
-    updatebars_buffer: fstr(16) = undefined,
+    updatebars_buffer: fstr(16) = .empty,
 
     /// Status bar text.
-    stext: fstr(256) = undefined,
+    stext: fstr(256) = .empty,
 
     numlockmask: c_uint = 0,
 

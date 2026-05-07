@@ -1227,7 +1227,7 @@ fn updategeom(allocator: Allocator, selmon: *?*Monitor) error{OutOfMemory}!bool 
 }
 
 /// (dwm) setup
-fn setup(allocator: Allocator) !void {
+fn setup(allocator: Allocator) DwmError!void {
     var utf8string: X.Atom = undefined;
     var sa: C.struct_sigaction = undefined;
 
@@ -1245,15 +1245,7 @@ fn setup(allocator: Allocator) !void {
     z.s.h = @intCast(X.DisplayHeight(z.dpy, z.screen));
     log.info("width: {d}, height: {d}", .{ z.s.w, z.s.h });
     z.root = X.RootWindow(z.dpy, z.screen);
-    z.drw = .init(z.dpy, z.screen, z.root, z.s.w, z.s.h);
-    {
-        const f = try z.drw.fontsetCreate(allocator, &cfg.fonts);
-        if (f == null) {
-            // Empty linked list. No fonts loaded.
-            std.debug.print("no fonts could be loaded.\n", .{});
-            return;
-        }
-    }
+    z.drw = try .init(allocator, z.dpy, z.screen, z.root, z.s.w, z.s.h, &cfg.fonts);
     z.lrpad = z.drw.fonts.h;
     z.bar_height = 20;
 

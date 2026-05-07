@@ -7,6 +7,8 @@ pub fn EnumArray(comptime Key: type, comptime Value: type) type {
 
         values: [std.enums.values(Key).len]Value,
 
+        pub const empty: Self = .{ .values = undefined };
+
         pub inline fn get(self: *const Self, key: Key) Value {
             return self.values[@intFromEnum(key)];
         }

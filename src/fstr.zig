@@ -11,6 +11,8 @@ pub fn fstr(comptime N: usize) type {
         /// Do not access this directly if possible.
         len: usize = 0,
 
+        pub const empty: Self = .{};
+
         /// Gets the underlying string representation.
         pub inline fn get(self: *Self) []const u8 {
             return self.buffer[0..self.len];

@@ -112,6 +112,8 @@ pub const Size = struct {
     /// Height.
     h: u32,
 
+    pub const zero: Self = .{ .w = 0, .h = 0 };
+
     pub inline fn eq(lhs: *const Self, rhs: *const Self) bool {
         return lhs.w == rhs.w and lhs.h == rhs.h;
     }
