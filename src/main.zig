@@ -1035,7 +1035,7 @@ pub fn moveMouse(_: *const Arg) DwmError!void {
 pub fn setLayout(arg: *const Arg) void {
     // TODO: check all other instances of tagged access of args. Make sure to
     // use a switch statement before indexing.
-    const lt: *const Layout = switch (arg.*) {
+    const lt = switch (arg.*) {
         .l => |lt| lt,
         else => return,
     };
