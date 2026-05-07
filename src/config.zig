@@ -140,7 +140,7 @@ const base_keys = [_]Key{
     .init(MODKEY,            X.XK_t,      .f(M.setLayout,      .{ .l = &layouts[0]   })),
     .init(MODKEY,            X.XK_f,      .f(M.setLayout,      .{ .l = &layouts[1]   })),
     .init(MODKEY,            X.XK_m,      .f(M.setLayout,      .{ .l = &layouts[2]   })),
-    .init(MODKEY,            X.XK_space,  .f(M.setLayout,      undefined              )),
+    .init(MODKEY,            X.XK_space,  .f(M.setLayout,      .{ .l = &.empty       })),
     .init(MODKEY|ShiftMask,  X.XK_space,  .f(M.toggleFloating, undefined              )),
     .init(MODKEY,            X.XK_0,      .f(M.view,           .{ .ui = ~@as(u32, 0) })),
     .init(MODKEY|ShiftMask,  X.XK_0,      .f(M.tag,            .{ .ui = ~@as(u32, 0) })),
