@@ -478,7 +478,6 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
 
 /// (dwm) buttonpress
 fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
-    log.info("Start buttonPress()", .{});
     const ev: X.XButtonPressedEvent = e.xbutton;
     var click: Clk = .RootWin;
     var arg: Arg = undefined;
@@ -542,7 +541,6 @@ fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
 
 /// (dwm) clientmessage
 fn clientMessage(e: *XEvent) void {
-    log.info("Start clientMessage()", .{});
     const ev: X.XClientMessageEvent = e.xclient;
     var c: *Client = winToClient(ev.window) orelse return;
 
@@ -564,7 +562,6 @@ fn clientMessage(e: *XEvent) void {
 
 /// (dwm) configurerequest
 fn configureRequest(e: *XEvent) void {
-    log.info("Start configureRequest()", .{});
     const ev = e.xconfigurerequest;
     const vmask = ev.value_mask;
 
@@ -628,7 +625,6 @@ fn configureRequest(e: *XEvent) void {
 
 /// (dwm) configurenotify
 fn configureNotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
-    log.info("Start configureNotify()", .{});
     const ev: X.XConfigureEvent = e.xconfigure;
     if (ev.window != z.root) return;
     const dirty = z.s.w != ev.width or z.s.h != ev.height;
@@ -658,14 +654,12 @@ fn configureNotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
 
 /// (dwm) destroynotify
 fn destroyNotify(allocator: Allocator, e: *XEvent) void {
-    log.info("Start destroyNotify()", .{});
     const ev: X.XDestroyWindowEvent = e.xdestroywindow;
     if (winToClient(ev.window)) |c| unmanage(allocator, c, true);
 }
 
 /// (dwm) enternotify
 fn enterNotify(allocator: Allocator, e: *XEvent) void {
-    log.info("Start enterNotify()", .{});
     const ev: X.XCrossingEvent = e.xcrossing;
     if ((ev.mode != X.NotifyNormal or ev.detail == X.NotifyInferior) and ev.window != z.root) {
         return;
@@ -683,7 +677,6 @@ fn enterNotify(allocator: Allocator, e: *XEvent) void {
 
 /// (dwm) expose
 fn expose(allocator: Allocator, e: *XEvent) void {
-    log.info("Start expose()", .{});
     const ev: X.XExposeEvent = e.xexpose;
     if (ev.count == 0) {
         drawbar(allocator, wintomon(ev.window));
@@ -692,7 +685,6 @@ fn expose(allocator: Allocator, e: *XEvent) void {
 
 /// (dwm) focusin
 fn focusIn(e: *XEvent) void {
-    log.info("Start focusIn()", .{});
     const ev: X.XFocusChangeEvent = e.xfocus;
     if (z.selmon.sel) |sel| {
         if (ev.window != sel.win) sel.setFocus();
@@ -701,7 +693,6 @@ fn focusIn(e: *XEvent) void {
 
 /// (dwm) keypress
 fn keyPress(e: *XEvent) DwmError!void {
-    log.info("Start keyPress()", .{});
     const ev: X.XKeyEvent = e.xkey;
     const keysym = X.XkbKeycodeToKeysym(z.dpy, @intCast(ev.keycode), 0, 0);
     for (cfg.keys) |key| {
@@ -716,7 +707,6 @@ fn keyPress(e: *XEvent) DwmError!void {
 
 /// (dwm) mappingnotify
 fn mappingNotify(e: *XEvent) void {
-    log.info("Start mappingNotify()", .{});
     const ev: *X.XMappingEvent = &e.xmapping;
     _ = X.XRefreshKeyboardMapping(ev);
     if (ev.request == X.MappingKeyboard) {
@@ -726,7 +716,6 @@ fn mappingNotify(e: *XEvent) void {
 
 /// (dwm) maprequest
 fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
-    log.info("Start mapRequest()", .{});
     const ev: X.XMapRequestEvent = e.xmaprequest;
     var wa: X.XWindowAttributes = undefined;
 
@@ -734,7 +723,7 @@ fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     if (res == 0 or wa.override_redirect != 0) return;
 
     if (winToClient(ev.window) == null) {
-        log.info("Start managing window {d} (maprequest)", .{ev.window});
+        log.info("Start managing window {d} (mapRequest)", .{ev.window});
         try manage(allocator, ev.window, &wa);
     }
 }
@@ -762,7 +751,6 @@ fn motionNotify(allocator: Allocator, e: *XEvent) void {
 
 /// (dwm) propertynotify
 fn propertyNotify(allocator: Allocator, e: *XEvent) void {
-    log.info("Start propertyNotify()", .{});
     const ev: X.XPropertyEvent = e.xproperty;
     if (ev.window == z.root and ev.atom == X.XA_WM_NAME) {
         updateStatus(allocator);
@@ -798,7 +786,6 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
 
 /// (dwm) unmapnotify
 fn unmapNotify(allocator: Allocator, e: *XEvent) void {
-    log.info("Start unmapNotify()", .{});
     const ev: X.XUnmapEvent = e.xunmap;
     if (winToClient(ev.window)) |c| {
         if (ev.send_event == 0) {
@@ -1479,8 +1466,6 @@ fn updatenumlockmask() void {
 /// (dwm) cleanup
 // Continue to build this up as we go.
 fn cleanup(allocator: Allocator) void {
-    log.info("Start cleanup()", .{});
-
     const a: Arg = .{ .ui = ~@as(u32, 0) };
     const foo: Layout = .{ .symbol = "", .arrange = null };
 
@@ -1512,7 +1497,6 @@ fn cleanup(allocator: Allocator) void {
 
 /// (dwm) cleanupmon
 fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
-    log.info("Start cleanupmon()", .{});
     const mons: *Monitor = z.mons orelse return;
     var m_opt: ?*Monitor = null;
 
