@@ -285,7 +285,8 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     c.* = .init(&z, w, wa);
     var trans: Window = X.None;
     var wc: X.XWindowChanges = undefined;
-    // var t: *Client = undefined;
+
+    log.info("Created client {*}", .{c});
 
     c.updateTitle();
     blk: {
@@ -374,10 +375,6 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
     const m = c.mon;
     c.detach();
     c.detachStack();
-
-    if (c.mon.stack != null) {
-        @panic("stack should be null after detach");
-    }
 
     if (!destroyed) {
         _ = X.XGrabServer(z.dpy); // dwm: Avoid race conditions.
@@ -924,7 +921,9 @@ pub fn incNMaster(arg: *const Arg) void {
 /// (dwm) killclient
 pub fn killClient(_: *const Arg) void {
     const sel = z.selmon.sel orelse return;
+    log.info("Trying to kill client {*}", .{sel});
     if (!sel.sendEvent(z.wmatom.get(.Delete))) {
+        log.info("Kill effective", .{});
         _ = X.XGrabServer(z.dpy);
         _ = X.XSetErrorHandler(xerrordummy);
         _ = X.XSetCloseDownMode(z.dpy, X.DestroyAll);
@@ -932,6 +931,8 @@ pub fn killClient(_: *const Arg) void {
         _ = X.XSync(z.dpy, X.False);
         _ = X.XSetErrorHandler(xerror);
         _ = X.XUngrabServer(z.dpy);
+    } else {
+        log.info("Kill ineffective", .{});
     }
 }
 
@@ -1575,7 +1576,7 @@ fn updateBars() void {
     }
 }
 
-/// (dwm) updateStatus
+/// (dwm) updatestatus
 fn updateStatus(allocator: Allocator) void {
     if (z.getTextProp(z.root, X.XA_WM_NAME, &z.stext.buffer)) |len| {
         z.stext.len = len;
