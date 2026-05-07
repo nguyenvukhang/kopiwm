@@ -735,6 +735,7 @@ fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     if (res == 0 or wa.override_redirect != 0) return;
 
     if (winToClient(ev.window) == null) {
+        log.info("Start managing window {d} (maprequest)", .{ev.window});
         try manage(allocator, ev.window, &wa);
     }
 }
@@ -891,6 +892,7 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
             continue;
         }
         if (wa.map_state == X.IsViewable or getState(wins[i]) == X.IconicState) {
+            log.info("Start managing window {d} (scan, non-transient)", .{wins[i]});
             try manage(allocator, wins[i], &wa);
         }
     }
@@ -900,6 +902,7 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
         const viewable = wa.map_state == X.IsViewable;
         const iconic = getState(wins[i]) == X.IconicState;
         if (r1 != 0 and (viewable or iconic)) {
+            log.info("Start managing window {d} (scan, transient)", .{wins[i]});
             try manage(allocator, wins[i], &wa);
         }
     }
