@@ -827,8 +827,6 @@ fn run(allocator: Allocator) DwmError!void {
     var ev: XEvent = undefined;
     const start = std.time.timestamp();
 
-    testWindow();
-
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
         if (TIMEOUT and @abs(std.time.timestamp() - start) > 20) {
             log.info("Timeout!", .{});
@@ -1581,6 +1579,8 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
 
 /// (dwm) updatebars
 fn updatebars() void {
+    testWindow();
+
     var wa: X.XSetWindowAttributes = .{
         .override_redirect = X.True,
         .background_pixmap = X.ParentRelative,
