@@ -1329,18 +1329,19 @@ fn focus(allocator: Allocator, client: ?*Client) void {
 
     var c_opt = client;
     if (if (c_opt) |c| !c.isVisible() else true) {
-        // Push the pointer forward until c_opt points to the first visible client.
+        // If `client` is null or it's invisible, then push the pointer forward
+        // until c_opt points to the first visible client.
         c_opt = z.selmon.stack;
         while (c_opt) |c| : (c_opt = c.snext) {
-            if (c.isVisible()) {
-                break;
-            }
+            if (c.isVisible()) break;
         }
     }
     // If the currently selected client in the selected monitor is not `c_opt`,
     // then unfocus it.
-    if (z.selmon.sel != c_opt) {
-        unfocus(z.selmon.sel, false);
+    if (z.selmon.sel) |sel| {
+        if (sel != c_opt) {
+            unfocus(z.selmon.sel, false);
+        }
     }
     if (c_opt) |c| {
         z.selmon = c.mon;
