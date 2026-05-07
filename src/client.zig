@@ -536,11 +536,6 @@ pub const Client = struct {
             // Matched the rule!
             self.is_floating.set(rule.is_floating);
             self.tags |= rule.tags;
-            var m_opt = self.app.mons;
-            while (m_opt) |m| : (m_opt = m.next) {
-                if (m.num == rule.monitor) break;
-            }
-            if (m_opt) |m| self.mon = m;
         }
 
         if (ch.res_class) |x| _ = X.XFree(x);

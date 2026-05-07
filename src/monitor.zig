@@ -21,9 +21,7 @@ pub const Monitor = struct {
     mfact: f32 = cfg.mfact,
     /// Number of master windows.
     nmaster: u32 = cfg.nmaster,
-    /// TODO: without Xinerama support, this may be obsolete.
-    num: i32 = undefined,
-    /// Bar geometry.
+    /// Status bar's y-coordinate.
     by: i32 = undefined,
     /// Current monitor rect.
     m: Rect = .zero,
