@@ -1,37 +1,44 @@
-GDB_COMMAND_FILE := debug.gdb
+MAKEFILE_PATH := $(realpath $(lastword $(MAKEFILE_LIST)))
+MAKEFILE_DIR := $(realpath $(dir $(MAKEFILE_PATH)))
 
-current: build
+ZIG_OUT := $(MAKEFILE_DIR)/zig-out
+LOG_DIR := $(ZIG_OUT)
 
-check:
-	python3 migrate.py
+quick: quick-make-command
 
 build:
 	zig build
 
-run: install
-	-XINITRC=./xinitrc startx -- -keeptty >/home/khang/.local/share/xorg/Xorg.0.log 2>/home/khang/.local/share/xorg/dwm.log
-	nvim ~/.local/share/xorg/dwm.log
-
-ref: install
-	-XINITRC=./xinitrc-reference startx -- -keeptty >/home/khang/.local/share/xorg/Xorg.0.log 2>/home/khang/.local/share/xorg/dwm.log
-	nvim ~/.local/share/xorg/dwm.log
-
-
 test:
 	zig build test
 
-gdb: build
-	gdb --command=$(GDB_COMMAND_FILE) ./zig-out/bin/dwmz
-
 install:
-	# zig build --prefix /home/khang/.local -Doptimize=ReleaseFast install
-	zig build --prefix /home/khang/.local install
+	zig build --prefix ~/.local -Doptimize=ReleaseFast install
+
+# ====================================================================
+# Development
+# ====================================================================
+
+run: debug-run log
+
+# Runs kopiwm in debug mode, and logs the stderr to a log file.
+debug-run: debug-install
+	mkdir -p $(LOG_DIR)
+	-XINITRC=./scripts/.xinitrc startx -- -keeptty \
+		>$(LOG_DIR)/Xorg.0.log \
+		2>$(LOG_DIR)/kopiwm.log
+
+debug-install:
+	zig build --prefix ~/.local install
 
 log:
-	# nvim ~/.local/share/xorg/Xorg.0.log
-	nvim ~/.local/share/xorg/dwm.log
+	nvim $(LOG_DIR)/kopiwm.log
 
+# If ever, for whatever reason, X shows an error like "No screens
+# found" or "Screens found but not usable", try this fix.
 recovery:
 	Xorg -configure
-	dpkg --configure -a
-	# and then reboot (logging out is not enough for some reason)
+	dpkg --configure -a # might require root.
+	# and then reboot (logging out is not enough for some reason).
+
+quick-make-command: build
