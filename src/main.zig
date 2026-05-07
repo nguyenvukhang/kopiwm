@@ -1575,8 +1575,6 @@ pub fn spawn(arg: *const Arg) void {
         .args => |value| value,
         else => return,
     };
-    log.info("Called spawn()", .{});
-    // TODO: handle the failure case by updating the Key struct.
     const pid = std.posix.fork() catch unreachable;
     if (pid == 0) {
         _ = C.close(X.ConnectionNumber(z.dpy));
@@ -1623,8 +1621,16 @@ pub fn tagMonitor(arg: *const Arg) void {
 }
 
 /// (dwm) view
+/// Views a certain tag mask.
 pub fn view(arg: *const Arg) void {
-    const mask = arg.ui & cfg.TAGMASK;
+    const mask = switch (arg.*) {
+        .ui => |mask| b: {
+            // This mask is expected to only have one high bit.
+            std.testing.expect(@popCount(mask) == 1) catch unreachable;
+            break :b mask & cfg.TAGMASK;
+        },
+        else => return,
+    };
     if (mask == z.selmon.tags) {
         return; // nothing to do here.
     } else if (mask != 0) {
