@@ -1621,13 +1621,14 @@ pub fn view(arg: *const Arg) void {
     const mask = switch (arg.*) {
         .ui => |mask| b: {
             // This mask is expected to only have one high bit.
-            if (@popCount(mask) != 1) {
+            if (mask != ~@as(@TypeOf(mask), 0) and @popCount(mask) != 1) {
                 log.err("view() received a mask of {x}", .{mask});
             }
             break :b mask & cfg.TAGMASK;
         },
         else => return,
     };
+    log.info("view with bitmask: {b}", .{mask});
     if (mask == z.selmon.tags) {
         return; // nothing to do here.
     } else if (mask != 0) {
@@ -1756,8 +1757,6 @@ pub fn zoom(_: *const Arg) void {
 
 /// (dwm) drawbar
 fn drawbar(allocator: Allocator, m: *Monitor) void {
-    log.info("drawbar(show={}, height={d}, {*})", .{ m.show_bar, z.bar_height, m });
-
     if (!m.show_bar) return;
 
     var tw: u32 = 0;
@@ -1768,7 +1767,6 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 
     // draw status first so it can be overdrawn by tags later
     if (m == z.selmon) { // status is only drawn on selected monitor
-        log.debug("drawbar: draw the status because this is the selected monitor.", .{});
         z.drw.setScheme(z.scheme.get(.Normal));
         tw = z.TEXTW(allocator, z.stext.get());
         _ = z.drw.drawText(allocator, .{
@@ -1778,7 +1776,6 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
             .h = z.bar_height,
         }, 0, z.stext.get(), 0);
     }
-    log.debug("Drawn status text({}). tw={d}", .{ m == z.selmon, tw });
 
     var c_opt = m.clients;
     while (c_opt) |c| : (c_opt = c.next) {
