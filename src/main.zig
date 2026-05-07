@@ -1603,7 +1603,7 @@ pub fn spawn(arg: *const Arg) void {
         sa.sa_flags = 0;
         sa.__sigaction_handler.sa_handler = C.SIG_DFL;
         _ = C.sigaction(C.SIGCHLD, &sa, null);
-        std.posix.execvpeZ(args[0].?, args, &.{null}) catch {
+        std.posix.execvpeZ(args[0].?, args, std.c.environ) catch {
             @panic("execvp failed.");
         };
     }
