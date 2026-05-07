@@ -821,7 +821,6 @@ fn run(allocator: Allocator) DwmError!void {
 
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
         if (TIMEOUT and @abs(std.time.timestamp() - start) > 20) @panic("End please");
-        log.info("EVENT ----------------------------------------------------------------", .{});
         try runOne(allocator, &ev);
     }
 }
@@ -1164,7 +1163,7 @@ fn sendMon(allocator: Allocator, c: *Client, m: *Monitor) void {
     c.detach();
     c.detachStack();
     c.mon = m;
-    c.tags = m.tagset[m.seltags]; // Assign tags of target monitor.
+    c.tags = m.tags; // Assign tags of target monitor.
     c.attach();
     c.attachStack();
     if (c.isfullscreen) {
@@ -1641,12 +1640,11 @@ pub fn tagMonitor(arg: *const Arg) void {
 
 /// (dwm) view
 pub fn view(arg: *const Arg) void {
-    if (arg.ui & cfg.TAGMASK == z.selmon.tagset[z.selmon.seltags]) {
+    const mask = arg.ui & cfg.TAGMASK;
+    if (mask == z.selmon.tags) {
         return; // nothing to do here.
-    }
-    z.selmon.seltags ^= 1; // Toggle selected tagset.
-    if (arg.ui & cfg.TAGMASK != 0) {
-        z.selmon.tagset[z.selmon.seltags] = arg.ui & cfg.TAGMASK;
+    } else if (mask != 0) {
+        z.selmon.tags = mask;
     }
     focus(global_allocator, null);
     arrange(global_allocator, z.selmon);
@@ -1730,12 +1728,12 @@ pub fn toggleTag(arg: *const Arg) void {
 /// (dwm) toggleview
 pub fn toggleView(arg: *const Arg) void {
     const mask = switch (arg.*) {
-        .ui => |v| v,
+        .ui => |v| v & cfg.TAGMASK,
         else => return,
     };
-    const newtagset = z.selmon.tagset[z.selmon.seltags] ^ (mask & cfg.TAGMASK);
+    const newtagset = z.selmon.tags ^ mask;
     if (newtagset != 0) {
-        z.selmon.tagset[z.selmon.seltags] = newtagset;
+        z.selmon.tags = newtagset;
         focus(global_allocator, null);
         arrange(global_allocator, z.selmon);
     }
@@ -1806,7 +1804,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     for (0..cfg.tags.len) |i| {
         w = z.TEXTW(allocator, cfg.tags[i].text);
         const tag_mask = @as(u32, 1) << @intCast(i);
-        const selected = (m.tagset[m.seltags] & tag_mask) != 0;
+        const selected = m.tags & tag_mask != 0;
         z.drw.setScheme(z.scheme.get(if (selected) .Selected else .Normal));
         _ = z.drw.drawText(
             allocator,

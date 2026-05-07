@@ -78,7 +78,7 @@ pub const Client = struct {
     /// (dwm) ISVISIBLE
     pub fn isVisible(self: *Self) bool {
         const m = self.mon;
-        return self.tags & m.tagset[m.seltags] != 0;
+        return self.tags & m.tags != 0;
     }
 
     /// (dwm) seturgent
@@ -539,7 +539,7 @@ pub const Client = struct {
         if (ch.res_class) |x| _ = X.XFree(x);
         if (ch.res_name) |x| _ = X.XFree(x);
         if (self.tags & cfg.TAGMASK == 0) {
-            self.tags = self.mon.tagset[self.mon.seltags];
+            self.tags = self.mon.tags;
         } else {
             self.tags &= cfg.TAGMASK;
         }

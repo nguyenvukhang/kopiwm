@@ -72,6 +72,12 @@ pub const tags = [_]Tag{
 // the tag mask to use more bits.
 pub const TAGMASK: u32 = (@as(u32, 1) << tags.len) - 1;
 
+/// Gets the mask corresponding to a tag. It is on the user to guarantee that the index is
+/// within bounds.
+pub inline fn tagMask(tag_index: usize) u32 {
+    return @as(u32, 1) << @intCast(tag_index);
+}
+
 pub const fonts = [_][]const u8{"monospace:size=10"};
 
 /// Factor of the master area size [0.05...0.95].

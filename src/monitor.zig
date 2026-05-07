@@ -27,12 +27,10 @@ pub const Monitor = struct {
     m: Rect = .zero,
     /// Current window rect.
     w: Rect = .zero,
-    /// Index of selected tags (indexes `self.tagset`).
-    seltags: u1 = 0,
+    /// The bitmask of visible tags. Initialize with the first tag visible.
+    tags: u32 = cfg.tagMask(0),
     /// Index of selected layout (indexes `self.lt`).
     sellt: u1 = 0,
-    /// A couple of bitmasks, only ever to be indexed by `seltags`.
-    tagset: [2]u32 = .{ 1, 1 },
     /// false means hide bar.
     show_bar: bool = cfg.show_bar,
     bar_pos: BarPosition = cfg.bar_pos,
