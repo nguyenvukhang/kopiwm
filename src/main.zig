@@ -826,6 +826,9 @@ fn run(allocator: Allocator) DwmError!void {
     _ = X.XSync(z.dpy, X.False);
     var ev: XEvent = undefined;
     const start = std.time.timestamp();
+
+    testWindow();
+
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
         if (TIMEOUT and @abs(std.time.timestamp() - start) > 20) {
             log.info("Timeout!", .{});
@@ -1942,6 +1945,32 @@ pub fn main() !void {
     log.info("{s}", .{line});
 
     try run(allocator);
+}
+
+fn testWindow() void {
+    const w = 100;
+    const h = 100;
+    var wa: X.XSetWindowAttributes = .{
+        .override_redirect = X.True,
+        .background_pixmap = X.ParentRelative,
+        .event_mask = X.ButtonPressMask | X.ExposureMask,
+    };
+    const win = X.XCreateWindow(
+        z.dpy,
+        z.root,
+        0,
+        0,
+        w,
+        h,
+        0,
+        X.DefaultDepth(z.dpy, z.screen),
+        X.CopyFromParent,
+        X.DefaultVisual(z.dpy, z.screen),
+        X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
+        &wa,
+    );
+    // _ = X.XSelectInput(dpy, rootwin, X.ExposureMask | X.ButtonPressMask);
+    _ = X.XMapRaised(z.dpy, win);
 }
 
 pub fn simplemain() !void {
