@@ -1626,7 +1626,9 @@ pub fn view(arg: *const Arg) void {
     const mask = switch (arg.*) {
         .ui => |mask| b: {
             // This mask is expected to only have one high bit.
-            std.testing.expect(@popCount(mask) == 1) catch unreachable;
+            if (@popCount(mask) != 1) {
+                log.err("view() received a mask of {x}", .{mask});
+            }
             break :b mask & cfg.TAGMASK;
         },
         else => return,
