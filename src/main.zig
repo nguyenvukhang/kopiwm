@@ -1466,11 +1466,11 @@ fn updatenumlockmask() void {
 /// (dwm) cleanup
 // Continue to build this up as we go.
 fn cleanup(allocator: Allocator) void {
-    const a: Arg = .{ .ui = ~@as(u32, 0) };
-    const foo: Layout = .{ .symbol = "", .arrange = null };
-
-    view(&a);
-    z.selmon.lt.set(&foo);
+    // View all clients at once. ~0 yields a bitmask of all high bits. I don't
+    // fully understand why we do this yet, but I think it helps with clearing
+    // out the clients.
+    view(&.{ .ui = ~@as(u32, 0) });
+    z.selmon.lt.set(&.{ .symbol = "", .arrange = null });
 
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
