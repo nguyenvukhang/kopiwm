@@ -155,7 +155,7 @@ const base_keys = [_]Key{
 const K: usize = base_keys.len + 4 * tags.len;
 fn initKeys() [K]Key {
     var arr: [K]Key = undefined;
-    for (0..base_keys.len) |i| arr[i] = base_keys[i];
+    @memcpy(arr[0..base_keys.len], &base_keys);
     for (0..tags.len) |i| {
         const key = tags[i].key;
         const j = base_keys.len + i * 4;
@@ -170,17 +170,6 @@ fn initKeys() [K]Key {
     return arr;
 }
 pub const keys = initKeys();
-
-// TAGKEYS(                        XK_1,                      0)
-// TAGKEYS(                        XK_2,                      1)
-// TAGKEYS(                        XK_3,                      2)
-// TAGKEYS(                        XK_4,                      3)
-// TAGKEYS(                        XK_5,                      4)
-// TAGKEYS(                        XK_6,                      5)
-// TAGKEYS(                        XK_7,                      6)
-// TAGKEYS(                        XK_8,                      7)
-// TAGKEYS(                        XK_9,                      8)
-// { MODKEY|ShiftMask,             XK_q,      quit,           {0} },
 
 // zig fmt: off
 pub const buttons = [_]Button{
