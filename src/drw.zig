@@ -334,11 +334,9 @@ pub const Drw = struct {
         const color = if (invert) scheme.bg.pixel else scheme.fg.pixel;
         _ = X.XSetForeground(self.dpy, self.gc, color);
         if (filled) {
-            log.debug("Drawing a filled rect @ x={d}, y={d}, w={d}, h={d}", .{ rect.x, rect.y, rect.w, rect.h });
             const res = X.XFillRectangle(self.dpy, self.drawable, self.gc, rect.x, rect.y, rect.w, rect.h);
             print_draw_error(res);
         } else {
-            log.debug("Drawing a hollow rect @ x={d}, y={d}, w={d}, h={d}", .{ rect.x, rect.y, rect.w, rect.h });
             _ = X.XDrawRectangle(self.dpy, self.drawable, self.gc, rect.x, rect.y, rect.w - 1, rect.h - 1);
         }
     }
@@ -363,8 +361,6 @@ pub const Drw = struct {
         var usedfont = self.fonts;
 
         if (text.len == 0) return 0;
-
-        log.debug("drawText({s}) @ x={d}, y={d}, w={d}, h={d}", .{ text_to_draw, x, y, w, h });
 
         // TODO: figure out why dwm requires x and y to be non-zero.
         const render: bool = x != 0 or y != 0 or w != 0 or h != 0;
@@ -577,7 +573,6 @@ pub const Drw = struct {
 
     /// (dwm) drw_map
     pub fn map(self: *Self, w: Window, r: Rect) void {
-        log.debug("Mapped drawing area(x={d}, y={d}, w={d}, h={d})", .{ r.x, r.y, r.w, r.h });
         const res = X.XCopyArea(self.dpy, self.drawable, w, self.gc, r.x, r.y, r.w, r.h, r.x, r.y);
         print_draw_error(res);
         _ = X.XSync(self.dpy, X.False);
