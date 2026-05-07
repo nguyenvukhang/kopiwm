@@ -1899,7 +1899,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 
 pub fn main() !void {
     if (false) return simplemain();
-    log.info("STARTED EXECUTION OF DWMZ", .{});
+    log.info("----- started execution of {s} -----", .{NAME});
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
@@ -1909,22 +1909,18 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     global_allocator = allocator;
 
-    const argv = std.os.argv;
-    log.info("argc = {d}", .{argv.len});
-    for (argv[1..]) |arg| {
-        log.info("argv = {s}", .{arg});
-    }
-
     var diebuf: [32]u8 = undefined;
     var stdout_writer = std.fs.File.stdout().writer(&diebuf);
     var stdout: QuickWrite = .init(&stdout_writer.interface);
     var stderr_writer = std.fs.File.stderr().writer(&diebuf);
     var stderr: QuickWrite = .init(&stderr_writer.interface);
 
-    if (argv.len == 2 and mem.eql(u8, mem.span(argv[1]), "-v")) {
-        return try stdout.print("{s}-{s}\n", .{ NAME, VERSION });
-    } else if (argv.len != 1) {
-        return try stdout.print("usage: {s} [-v]\n", .{NAME});
+    { // Parse arguments.
+        const argv = std.os.argv;
+        if (argv.len == 2 and mem.eql(u8, mem.span(argv[1]), "-v"))
+            return try stdout.print("{s}-{s}\n", .{ NAME, VERSION })
+        else if (argv.len != 1)
+            return try stdout.print("usage: {s} [-v]\n", .{NAME});
     }
     if (C.setlocale(C.LC_CTYPE, "") == null or X.XSupportsLocale() == X.False) {
         try stderr.print("warning: no locale support\n", .{});
@@ -1936,19 +1932,14 @@ pub fn main() !void {
 
     check_other_wm();
 
-    log.info("Start setup()", .{});
     try setup(allocator);
     defer cleanup(allocator);
 
-    log.info("Completed setup()", .{});
+    log.info("----- Completed setup() -----", .{});
 
-    log.info("Start scan()", .{});
     try scan(allocator);
-    log.info("scan complete. starting main loop...", .{});
+    log.info("----- Completed scan() -----", .{});
     try run(allocator);
-    log.info("Main loop ended.", .{});
-
-    log.info("The end! Starting cleanup...", .{});
 }
 
 pub fn simplemain() !void {

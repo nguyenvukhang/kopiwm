@@ -368,7 +368,7 @@ pub const Drw = struct {
             var invalid_width: ?u32 = null;
             var nomatches: [128]usize = undefined;
         };
-        @memset(state.nomatches, 0);
+        for (&state.nomatches) |*v| v.* = 0;
 
         const invert_ = invert != 0; // just the boolean version of `invert`.
 
