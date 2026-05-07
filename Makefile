@@ -12,6 +12,11 @@ run: install
 	-XINITRC=./xinitrc startx -- -keeptty >/home/khang/.local/share/xorg/Xorg.0.log 2>/home/khang/.local/share/xorg/dwm.log
 	nvim ~/.local/share/xorg/dwm.log
 
+ref: install
+	-XINITRC=./xinitrc-reference startx -- -keeptty >/home/khang/.local/share/xorg/Xorg.0.log 2>/home/khang/.local/share/xorg/dwm.log
+	nvim ~/.local/share/xorg/dwm.log
+
+
 test:
 	zig build test
 

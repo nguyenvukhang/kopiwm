@@ -1553,12 +1553,6 @@ fn updateBars() void {
         if (m.barwin != 0) {
             continue;
         }
-        log.info("Create bar window: (x={d}, y={d}, w={d}, h={d})", .{
-            m.w.x,
-            m.by,
-            m.w.w,
-            z.bar_height,
-        });
         m.barwin = X.XCreateWindow(
             z.dpy,
             z.root,
@@ -1573,6 +1567,13 @@ fn updateBars() void {
             X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
             &wa,
         );
+        log.info("Create bar window({d}): (x={d}, y={d}, w={d}, h={d})", .{
+            m.barwin,
+            m.w.x,
+            m.by,
+            m.w.w,
+            z.bar_height,
+        });
         _ = X.XDefineCursor(z.dpy, m.barwin, z.cursors.get(.Normal));
         _ = X.XMapRaised(z.dpy, m.barwin);
         _ = X.XSetClassHint(z.dpy, m.barwin, &ch);
