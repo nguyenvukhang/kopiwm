@@ -507,7 +507,7 @@ fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
         }
         if (i < cfg.tags.len) {
             click = .TagBar;
-            arg.ui = @as(u32, 1) << @intCast(i);
+            arg = .{ .ui = @as(u32, 1) << @intCast(i) };
         } else if (ev.x < x + z.TEXTW(allocator, z.selmon.layout_symbol)) {
             click = .LtSymbol;
         } else if (ev.x > z.selmon.w.w - z.TEXTW(allocator, z.stext.get()) + z.lrpad - 2) {
