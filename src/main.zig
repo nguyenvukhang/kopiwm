@@ -882,15 +882,15 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
     const wins: [*]Window = wins_opt orelse return;
     defer _ = X.XFree(wins);
 
+    // Note: this section down here in important in deciding which window to be
+    // `manage`d. We specifically do NOT want to be `manage`-ing the bar
+    // window.
+
     i = 0;
     while (i < num) : (i += 1) {
-        const r1 = X.XGetWindowAttributes(z.dpy, wins[i], &wa);
-        if (r1 == X.False or wa.override_redirect != 0) {
-            continue;
-        }
-        if (X.XGetTransientForHint(z.dpy, wins[i], &d1) != 0) {
-            continue;
-        }
+        const res = X.XGetWindowAttributes(z.dpy, wins[i], &wa);
+        if (res == 0 or wa.override_redirect != 0) continue;
+        if (X.XGetTransientForHint(z.dpy, wins[i], &d1) != 0) continue;
         if (wa.map_state == X.IsViewable or getState(wins[i]) == X.IconicState) {
             log.info("Start managing window {d} (scan, non-transient)", .{wins[i]});
             try manage(allocator, wins[i], &wa);
@@ -898,10 +898,11 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
     }
     i = 0;
     while (i < num) : (i += 1) { // now the transients
-        const r1 = X.XGetWindowAttributes(z.dpy, wins[i], &wa);
+        if (X.XGetWindowAttributes(z.dpy, wins[i], &wa) == 0) continue;
+        if (X.XGetTransientForHint(z.dpy, wins[i], &d1) == 0) continue;
         const viewable = wa.map_state == X.IsViewable;
         const iconic = getState(wins[i]) == X.IconicState;
-        if (r1 != 0 and (viewable or iconic)) {
+        if (viewable or iconic) {
             log.info("Start managing window {d} (scan, transient)", .{wins[i]});
             try manage(allocator, wins[i], &wa);
         }
