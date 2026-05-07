@@ -93,22 +93,22 @@ pub const Client = struct {
 
     /// Gets a pointer to the node in the linked list `self.mon.stack` that
     /// points to `self`.
-    fn getStackPtr(self: *Self) ?*(?*Self) {
-        var opt: *?*Self = &self.mon.stack;
-        while (opt.*) |c| : (opt = &c.snext) {
-            if (c == self) return opt;
+    fn getStackPtr(self: *Self) *?*Self {
+        var c_opt: *?*Self = &self.mon.stack;
+        while (c_opt.*) |c| : (c_opt = &c.snext) {
+            if (c == self) return c_opt;
         }
-        return null;
+        @panic("Invalid state: Client pointer not found in owning stack.");
     }
 
     /// Gets a pointer to the node in the linked list `self.mon.clients` that
     /// points to `self`.
-    fn getPtr(self: *Self) ?*(?*Self) {
-        var opt: *?*Self = &self.mon.clients;
-        while (opt.*) |c| : (opt = &c.next) {
-            if (c == self) return opt;
+    fn getPtr(self: *Self) *?*Self {
+        var c_opt: *?*Self = &self.mon.clients;
+        while (c_opt.*) |c| : (c_opt = &c.next) {
+            if (c == self) return c_opt;
         }
-        return null;
+        @panic("Invalid state: Client pointer not found in owning list.");
     }
 
     /// (dwm) attach
@@ -128,16 +128,12 @@ pub const Client = struct {
 
     /// (dwm) detach
     pub fn detach(self: *Self) void {
-        if (self.getPtr()) |c| {
-            c.* = self.snext;
-        }
+        self.getPtr().* = self.next;
     }
 
     /// (dwm) detachstack
     pub fn detachStack(self: *Self) void {
-        if (self.getStackPtr()) |c| {
-            c.* = self.snext;
-        }
+        self.getStackPtr().* = self.snext;
 
         if (self == self.mon.sel) {
             var c_opt = self.mon.stack;
