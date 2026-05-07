@@ -810,7 +810,7 @@ fn unmapNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// For debugging: implement an emergency timeout in case we can't back out.
-const TIMEOUT: bool = false;
+const TIMEOUT: bool = true;
 
 /// (dwm) run
 /// main event loop
