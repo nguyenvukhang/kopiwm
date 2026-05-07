@@ -375,10 +375,6 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
     c.detach();
     c.detachStack();
 
-    if (c.mon.stack != null) {
-        @panic("stack should be null after detach");
-    }
-
     if (!destroyed) {
         _ = X.XGrabServer(z.dpy); // dwm: Avoid race conditions.
         _ = X.XSetErrorHandler(xerrordummy);
