@@ -921,6 +921,7 @@ pub fn incNMaster(arg: *const Arg) void {
 pub fn killClient(_: *const Arg) void {
     const sel = z.selmon.sel orelse return;
     if (!sel.sendEvent(z.wmatom.get(.Delete))) {
+        log.info("Kill effective", .{});
         _ = X.XGrabServer(z.dpy);
         _ = X.XSetErrorHandler(xerrordummy);
         _ = X.XSetCloseDownMode(z.dpy, X.DestroyAll);
@@ -928,6 +929,8 @@ pub fn killClient(_: *const Arg) void {
         _ = X.XSync(z.dpy, X.False);
         _ = X.XSetErrorHandler(xerror);
         _ = X.XUngrabServer(z.dpy);
+    } else {
+        log.info("Kill ineffective", .{});
     }
 }
 
