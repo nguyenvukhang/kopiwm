@@ -1,6 +1,7 @@
 const std = @import("std");
 const X = @import("c_lib.zig").X;
 const lt = @import("layout.zig");
+const Layout = @import("layout.zig").Layout;
 const SchemeState = @import("enums.zig").SchemeState;
 const N = @import("enums.zig").N;
 const Scheme = @import("drw.zig").Scheme;
@@ -86,9 +87,9 @@ pub const show_bar: bool = true;
 
 pub const bar_pos: BarPosition = .top;
 
-pub const layouts = [_]lt.Layout{
+pub const layouts = [_]Layout{
     .{ .symbol = "[]=", .arrange = M.tile },
-    .{ .symbol = "><>", .arrange = null },
+    .empty,
     .{ .symbol = "[M]", .arrange = M.monocle },
 };
 
@@ -117,8 +118,8 @@ const ShiftMask = X.ShiftMask;
 const HyperMask = AltMask | ControlMask | ShiftMask | X.Mod4Mask;
 
 const MODKEY = X.Mod4Mask;
-const termcmd: [*:null]const ?[*:0]const u8 = &.{ "rofi", "-show", "run", "-matching", "fuzzy", "-sort", "-sorting-method", "fzf" };
-const launchcmd: [*:null]const ?[*:0]const u8 = &.{"kitty"};
+const launchcmd: [*:null]const ?[*:0]const u8 = &.{ "rofi", "-show", "run", "-matching", "fuzzy", "-sort", "-sorting-method", "fzf" };
+const termcmd: [*:null]const ?[*:0]const u8 = &.{"xterm"};
 
 // zig fmt: off
 const base_keys = [_]Key{
@@ -183,7 +184,7 @@ pub const keys = initKeys();
 
 // zig fmt: off
 pub const buttons = [_]Button{
-.init(.LtSymbol,     0,        Button1,   .f( M.setLayout,        undefined             )),
+.init(.LtSymbol,     0,        Button1,   .f( M.setLayout,        .{ .l = &.empty     } )),
 .init(.LtSymbol,     0,        Button3,   .f( M.setLayout,        .{ .l = &layouts[2] } )),
 .init(.WinTitle,     0,        Button2,   .f( M.zoom,             undefined             )),
 .init(.StatusText,   0,        Button2,   .f( M.spawn,            .{.args = &.{}}       )),

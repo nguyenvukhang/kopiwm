@@ -11,6 +11,8 @@ pub fn fstr(comptime N: usize) type {
         /// Do not access this directly if possible.
         len: usize = 0,
 
+        pub const empty: Self = .{};
+
         /// Gets the underlying string representation.
         pub inline fn get(self: *Self) []const u8 {
             return self.buffer[0..self.len];
@@ -20,6 +22,14 @@ pub fn fstr(comptime N: usize) type {
         pub fn set(self: *Self, value: []const u8) void {
             self.len = @min(N, value.len);
             @memcpy(self.buffer[0..self.len], value[0..self.len]);
+        }
+
+        pub fn cstr(self: *Self) ?[*c]u8 {
+            if (self.len < capacity) {
+                self.buffer[self.len] = 0; // set the terminating NUL byte.
+                return &self.buffer;
+            }
+            return null;
         }
 
         pub fn contains(self: *Self, substring: []const u8) bool {

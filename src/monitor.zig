@@ -26,9 +26,9 @@ pub const Monitor = struct {
     /// Bar geometry.
     by: i32 = undefined,
     /// Current monitor rect.
-    m: Rect = undefined,
+    m: Rect = .zero,
     /// Current window rect.
-    w: Rect = undefined,
+    w: Rect = .zero,
     /// Index of selected tags (indexes `self.tagset`).
     seltags: u1 = 0,
     /// Index of selected layout (indexes `self.lt`).
@@ -46,7 +46,7 @@ pub const Monitor = struct {
     stack: ?*Client = null,
 
     next: ?*Self = null,
-    barwin: Window = undefined,
+    barwin: Window = 0,
     /// Keep two layouts in memory so that toggling back to the previous one is
     /// easy.
     /// TODO: use the `toggle` data structure for this to improve clarity.

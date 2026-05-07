@@ -1,5 +1,6 @@
 //! By convention, root.zig is the root source file when making a library.
 const std = @import("std");
+const log = std.log;
 const build_opts = @import("build_opts");
 const X = @import("c_lib.zig").X;
 const Net = @import("enums.zig").Net;
@@ -24,14 +25,14 @@ pub const App = struct {
 
     // Note to new Zig learners: if we try to deference this, we get "error:
     // cannot dereference undefined value."
-    dpy: ?*X.Display = null,
+    dpy: *X.Display = undefined,
 
-    screen: c_int = undefined,
+    screen: c_int = 0,
 
     /// Screen size.
     /// Apparently dwm updates this in `void configurenotify(XEvent *)`, and
     /// that's probably how multipe monitors are supported.
-    s: Size = undefined,
+    s: Size = .zero,
 
     drw: Drw = undefined,
 
@@ -45,21 +46,19 @@ pub const App = struct {
     /// Selected monitor.
     selmon: *Monitor = undefined,
 
-    root: Window = undefined,
-    wmcheckwin: Window = undefined,
+    root: Window = 0,
+    wmcheckwin: Window = 0,
 
-    wmatom: EnumArray(WM, Atom) = undefined,
-    netatom: EnumArray(Net, Atom) = undefined,
-
-    cursors: EnumArray(CursorState, Cursor) = undefined,
-
-    scheme: EnumArray(SchemeState, *ColorScheme) = undefined,
+    wmatom: EnumArray(WM, Atom) = .empty,
+    netatom: EnumArray(Net, Atom) = .empty,
+    cursors: EnumArray(CursorState, Cursor) = .empty,
+    scheme: EnumArray(SchemeState, *ColorScheme) = .empty,
 
     /// The only purpose for this is to patch for `updatebars`.
-    updatebars_buffer: [16]u8 = undefined,
+    updatebars_buffer: fstr(16) = .empty,
 
     /// Status bar text.
-    stext: fstr(256) = undefined,
+    stext: fstr(256) = .empty,
 
     numlockmask: c_uint = 0,
 
@@ -67,8 +66,7 @@ pub const App = struct {
 
     pub fn init() Self {
         var z = Self{};
-        const n = @min(build_opts.name.len, z.updatebars_buffer.len);
-        @memcpy(z.updatebars_buffer[0..n], build_opts.name[0..n]);
+        z.updatebars_buffer.set(build_opts.name);
         return z;
     }
 
@@ -84,10 +82,9 @@ pub const App = struct {
     }
 
     pub fn classHint(self: *Self) X.XClassHint {
-        return .{
-            .res_class = &self.updatebars_buffer,
-            .res_name = &self.updatebars_buffer,
-        };
+        log.info("Class Hint: {s}", .{self.updatebars_buffer.get()});
+        const slice = self.updatebars_buffer.cstr().?;
+        return .{ .res_class = slice, .res_name = slice };
     }
 
     /// (dwm) getrootptr

@@ -58,7 +58,7 @@ pub const ColorScheme = Scheme(XftColor);
 /// (dwm) xfont_create
 fn xfontCreate(
     allocator: Allocator,
-    drw: *Drw,
+    drw: *const Drw,
     fontname: []const u8,
     font_pattern: ?*FcPattern,
 ) error{ OutOfMemory, FontCreateError }!*Fnt {
@@ -153,6 +153,15 @@ fn utf8decode(s: []const u8, codepoint: *u64, err: *bool) u3 {
     return len;
 }
 
+fn print_draw_error(res: c_int) void {
+    switch (res) {
+        X.BadDrawable => log.err("Bad drawable error", .{}),
+        X.BadGC => log.err("Bad GC error", .{}),
+        X.BadMatch => log.err("Bad match error", .{}),
+        else => {},
+    }
+}
+
 pub const Drw = struct {
     const Self = @This();
 
@@ -166,33 +175,50 @@ pub const Drw = struct {
     drawable: Drawable,
     gc: X.GC,
     scheme: ?*ColorScheme = null,
-    /// A linked list of fonts. Guaranteed to have at least one.
-    fonts: *Fnt = undefined,
+    /// A linked list of fonts. Guaranteed to have at least one after calling
+    /// fontsetCreate.
+    fonts: *Fnt,
 
     /// (dwm) drw_create
     pub fn init(
+        allocator: Allocator,
         dpy: *Display,
         screen: c_int,
-        window: Window,
+        root: Window,
         /// width
         w: u32,
         /// height
         h: u32,
-    ) Self {
-        const drw: Self = .{
+        fonts: []const []const u8,
+    ) error{ OutOfMemory, FontCreateError }!Self {
+        var drw: Self = .{
             .w = w,
             .h = h,
             .dpy = dpy,
             .screen = screen,
-            .root = window,
-            .drawable = X.XCreatePixmap(dpy, window, w, h, @intCast(X.DefaultDepth(dpy, screen))),
-            .gc = X.XCreateGC(dpy, window, 0, null),
+            .root = root,
+            .drawable = X.XCreatePixmap(dpy, root, w, h, @intCast(X.DefaultDepth(dpy, screen))),
+            .gc = X.XCreateGC(dpy, root, 0, null),
+            .fonts = undefined,
         };
         _ = X.XSetLineAttributes(dpy, drw.gc, 1, X.LineSolid, X.CapButt, X.JoinMiter);
+        drw.fonts = try drw.fontsetCreate(allocator, fonts) orelse {
+            // Empty linked list. No fonts loaded.
+            std.debug.print("no fonts could be loaded.\n", .{});
+            return error.FontCreateError;
+        };
         return drw;
     }
 
+    /// (dwm) drw_free
+    pub fn deinit(self: *Self, allocator: Allocator) void {
+        _ = X.XFreePixmap(self.dpy, self.drawable);
+        _ = X.XFreeGC(self.dpy, self.gc);
+        fontsetFree(allocator, self.fonts);
+    }
+
     /// (dwm) drw_resize
+    /// Resize drawing area.
     pub fn resize(self: *Self, w: u32, h: u32) void {
         self.w = w;
         self.h = h;
@@ -208,31 +234,22 @@ pub const Drw = struct {
         );
     }
 
-    /// (dwm) drw_free
-    pub fn deinit(self: *Self, allocator: Allocator) void {
-        _ = X.XFreePixmap(self.dpy, self.drawable);
-        _ = X.XFreeGC(self.dpy, self.gc);
-        fontsetFree(allocator, self.fonts);
-    }
-
     /// (dwm) drw_fontset_create
+    /// Builds the list of fonts such that the first font provided in the
+    /// `fonts` slice is at the head of the linked list.
     pub fn fontsetCreate(
-        self: *Self,
+        self: *const Self,
         allocator: Allocator,
         fonts: []const []const u8,
     ) error{ OutOfMemory, FontCreateError }!?*Fnt {
-        if (fonts.len == 0) {
-            return null;
-        }
+        if (fonts.len == 0) return null;
         var ret: ?*Fnt = null;
-        for (fonts) |font| {
+        var it = std.mem.reverseIterator(fonts);
+        while (it.next()) |font| {
             const cur = try xfontCreate(allocator, self, font, null);
             cur.next = ret;
             ret = cur;
         }
-        self.fonts = ret orelse {
-            @panic("fontsetCreate could not find any viable fonts.");
-        };
         return ret;
     }
 
@@ -314,25 +331,17 @@ pub const Drw = struct {
     /// (dwm) drw_rect
     pub fn drawRect(self: *Self, rect: Rect, filled: bool, invert: bool) void {
         const scheme = self.scheme orelse return;
-        _ = X.XSetForeground(self.dpy, self.gc, if (invert) scheme.bg.pixel else scheme.fg.pixel);
+        const color = if (invert) scheme.bg.pixel else scheme.fg.pixel;
+        _ = X.XSetForeground(self.dpy, self.gc, color);
         if (filled) {
-            _ = X.XFillRectangle(self.dpy, self.drawable, self.gc, rect.x, rect.y, rect.w, rect.h);
+            log.debug("Drawing a filled rect @ x={d}, y={d}, w={d}, h={d}", .{ rect.x, rect.y, rect.w, rect.h });
+            const res = X.XFillRectangle(self.dpy, self.drawable, self.gc, rect.x, rect.y, rect.w, rect.h);
+            print_draw_error(res);
         } else {
+            log.debug("Drawing a hollow rect @ x={d}, y={d}, w={d}, h={d}", .{ rect.x, rect.y, rect.w, rect.h });
             _ = X.XDrawRectangle(self.dpy, self.drawable, self.gc, rect.x, rect.y, rect.w - 1, rect.h - 1);
         }
     }
-
-    //     void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h,
-    //               int filled, int invert) {
-    //     XSetForeground(drw->dpy, drw->gc,
-    //                    invert ? drw->scheme[ColBg].pixel
-    //                           : drw->scheme[ColFg].pixel);
-    //     if (filled) {
-    //         XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
-    //     } else {
-    //         XDrawRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w - 1, h - 1);
-    //     }
-    // }
 
     /// (dwm) drw_text
     /// Question: Is `invert` a bitmask? or a boolean? or a numerical value?
@@ -351,24 +360,23 @@ pub const Drw = struct {
         const y = rect.y;
         var w = rect.w;
         const h = rect.h;
-        if (text.len == 0) {
-            return 0;
-        }
-
         var usedfont = self.fonts;
+
+        if (text.len == 0) return 0;
+
+        log.debug("drawText({s}) @ x={d}, y={d}, w={d}, h={d}", .{ text_to_draw, x, y, w, h });
 
         // TODO: figure out why dwm requires x and y to be non-zero.
         const render: bool = x != 0 or y != 0 or w != 0 or h != 0;
 
-        if (render and (self.scheme == null or w == 0)) {
-            return 0;
-        }
+        if (render and (self.scheme == null or w == 0)) return 0;
 
         const state = struct {
             var ellipsis_width: ?u32 = null;
             var invalid_width: ?u32 = null;
             var nomatches: [128]usize = undefined;
         };
+        for (&state.nomatches) |*v| v.* = 0;
 
         const invert_ = invert != 0; // just the boolean version of `invert`.
 
@@ -390,8 +398,12 @@ pub const Drw = struct {
                 X.DefaultVisual(self.dpy, self.screen),
                 X.DefaultColormap(self.dpy, self.screen),
             );
+            if (d == null) log.err("XftDrawCreate yielded a null", .{});
             x += @intCast(lpad);
             w -= lpad;
+        }
+        defer {
+            if (d) |draw| X.XftDrawDestroy(draw);
         }
 
         if (state.ellipsis_width == null and render) {
@@ -554,7 +566,6 @@ pub const Drw = struct {
                 }
             }
         }
-        if (d) |draw| X.XftDrawDestroy(draw);
         return x + if (render) @as(i32, @intCast(w)) else 0;
     }
 
@@ -566,7 +577,9 @@ pub const Drw = struct {
 
     /// (dwm) drw_map
     pub fn map(self: *Self, w: Window, r: Rect) void {
-        _ = X.XCopyArea(self.dpy, self.drawable, w, self.gc, r.x, r.y, r.w, r.h, r.x, r.y);
+        log.debug("Mapped drawing area(x={d}, y={d}, w={d}, h={d})", .{ r.x, r.y, r.w, r.h });
+        const res = X.XCopyArea(self.dpy, self.drawable, w, self.gc, r.x, r.y, r.w, r.h, r.x, r.y);
+        print_draw_error(res);
         _ = X.XSync(self.dpy, X.False);
     }
 };
