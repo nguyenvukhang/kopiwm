@@ -153,33 +153,35 @@ const my_keys = [_]Key{
 
 /// A template of what's to be mapped for each tag available.
 // zig fmt: off
-const tag_keys_template = [_]Key{
-    .init(MODKEY,                       0, .f(M.view,       .{ .ui = 0 })),
-    .init(MODKEY|ControlMask,           0, .f(M.toggleView, .{ .ui = 0 })),
-    .init(MODKEY|ShiftMask,             0, .f(M.tag,        .{ .ui = 0 })),
-    .init(MODKEY|ShiftMask|ControlMask, 0, .f(M.toggleTag,  .{ .ui = 0 })),
+const my_tag_keys = [_]Key{
+    .init(MODKEY,           0, .f(M.view,       .{ .ui = 0 })),
+    .init(MODKEY|ShiftMask, 0, .f(M.tag,        .{ .ui = 0 })),
 };
 // zig fmt: on
 
-pub fn initKeys(base: []const Key) [base.len + tag_keys_template.len * tags.len]Key {
-    const K = base.len + tag_keys_template.len * tags.len;
+pub fn initKeys(
+    base: []const Key,
+    tag_keys: []const Key,
+) [base.len + tag_keys.len * tags.len]Key {
+    const K = base.len + tag_keys.len * tags.len;
     var arr: [K]Key = undefined;
     @memcpy(arr[0..base.len], base);
-    var per_tag = tag_keys_template;
-    const T = tag_keys_template.len;
-    var j = base.len;
+    const T = tag_keys.len;
     for (0..tags.len) |i| {
+        const j = base.len + i * tag_keys.len;
         const tag_mask = @as(u32, 1) << @intCast(i);
-        for (&per_tag) |*key| {
-            key.sym = tags[i].key;
-            key.lf.arg = .{ .ui = tag_mask };
+        @memcpy(arr[j .. j + T], tag_keys);
+        for (j..j + T) |k| {
+            arr[k].sym = tags[i].key;
+            arr[k].lf.arg = .{ .ui = tag_mask };
         }
-        @memcpy(arr[j .. j + T], &per_tag);
-        j += T;
     }
     return arr;
 }
-pub const keys = initKeys(if (USE_DEFAULT_CONFIG) &defaults.base_keys else &my_keys);
+pub const keys = initKeys(
+    if (USE_DEFAULT_CONFIG) &defaults.base_keys else &my_keys,
+    if (USE_DEFAULT_CONFIG) &defaults.tag_keys else &my_tag_keys,
+);
 
 // zig fmt: off
 pub const my_buttons = [_]Button{

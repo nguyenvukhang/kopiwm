@@ -35,6 +35,7 @@ fn initColors() EnumArray(SchemeState, Scheme([]const u8)) {
 pub const colors = initColors();
 
 const ShiftMask = X.ShiftMask;
+const ControlMask = X.ControlMask;
 
 const MODKEY = X.Mod4Mask;
 const launchcmd: [*:null]const ?[*:0]const u8 = &.{ "rofi", "-show", "run", "-matching", "fuzzy", "-sort", "-sorting-method", "fzf" };
@@ -66,6 +67,16 @@ pub const base_keys = [_]Key{
     .init(MODKEY|ShiftMask,  X.XK_comma,  .f(M.tagMonitor,     .{ .d = .Prev         })),
     .init(MODKEY|ShiftMask,  X.XK_period, .f(M.tagMonitor,     .{ .d = .Next         })),
     .init(MODKEY|ShiftMask,  X.XK_q,      .f(M.quit,           undefined              )),
+};
+// zig fmt: on
+
+/// A template of what's to be mapped for each tag available.
+// zig fmt: off
+pub const tag_keys = [_]Key{
+    .init(MODKEY,                       0, .f(M.view,       .{ .ui = 0 })),
+    .init(MODKEY|ControlMask,           0, .f(M.toggleView, .{ .ui = 0 })),
+    .init(MODKEY|ShiftMask,             0, .f(M.tag,        .{ .ui = 0 })),
+    .init(MODKEY|ShiftMask|ControlMask, 0, .f(M.toggleTag,  .{ .ui = 0 })),
 };
 // zig fmt: on
 
