@@ -367,7 +367,7 @@ pub const Client = struct {
         if (rect.h < c.app.bar_height) rect.h = c.app.bar_height;
         if (rect.w < c.app.bar_height) rect.w = c.app.bar_height;
 
-        if (cfg.resizehints or c.is_floating.now or m.lt[m.sellt].arrange == null) {
+        if (cfg.resizehints or c.is_floating.now or m.lt.now.arrange == null) {
             if (!c.hintsvalid) {
                 self.updateSizeHints();
             }
@@ -570,7 +570,7 @@ pub const Client = struct {
             _ = X.XMoveWindow(c.app.dpy, c.win, c.pos.now.x, c.pos.now.y);
             const should_resize = r: {
                 if (c.isfullscreen) break :r false;
-                if (c.mon.lt[c.mon.sellt].arrange) |_| break :r true;
+                if (c.mon.lt.now.arrange) |_| break :r true;
                 break :r c.is_floating.now;
             };
             if (should_resize) c.hintAndResize(c.pos.now, false);

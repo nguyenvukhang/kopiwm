@@ -102,7 +102,6 @@ pub const bar_pos: BarPosition = .top;
 
 pub const layouts = [_]Layout{
     .{ .symbol = "[]=", .arrange = M.tile },
-    .empty,
     .{ .symbol = "[M]", .arrange = M.monocle },
 };
 

@@ -421,15 +421,15 @@ fn updateClientList() void {
 
 /// (dwm) arrangemon
 fn arrangeMon(m: *Monitor) void {
-    m.layout_symbol = m.lt[m.sellt].symbol;
-    if (m.lt[m.sellt].arrange) |f| f(m);
+    m.layout_symbol = m.lt.now.symbol;
+    if (m.lt.now.arrange) |f| f(m);
 }
 
 /// (dwm) restack
 fn restack(allocator: Allocator, m: *Monitor) void {
     drawbar(allocator, m);
 
-    const has_arrange = m.lt[m.sellt].arrange != null;
+    const has_arrange = m.lt.now.arrange != null;
 
     const sel = m.sel orelse return;
     if (sel.is_floating.now or !has_arrange) {
@@ -571,7 +571,7 @@ fn configureRequest(e: *XEvent) void {
     if (winToClient(ev.window)) |c| {
         if (vmask & X.CWBorderWidth != 0) {
             c.bw.set(@intCast(ev.border_width));
-        } else if (c.is_floating.now or z.selmon.lt[z.selmon.sellt].arrange == null) {
+        } else if (c.is_floating.now or z.selmon.lt.now.arrange == null) {
             const m = c.mon;
             if (vmask & X.CWX != 0) {
                 c.pos.prev.x = c.pos.now.x;
@@ -1005,13 +1005,13 @@ pub fn moveMouse(_: *const Arg) DwmError!void {
                     ny = z.selmon.w.b() - c.height();
                 }
                 if (!c.is_floating.now and
-                    z.selmon.lt[z.selmon.sellt].arrange != null and
+                    z.selmon.lt.now.arrange != null and
                     (@abs(nx - c.pos.now.x) > cfg.snap or
                         @abs(ny - c.pos.now.y) > cfg.snap))
                 {
                     toggleFloating(undefined);
                 }
-                if (z.selmon.lt[z.selmon.sellt].arrange != null or c.is_floating.now) {
+                if (z.selmon.lt.now.arrange != null or c.is_floating.now) {
                     var r = c.pos.now;
                     r.x = nx;
                     r.y = ny;
@@ -1041,7 +1041,7 @@ pub fn setLayout(arg: *const Arg) void {
         .l => |lt| lt,
         else => return,
     };
-    z.selmon.lt[z.selmon.sellt] = lt;
+    z.selmon.lt.now = lt;
     z.selmon.layout_symbol = lt.symbol;
     if (z.selmon.sel) |_| {
         arrange(global_allocator, z.selmon);
@@ -1052,7 +1052,7 @@ pub fn setLayout(arg: *const Arg) void {
 
 /// (dwm) setmfact
 pub fn setMFact(arg: *const Arg) void {
-    if (z.selmon.lt[z.selmon.sellt].arrange == null) return;
+    if (z.selmon.lt.now.arrange == null) return;
     const f: f32 = switch (arg.*) {
         .f => |v| v,
         else => return,
@@ -1121,14 +1121,14 @@ pub fn resizeMouse(_: *const Arg) DwmError!void {
                     c.mon.w.y + nh <= z.selmon.w.b())
                 {
                     if (!c.is_floating.now and
-                        z.selmon.lt[z.selmon.sellt].arrange != null and
+                        z.selmon.lt.now.arrange != null and
                         (@abs(nw - @as(i32, @intCast(c.pos.now.w))) > cfg.snap or
                             @abs(nh - @as(i32, @intCast(c.pos.now.h))) > cfg.snap))
                     {
                         toggleFloating(undefined);
                     }
                 }
-                if (z.selmon.lt[z.selmon.sellt].arrange == null or c.is_floating.now) {
+                if (z.selmon.lt.now.arrange == null or c.is_floating.now) {
                     var r = c.pos.now;
                     r.w = @intCast(nw);
                     r.h = @intCast(nh);
@@ -1485,7 +1485,7 @@ fn cleanup(allocator: Allocator) void {
     const foo: Layout = .{ .symbol = "", .arrange = null };
 
     view(&a);
-    z.selmon.lt[z.selmon.sellt] = &foo;
+    z.selmon.lt.set(&foo);
 
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
@@ -1756,7 +1756,7 @@ pub fn quit(_: *const Arg) void {
 /// (dwm) zoom
 pub fn zoom(_: *const Arg) void {
     var c: ?*Client = z.selmon.sel orelse return;
-    if (c.?.is_floating.now or z.selmon.lt[z.selmon.sellt].arrange == null) return;
+    if (c.?.is_floating.now or z.selmon.lt.now.arrange == null) return;
     const nextTiled: ?*Client = if (z.selmon.clients) |x| x.nextTiled() else null;
     if (c == nextTiled) {
         c = if (c.?.next) |x| x.nextTiled() else null;

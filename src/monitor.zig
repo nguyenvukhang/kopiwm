@@ -2,6 +2,7 @@ const std = @import("std");
 const mem = std.mem;
 const cfg = @import("config.zig");
 
+const toggle = @import("toggle.zig").toggle;
 const lt = @import("layout.zig");
 const Layout = lt.Layout;
 const Client = @import("client.zig").Client;
@@ -29,8 +30,6 @@ pub const Monitor = struct {
     w: Rect = .zero,
     /// The bitmask of visible tags. Initialize with the first tag visible.
     tags: u32 = cfg.tagMask(0),
-    /// Index of selected layout (indexes `self.lt`).
-    sellt: u1 = 0,
     /// false means hide bar.
     show_bar: bool = cfg.show_bar,
     bar_pos: BarPosition = cfg.bar_pos,
@@ -43,19 +42,15 @@ pub const Monitor = struct {
 
     next: ?*Self = null,
     barwin: Window = 0,
-    /// Keep two layouts in memory so that toggling back to the previous one is
-    /// easy.
-    /// TODO: use the `toggle` data structure for this to improve clarity.
-    lt: [2]*const Layout = .{
-        &cfg.layouts[0],
-        &cfg.layouts[1 % cfg.layouts.len],
-    },
+    lt: toggle(*const Layout),
 
     /// (dwm) createmon
     pub fn init(allocator: Allocator) error{OutOfMemory}!*Self {
         var m = try allocator.create(Self);
-        m.* = .{};
-        m.layout_symbol = m.lt[0].symbol;
+        m.* = .{
+            .lt = .init(&cfg.layouts[0]),
+        };
+        m.layout_symbol = m.lt.now.symbol;
         std.log.info("Initialized a monitor!", .{});
         return m;
     }
