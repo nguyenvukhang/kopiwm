@@ -815,6 +815,9 @@ fn unmapNotify(allocator: Allocator, e: *XEvent) void {
     }
 }
 
+/// For debugging: implement an emergency timeout in case we can't back out.
+const TIMEOUT: bool = false;
+
 /// (dwm) run
 /// main event loop
 fn run(allocator: Allocator) DwmError!void {
@@ -822,8 +825,7 @@ fn run(allocator: Allocator) DwmError!void {
     var ev: XEvent = undefined;
     const start = std.time.timestamp();
     while (true) {
-        const now = std.time.timestamp();
-        if (@abs(now - start) > 20) {
+        if (TIMEOUT and @abs(std.time.timestamp() - start) > 20) {
             log.info("Timeout!", .{});
             @panic("End please");
         }
