@@ -525,7 +525,7 @@ fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
     }
 
     // Search the `buttons` map for a hit.
-    for (&cfg.buttons) |*button| {
+    for (cfg.buttons) |*button| {
         if (button.click != click or button.button != ev.button) continue;
         if (CLEANMASK(button.mask) == CLEANMASK(ev.state)) {
             const arg2 = switch (click) {
