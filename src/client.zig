@@ -1,4 +1,5 @@
 const std = @import("std");
+const log = std.log;
 const mem = std.mem;
 const Monitor = @import("monitor.zig").Monitor;
 const App = @import("app.zig").App;
@@ -179,16 +180,20 @@ pub const Client = struct {
         if (X.XGetWMProtocols(z.dpy, self.win, &protocols, &n) != 0) {
             while (!exists and n > 0) {
                 n -= 1;
+                log.info("sendEvent::XGetWMProtocols = {d}, need {d}", .{ protocols.?[@intCast(n)], proto });
                 exists = protocols.?[@intCast(n)] == proto;
             }
             _ = X.XFree(@ptrCast(protocols));
-        }
+        } else log.info("sendEvent call to XGetWMProtocols failed.", .{});
         if (exists) {
-            var ev = X.XEvent{ .type = X.ClientMessage };
-            ev.xclient = .{
-                .window = self.win,
-                .message_type = z.wmatom.get(.Protocols),
-                .format = 32,
+            log.info("Exists!", .{});
+            var ev = X.XEvent{
+                .xclient = .{
+                    .type = X.ClientMessage,
+                    .window = self.win,
+                    .message_type = z.wmatom.get(.Protocols),
+                    .format = 32,
+                },
             };
             ev.xclient.data.l[0] = @intCast(proto);
             ev.xclient.data.l[1] = X.CurrentTime;

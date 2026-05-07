@@ -285,7 +285,8 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     c.* = .init(&z, w, wa);
     var trans: Window = X.None;
     var wc: X.XWindowChanges = undefined;
-    // var t: *Client = undefined;
+
+    log.info("Created client {*}", .{c});
 
     c.updateTitle();
     blk: {
@@ -920,6 +921,7 @@ pub fn incNMaster(arg: *const Arg) void {
 /// (dwm) killclient
 pub fn killClient(_: *const Arg) void {
     const sel = z.selmon.sel orelse return;
+    log.info("Trying to kill client {*}", .{sel});
     if (!sel.sendEvent(z.wmatom.get(.Delete))) {
         log.info("Kill effective", .{});
         _ = X.XGrabServer(z.dpy);
