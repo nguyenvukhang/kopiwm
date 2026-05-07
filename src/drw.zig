@@ -352,25 +352,23 @@ pub const Drw = struct {
         const y = rect.y;
         var w = rect.w;
         const h = rect.h;
-        log.debug("drw_text({s}) @ x={d}, y={d}, w={d}, h={d}", .{ text_to_draw, x, y, w, h });
-        if (text.len == 0) {
-            return 0;
-        }
-
         var usedfont = self.fonts;
+
+        if (text.len == 0) return 0;
+
+        log.debug("drawText({s}) @ x={d}, y={d}, w={d}, h={d}", .{ text_to_draw, x, y, w, h });
 
         // TODO: figure out why dwm requires x and y to be non-zero.
         const render: bool = x != 0 or y != 0 or w != 0 or h != 0;
 
-        if (render and (self.scheme == null or w == 0)) {
-            return 0;
-        }
+        if (render and (self.scheme == null or w == 0)) return 0;
 
         const state = struct {
             var ellipsis_width: ?u32 = null;
             var invalid_width: ?u32 = null;
             var nomatches: [128]usize = undefined;
         };
+        @memset(state.nomatches, 0);
 
         const invert_ = invert != 0; // just the boolean version of `invert`.
 
