@@ -1497,21 +1497,16 @@ fn cleanup(allocator: Allocator) void {
 
 /// (dwm) cleanupmon
 fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
-    const mons: *Monitor = z.mons orelse return;
-    var m_opt: ?*Monitor = null;
-
     // First, remove `mon` from the linked list that is `z.mons`.
     if (mon == z.mons) {
-        z.mons = mons.next;
+        z.mons = z.mons.?.next;
     } else {
-        m_opt = mons;
+        var m_opt = z.mons;
         while (m_opt) |m| : (m_opt = m.next) {
             if (m.next == mon) {
+                m.next = mon.next;
                 break;
             }
-        }
-        if (m_opt) |m| {
-            m.next = mon.next;
         }
     }
     _ = X.XUnmapWindow(z.dpy, mon.barwin);
