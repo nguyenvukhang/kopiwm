@@ -346,13 +346,13 @@ pub const Drw = struct {
         text_to_draw: []const u8,
         invert: u32,
     ) i32 {
-        log.debug("drw_text({s})", .{text_to_draw});
         const INVALID = "�";
         var text: []const u8 = text_to_draw;
         var x = rect.x;
         const y = rect.y;
         var w = rect.w;
         const h = rect.h;
+        log.debug("drw_text({s}) @ x={d}, y={d}, w={d}, h={d}", .{ text_to_draw, x, y, w, h });
         if (text.len == 0) {
             return 0;
         }
