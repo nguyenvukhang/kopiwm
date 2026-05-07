@@ -218,6 +218,7 @@ pub const Drw = struct {
     }
 
     /// (dwm) drw_resize
+    /// Resize drawing area.
     pub fn resize(self: *Self, w: u32, h: u32) void {
         self.w = w;
         self.h = h;
@@ -234,16 +235,17 @@ pub const Drw = struct {
     }
 
     /// (dwm) drw_fontset_create
+    /// Builds the list of fonts such that the first font provided in the
+    /// `fonts` slice is at the head of the linked list.
     pub fn fontsetCreate(
         self: *const Self,
         allocator: Allocator,
         fonts: []const []const u8,
     ) error{ OutOfMemory, FontCreateError }!?*Fnt {
-        if (fonts.len == 0) {
-            return null;
-        }
+        if (fonts.len == 0) return null;
         var ret: ?*Fnt = null;
-        for (fonts) |font| {
+        var it = std.mem.reverseIterator(fonts);
+        while (it.next()) |font| {
             const cur = try xfontCreate(allocator, self, font, null);
             cur.next = ret;
             ret = cur;
