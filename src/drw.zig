@@ -324,13 +324,13 @@ pub const Drw = struct {
     pub fn drawRect(self: *Self, rect: Rect, filled: bool, invert: bool) void {
         const scheme = self.scheme orelse return;
         const color = if (invert) scheme.bg.pixel else scheme.fg.pixel;
-        log.info("drawRect: set foreground to {x}", .{color});
         _ = X.XSetForeground(self.dpy, self.gc, color);
         if (filled) {
-            log.info("drawRect->filled", .{});
+            log.debug("Drawing a filled rect @ x={d}, y={d}, w={d}, h={d}", .{ rect.x, rect.y, rect.w, rect.h });
             const res = X.XFillRectangle(self.dpy, self.drawable, self.gc, rect.x, rect.y, rect.w, rect.h);
             print_draw_error(res);
         } else {
+            log.debug("Drawing a hollow rect @ x={d}, y={d}, w={d}, h={d}", .{ rect.x, rect.y, rect.w, rect.h });
             _ = X.XDrawRectangle(self.dpy, self.drawable, self.gc, rect.x, rect.y, rect.w - 1, rect.h - 1);
         }
     }
@@ -379,7 +379,6 @@ pub const Drw = struct {
             w = if (invert_) invert else ~invert;
         } else {
             const color = if (invert_) &self.scheme.?.fg else &self.scheme.?.bg;
-            log.debug("Draw a rect({x}) @ (x={d}, y={d}, w={d}, h={d})", .{ color.pixel, x, y, w, h });
             _ = X.XSetForeground(self.dpy, self.gc, color.pixel);
             _ = X.XFillRectangle(self.dpy, self.drawable, self.gc, x, y, w, h);
             if (w < lpad) {
@@ -571,7 +570,7 @@ pub const Drw = struct {
 
     /// (dwm) drw_map
     pub fn map(self: *Self, w: Window, r: Rect) void {
-        log.info("Drw::map(x={d}, y={d}, w={d}, h={d})", .{ r.x, r.y, r.w, r.h });
+        log.debug("Mapped drawing area(x={d}, y={d}, w={d}, h={d})", .{ r.x, r.y, r.w, r.h });
         const res = X.XCopyArea(self.dpy, self.drawable, w, self.gc, r.x, r.y, r.w, r.h, r.x, r.y);
         print_draw_error(res);
         _ = X.XSync(self.dpy, X.False);

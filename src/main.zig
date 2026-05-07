@@ -26,6 +26,8 @@ const HandlerFn = @import("enums.zig").HandlerFn;
 const NAME = @import("build_opts").name;
 const VERSION = @import("build_opts").version;
 
+const line = "----------------------------------------------------------------------";
+
 // This exists because of config callbacks.
 var global_allocator: Allocator = undefined;
 
@@ -824,18 +826,13 @@ fn run(allocator: Allocator) DwmError!void {
     _ = X.XSync(z.dpy, X.False);
     var ev: XEvent = undefined;
     const start = std.time.timestamp();
-    while (true) {
+    while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
         if (TIMEOUT and @abs(std.time.timestamp() - start) > 20) {
             log.info("Timeout!", .{});
             @panic("End please");
         }
-        const res = X.XNextEvent(z.dpy, &ev);
-        // log.debug("Running? {any}, outcome? {d}", .{ z.running, res });
-        if (z.running and res == X.Success) {
-            try runOne(allocator, &ev);
-        } else {
-            break;
-        }
+        log.info("EVENT ----------------------------------------------------------------", .{});
+        try runOne(allocator, &ev);
     }
 }
 
@@ -1592,7 +1589,7 @@ fn updatebars() void {
         if (m.barwin != 0) {
             continue;
         }
-        log.info("Bar window: (x={d}, y={d}, w={d}, h={d})", .{
+        log.info("Create bar window: (x={d}, y={d}, w={d}, h={d})", .{
             m.w.x,
             m.by,
             m.w.w,
@@ -1612,7 +1609,6 @@ fn updatebars() void {
             X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
             &wa,
         );
-        log.info("XCreateWindow for barwin={d}", .{m.barwin});
         _ = X.XDefineCursor(z.dpy, m.barwin, z.cursors.get(.Normal));
         _ = X.XMapRaised(z.dpy, m.barwin);
         _ = X.XSetClassHint(z.dpy, m.barwin, &ch);
@@ -1899,7 +1895,9 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 
 pub fn main() !void {
     if (false) return simplemain();
-    log.info("----- started execution of {s} -----", .{NAME});
+    log.info("{s}", .{line});
+    log.info("Started execution of {s}", .{NAME});
+    log.info("{s}", .{line});
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
@@ -1935,10 +1933,15 @@ pub fn main() !void {
     try setup(allocator);
     defer cleanup(allocator);
 
-    log.info("----- Completed setup() -----", .{});
+    log.info("{s}", .{line});
+    log.info("Completed setup()", .{});
+    log.info("{s}", .{line});
 
     try scan(allocator);
-    log.info("----- Completed scan() -----", .{});
+    log.info("{s}", .{line});
+    log.info("Completed scan()", .{});
+    log.info("{s}", .{line});
+
     try run(allocator);
 }
 
