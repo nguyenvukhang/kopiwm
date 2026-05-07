@@ -282,6 +282,11 @@ fn getState(w: Window) i32 {
 
 /// (dwm) manage
 fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOfMemory}!void {
+    // TODO: remove this after debugging.
+    if (w == test_window) {
+        return;
+    }
+
     const c = try allocator.create(Client);
     c.* = .init(&z, w, wa);
     var trans: Window = X.None;
@@ -643,7 +648,7 @@ fn configureNotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     // TODO: (dwm) updategeom handling sucks, needs to be simplified
     if ((try updategeom(allocator, &selmon)) or dirty) {
         z.drw.resize(z.s.w, z.bar_height);
-        updatebars();
+        updateBars();
         var m_opt = z.mons;
         var c_opt: ?*Client = null;
         while (m_opt) |m| : (m_opt = m.next) {
@@ -1310,7 +1315,7 @@ fn setup(allocator: Allocator) !void {
     }
 
     // Initialize bars.
-    updatebars();
+    updateBars();
     updateStatus(allocator);
 
     // Supporting window for NetWMCheck.
@@ -1578,7 +1583,7 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
 }
 
 /// (dwm) updatebars
-fn updatebars() void {
+fn updateBars() void {
     testWindow();
 
     var wa: X.XSetWindowAttributes = .{
@@ -1947,6 +1952,8 @@ pub fn main() !void {
     try run(allocator);
 }
 
+var test_window: ?Window = null;
+
 fn testWindow() void {
     const w = 100;
     const h = 100;
@@ -1969,6 +1976,7 @@ fn testWindow() void {
         X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
         &wa,
     );
+    test_window = win;
     // _ = X.XSelectInput(dpy, rootwin, X.ExposureMask | X.ButtonPressMask);
     _ = X.XMapRaised(z.dpy, win);
 }
