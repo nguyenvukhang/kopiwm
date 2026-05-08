@@ -131,7 +131,7 @@ const HyperMask = AltMask | ControlMask | ShiftMask | X.Mod4Mask;
 
 const MODKEY = X.Mod4Mask;
 const launchcmd: [*:null]const ?[*:0]const u8 = &.{ "rofi", "-show", "run", "-matching", "fuzzy", "-sort", "-sorting-method", "fzf" };
-const termcmd: [*:null]const ?[*:0]const u8 = &.{"xterm"};
+const termcmd: [*:null]const ?[*:0]const u8 = &.{"kitty"};
 
 // zig fmt: off
 const my_keys = [_]Key{
