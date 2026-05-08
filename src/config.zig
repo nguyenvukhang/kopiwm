@@ -42,10 +42,6 @@ pub const borderpx: u32 = 1;
 pub const Tag = struct {
     text: []const u8,
     key: X.KeySym,
-
-    fn init(name: []const u8, key: X.KeySym) @This() {
-        return .{ .text = name, .key = key };
-    }
 };
 
 /// The tags. These will determine which clients are visible on the screen.
@@ -57,11 +53,11 @@ pub const Tag = struct {
 /// 0b00100 <=> tags[2]
 /// ```
 pub const tags = [_]Tag{
-    .init("1", X.XK_1),
-    .init("2", X.XK_2),
-    .init("3", X.XK_3),
-    .init("4", X.XK_4),
-    .init("T", X.XK_0),
+    .{ .text = "1", .key = X.XK_1 },
+    .{ .text = "2", .key = X.XK_2 },
+    .{ .text = "3", .key = X.XK_3 },
+    .{ .text = "4", .key = X.XK_4 },
+    .{ .text = "T", .key = X.XK_0 },
 };
 
 // Amazingly, Zig throws a COMPILE ERROR if `tags.len` is >= 32. This is because
@@ -193,4 +189,10 @@ pub const my_buttons = [_]Button{
 // zig fmt: on
 pub const buttons: []const Button = if (USE_DEFAULT_CONFIG) &defaults.buttons else &my_buttons;
 
-pub const rules = [_]Rule{};
+// zig fmt: off
+pub const rules = [_]Rule{
+    Rule{ .class = "firefox",  .tags = tagMask(1), .is_floating = false },
+    Rule{ .class = "discord",  .tags = tagMask(2), .is_floating = false },
+    Rule{ .class = "Telegram", .tags = tagMask(2), .is_floating = false },
+};
+// zig fmt: on

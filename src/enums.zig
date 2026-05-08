@@ -95,8 +95,8 @@ pub const BarPosition = enum { top, bottom };
 
 pub const Rule = struct {
     class: ?[]const u8,
-    instance: ?[]const u8,
-    title: ?[]const u8,
+    instance: ?[]const u8 = null,
+    title: ?[]const u8 = null,
     /// Active tags bitmask.
     tags: u32,
     is_floating: bool,
