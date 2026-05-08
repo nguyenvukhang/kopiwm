@@ -421,7 +421,10 @@ fn updateClientList() void {
 /// (dwm) arrangemon
 fn arrangeMon(m: *Monitor) void {
     m.layout_symbol = m.lt.now.symbol;
-    if (m.lt.now.arrange) |f| f(m);
+    if (m.lt.now.arrange) |f| {
+        log.info("Arranging monitor {*} with algo \"{s}\"", .{ m, m.lt.now.symbol });
+        f(m);
+    }
 }
 
 /// (dwm) restack
@@ -455,6 +458,8 @@ fn restack(allocator: Allocator, m: *Monitor) void {
 
 /// (dwm) arrange
 fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
+    if (monitor) |m| log.info("arranging monitor({*})", .{m}) else log.info("arranging monitor(null)", .{});
+
     var m_opt: ?*Monitor = null;
     if (monitor) |m| {
         if (m.stack) |c| c.showHide();
@@ -1339,7 +1344,7 @@ fn focus(allocator: Allocator, client: ?*Client) void {
     // then unfocus it.
     if (z.selmon.sel) |sel| {
         if (sel != c_opt) {
-            unfocus(z.selmon.sel, false);
+            unfocus(sel, false);
         }
     }
     if (c_opt) |c| {

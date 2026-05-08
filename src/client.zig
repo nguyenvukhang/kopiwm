@@ -561,6 +561,7 @@ pub const Client = struct {
     /// Refreshes the show-hide state of the entire linked list of Clients in
     /// the stack.
     pub fn showHide(c: *Self) void {
+        log.info("showHide called on {*} ({s})", .{ c, if (c.isVisible()) "show" else "hide" });
         if (c.isVisible()) {
             // Show clients top-down.
             _ = X.XMoveWindow(c.app.dpy, c.win, c.pos.now.x, c.pos.now.y);
