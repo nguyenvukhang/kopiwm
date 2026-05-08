@@ -1738,6 +1738,7 @@ pub fn pop(allocator: Allocator, c: *Client) void {
 
 /// (dwm) quit
 pub fn quit(_: *const Arg) void {
+    log.info("{s}", .{line});
     log.info("quit() called.", .{});
     z.running = false;
 }
