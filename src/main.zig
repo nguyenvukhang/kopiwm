@@ -294,15 +294,14 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
             // This seems to make very little sense if there is a bijection between
             // clients and windows.
             if (winToClient(w)) |other_client| {
-                c.tags = other_client.tags;
                 c.mon = other_client.mon;
+                c.tags = other_client.tags;
                 break :blk;
             }
         }
         c.mon = z.selmon;
         c.applyRules();
     }
-    if (X.XGetTransientForHint(z.dpy, w, &trans) != 0) {}
     var r = &c.*.pos.now;
 
     // If client is too far right, shift it left.
