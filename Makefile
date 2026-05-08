@@ -13,7 +13,7 @@ test:
 	zig build test
 
 install:
-	zig build --prefix ~/.local -Doptimize=ReleaseFast install
+	zig build --prefix /usr/local -Doptimize=ReleaseFast install
 
 # ====================================================================
 # Development
