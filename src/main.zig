@@ -294,15 +294,14 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
             // This seems to make very little sense if there is a bijection between
             // clients and windows.
             if (winToClient(w)) |other_client| {
-                c.tags = other_client.tags;
                 c.mon = other_client.mon;
+                c.tags = other_client.tags;
                 break :blk;
             }
         }
         c.mon = z.selmon;
         c.applyRules();
     }
-    if (X.XGetTransientForHint(z.dpy, w, &trans) != 0) {}
     var r = &c.*.pos.now;
 
     // If client is too far right, shift it left.
@@ -421,15 +420,18 @@ fn updateClientList() void {
 
 /// (dwm) arrangemon
 fn arrangeMon(m: *Monitor) void {
-    m.layout_symbol = m.lt[m.sellt].symbol;
-    if (m.lt[m.sellt].arrange) |f| f(m);
+    m.layout_symbol = m.lt.now.symbol;
+    if (m.lt.now.arrange) |f| {
+        log.info("Arranging monitor {*} with algo \"{s}\"", .{ m, m.lt.now.symbol });
+        f(m);
+    }
 }
 
 /// (dwm) restack
 fn restack(allocator: Allocator, m: *Monitor) void {
     drawbar(allocator, m);
 
-    const has_arrange = m.lt[m.sellt].arrange != null;
+    const has_arrange = m.lt.now.arrange != null;
 
     const sel = m.sel orelse return;
     if (sel.is_floating.now or !has_arrange) {
@@ -456,6 +458,8 @@ fn restack(allocator: Allocator, m: *Monitor) void {
 
 /// (dwm) arrange
 fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
+    if (monitor) |m| log.info("arranging monitor({*})", .{m}) else log.info("arranging monitor(null)", .{});
+
     var m_opt: ?*Monitor = null;
     if (monitor) |m| {
         if (m.stack) |c| c.showHide();
@@ -478,7 +482,6 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
 
 /// (dwm) buttonpress
 fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
-    log.info("Start buttonPress()", .{});
     const ev: X.XButtonPressedEvent = e.xbutton;
     var click: Clk = .RootWin;
     var arg: Arg = undefined;
@@ -525,7 +528,7 @@ fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
     }
 
     // Search the `buttons` map for a hit.
-    for (&cfg.buttons) |*button| {
+    for (cfg.buttons) |*button| {
         if (button.click != click or button.button != ev.button) continue;
         if (CLEANMASK(button.mask) == CLEANMASK(ev.state)) {
             const arg2 = switch (click) {
@@ -542,7 +545,6 @@ fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
 
 /// (dwm) clientmessage
 fn clientMessage(e: *XEvent) void {
-    log.info("Start clientMessage()", .{});
     const ev: X.XClientMessageEvent = e.xclient;
     var c: *Client = winToClient(ev.window) orelse return;
 
@@ -564,14 +566,13 @@ fn clientMessage(e: *XEvent) void {
 
 /// (dwm) configurerequest
 fn configureRequest(e: *XEvent) void {
-    log.info("Start configureRequest()", .{});
     const ev = e.xconfigurerequest;
     const vmask = ev.value_mask;
 
     if (winToClient(ev.window)) |c| {
         if (vmask & X.CWBorderWidth != 0) {
             c.bw.set(@intCast(ev.border_width));
-        } else if (c.is_floating.now or z.selmon.lt[z.selmon.sellt].arrange == null) {
+        } else if (c.is_floating.now or z.selmon.lt.now.arrange == null) {
             const m = c.mon;
             if (vmask & X.CWX != 0) {
                 c.pos.prev.x = c.pos.now.x;
@@ -628,7 +629,6 @@ fn configureRequest(e: *XEvent) void {
 
 /// (dwm) configurenotify
 fn configureNotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
-    log.info("Start configureNotify()", .{});
     const ev: X.XConfigureEvent = e.xconfigure;
     if (ev.window != z.root) return;
     const dirty = z.s.w != ev.width or z.s.h != ev.height;
@@ -658,14 +658,12 @@ fn configureNotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
 
 /// (dwm) destroynotify
 fn destroyNotify(allocator: Allocator, e: *XEvent) void {
-    log.info("Start destroyNotify()", .{});
     const ev: X.XDestroyWindowEvent = e.xdestroywindow;
     if (winToClient(ev.window)) |c| unmanage(allocator, c, true);
 }
 
 /// (dwm) enternotify
 fn enterNotify(allocator: Allocator, e: *XEvent) void {
-    log.info("Start enterNotify()", .{});
     const ev: X.XCrossingEvent = e.xcrossing;
     if ((ev.mode != X.NotifyNormal or ev.detail == X.NotifyInferior) and ev.window != z.root) {
         return;
@@ -683,7 +681,6 @@ fn enterNotify(allocator: Allocator, e: *XEvent) void {
 
 /// (dwm) expose
 fn expose(allocator: Allocator, e: *XEvent) void {
-    log.info("Start expose()", .{});
     const ev: X.XExposeEvent = e.xexpose;
     if (ev.count == 0) {
         drawbar(allocator, wintomon(ev.window));
@@ -692,7 +689,6 @@ fn expose(allocator: Allocator, e: *XEvent) void {
 
 /// (dwm) focusin
 fn focusIn(e: *XEvent) void {
-    log.info("Start focusIn()", .{});
     const ev: X.XFocusChangeEvent = e.xfocus;
     if (z.selmon.sel) |sel| {
         if (ev.window != sel.win) sel.setFocus();
@@ -701,7 +697,6 @@ fn focusIn(e: *XEvent) void {
 
 /// (dwm) keypress
 fn keyPress(e: *XEvent) DwmError!void {
-    log.info("Start keyPress()", .{});
     const ev: X.XKeyEvent = e.xkey;
     const keysym = X.XkbKeycodeToKeysym(z.dpy, @intCast(ev.keycode), 0, 0);
     for (cfg.keys) |key| {
@@ -716,7 +711,6 @@ fn keyPress(e: *XEvent) DwmError!void {
 
 /// (dwm) mappingnotify
 fn mappingNotify(e: *XEvent) void {
-    log.info("Start mappingNotify()", .{});
     const ev: *X.XMappingEvent = &e.xmapping;
     _ = X.XRefreshKeyboardMapping(ev);
     if (ev.request == X.MappingKeyboard) {
@@ -726,7 +720,6 @@ fn mappingNotify(e: *XEvent) void {
 
 /// (dwm) maprequest
 fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
-    log.info("Start mapRequest()", .{});
     const ev: X.XMapRequestEvent = e.xmaprequest;
     var wa: X.XWindowAttributes = undefined;
 
@@ -734,7 +727,7 @@ fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     if (res == 0 or wa.override_redirect != 0) return;
 
     if (winToClient(ev.window) == null) {
-        log.info("Start managing window {d} (maprequest)", .{ev.window});
+        log.info("Start managing window {d} (mapRequest)", .{ev.window});
         try manage(allocator, ev.window, &wa);
     }
 }
@@ -762,7 +755,6 @@ fn motionNotify(allocator: Allocator, e: *XEvent) void {
 
 /// (dwm) propertynotify
 fn propertyNotify(allocator: Allocator, e: *XEvent) void {
-    log.info("Start propertyNotify()", .{});
     const ev: X.XPropertyEvent = e.xproperty;
     if (ev.window == z.root and ev.atom == X.XA_WM_NAME) {
         updateStatus(allocator);
@@ -798,7 +790,6 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
 
 /// (dwm) unmapnotify
 fn unmapNotify(allocator: Allocator, e: *XEvent) void {
-    log.info("Start unmapNotify()", .{});
     const ev: X.XUnmapEvent = e.xunmap;
     if (winToClient(ev.window)) |c| {
         if (ev.send_event == 0) {
@@ -810,7 +801,7 @@ fn unmapNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// For debugging: implement an emergency timeout in case we can't back out.
-const TIMEOUT: bool = false;
+const TIMEOUT: bool = true;
 
 /// (dwm) run
 /// main event loop
@@ -821,7 +812,6 @@ fn run(allocator: Allocator) DwmError!void {
 
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
         if (TIMEOUT and @abs(std.time.timestamp() - start) > 20) @panic("End please");
-        log.info("EVENT ----------------------------------------------------------------", .{});
         try runOne(allocator, &ev);
     }
 }
@@ -1006,13 +996,13 @@ pub fn moveMouse(_: *const Arg) DwmError!void {
                     ny = z.selmon.w.b() - c.height();
                 }
                 if (!c.is_floating.now and
-                    z.selmon.lt[z.selmon.sellt].arrange != null and
+                    z.selmon.lt.now.arrange != null and
                     (@abs(nx - c.pos.now.x) > cfg.snap or
                         @abs(ny - c.pos.now.y) > cfg.snap))
                 {
                     toggleFloating(undefined);
                 }
-                if (z.selmon.lt[z.selmon.sellt].arrange != null or c.is_floating.now) {
+                if (z.selmon.lt.now.arrange != null or c.is_floating.now) {
                     var r = c.pos.now;
                     r.x = nx;
                     r.y = ny;
@@ -1042,7 +1032,7 @@ pub fn setLayout(arg: *const Arg) void {
         .l => |lt| lt,
         else => return,
     };
-    z.selmon.lt[z.selmon.sellt] = lt;
+    z.selmon.lt.now = lt;
     z.selmon.layout_symbol = lt.symbol;
     if (z.selmon.sel) |_| {
         arrange(global_allocator, z.selmon);
@@ -1053,7 +1043,7 @@ pub fn setLayout(arg: *const Arg) void {
 
 /// (dwm) setmfact
 pub fn setMFact(arg: *const Arg) void {
-    if (z.selmon.lt[z.selmon.sellt].arrange == null) return;
+    if (z.selmon.lt.now.arrange == null) return;
     const f: f32 = switch (arg.*) {
         .f => |v| v,
         else => return,
@@ -1122,14 +1112,14 @@ pub fn resizeMouse(_: *const Arg) DwmError!void {
                     c.mon.w.y + nh <= z.selmon.w.b())
                 {
                     if (!c.is_floating.now and
-                        z.selmon.lt[z.selmon.sellt].arrange != null and
+                        z.selmon.lt.now.arrange != null and
                         (@abs(nw - @as(i32, @intCast(c.pos.now.w))) > cfg.snap or
                             @abs(nh - @as(i32, @intCast(c.pos.now.h))) > cfg.snap))
                     {
                         toggleFloating(undefined);
                     }
                 }
-                if (z.selmon.lt[z.selmon.sellt].arrange == null or c.is_floating.now) {
+                if (z.selmon.lt.now.arrange == null or c.is_floating.now) {
                     var r = c.pos.now;
                     r.w = @intCast(nw);
                     r.h = @intCast(nh);
@@ -1164,7 +1154,7 @@ fn sendMon(allocator: Allocator, c: *Client, m: *Monitor) void {
     c.detach();
     c.detachStack();
     c.mon = m;
-    c.tags = m.tagset[m.seltags]; // Assign tags of target monitor.
+    c.tags = m.tags; // Assign tags of target monitor.
     c.attach();
     c.attachStack();
     if (c.isfullscreen) {
@@ -1343,18 +1333,19 @@ fn focus(allocator: Allocator, client: ?*Client) void {
 
     var c_opt = client;
     if (if (c_opt) |c| !c.isVisible() else true) {
-        // Push the pointer forward until c_opt points to the first visible client.
+        // If `client` is null or it's invisible, then push the pointer forward
+        // until c_opt points to the first visible client.
         c_opt = z.selmon.stack;
         while (c_opt) |c| : (c_opt = c.snext) {
-            if (c.isVisible()) {
-                break;
-            }
+            if (c.isVisible()) break;
         }
     }
     // If the currently selected client in the selected monitor is not `c_opt`,
     // then unfocus it.
-    if (z.selmon.sel != c_opt) {
-        unfocus(z.selmon.sel, false);
+    if (z.selmon.sel) |sel| {
+        if (sel != c_opt) {
+            unfocus(sel, false);
+        }
     }
     if (c_opt) |c| {
         z.selmon = c.mon;
@@ -1480,13 +1471,11 @@ fn updatenumlockmask() void {
 /// (dwm) cleanup
 // Continue to build this up as we go.
 fn cleanup(allocator: Allocator) void {
-    log.info("Start cleanup()", .{});
-
-    const a: Arg = .{ .ui = ~@as(u32, 0) };
-    const foo: Layout = .{ .symbol = "", .arrange = null };
-
-    view(&a);
-    z.selmon.lt[z.selmon.sellt] = &foo;
+    // View all clients at once. ~0 yields a bitmask of all high bits. I don't
+    // fully understand why we do this yet, but I think it helps with clearing
+    // out the clients.
+    view(&.{ .ui = ~@as(u32, 0) });
+    z.selmon.lt.set(&.{ .symbol = "", .arrange = null });
 
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
@@ -1513,22 +1502,16 @@ fn cleanup(allocator: Allocator) void {
 
 /// (dwm) cleanupmon
 fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
-    log.info("Start cleanupmon()", .{});
-    const mons: *Monitor = z.mons orelse return;
-    var m_opt: ?*Monitor = null;
-
     // First, remove `mon` from the linked list that is `z.mons`.
     if (mon == z.mons) {
-        z.mons = mons.next;
+        z.mons = z.mons.?.next;
     } else {
-        m_opt = mons;
+        var m_opt = z.mons;
         while (m_opt) |m| : (m_opt = m.next) {
             if (m.next == mon) {
+                m.next = mon.next;
                 break;
             }
-        }
-        if (m_opt) |m| {
-            m.next = mon.next;
         }
     }
     _ = X.XUnmapWindow(z.dpy, mon.barwin);
@@ -1592,8 +1575,6 @@ pub fn spawn(arg: *const Arg) void {
         .args => |value| value,
         else => return,
     };
-    log.info("Called spawn()", .{});
-    // TODO: handle the failure case by updating the Key struct.
     const pid = std.posix.fork() catch unreachable;
     if (pid == 0) {
         _ = C.close(X.ConnectionNumber(z.dpy));
@@ -1640,13 +1621,23 @@ pub fn tagMonitor(arg: *const Arg) void {
 }
 
 /// (dwm) view
+/// Views a certain tag mask.
 pub fn view(arg: *const Arg) void {
-    if (arg.ui & cfg.TAGMASK == z.selmon.tagset[z.selmon.seltags]) {
+    const mask = switch (arg.*) {
+        .ui => |mask| b: {
+            // This mask is expected to only have one high bit.
+            if (mask != ~@as(@TypeOf(mask), 0) and @popCount(mask) != 1) {
+                log.err("view() received a mask of {x}", .{mask});
+            }
+            break :b mask & cfg.TAGMASK;
+        },
+        else => return,
+    };
+    log.info("view with bitmask: {b}", .{mask});
+    if (mask == z.selmon.tags) {
         return; // nothing to do here.
-    }
-    z.selmon.seltags ^= 1; // Toggle selected tagset.
-    if (arg.ui & cfg.TAGMASK != 0) {
-        z.selmon.tagset[z.selmon.seltags] = arg.ui & cfg.TAGMASK;
+    } else if (mask != 0) {
+        z.selmon.tags = mask;
     }
     focus(global_allocator, null);
     arrange(global_allocator, z.selmon);
@@ -1654,23 +1645,27 @@ pub fn view(arg: *const Arg) void {
 
 /// (dwm) tile
 pub fn tile(m: *Monitor) void {
-    var n: u32 = 0;
-    var c_opt = if (m.clients) |c| c.nextTiled() else null;
-    while (c_opt) |c| : (c_opt = c.next) n += 1;
+    const n = m.countTiledClients();
     if (n == 0) return;
-    const mw: u32 = if (n > m.nmaster)
-        (if (m.nmaster != 0) @intFromFloat(@as(f32, @floatFromInt(m.w.w)) * m.mfact) else 0)
-    else
-        m.w.w;
+    const mw: u32 = blk: {
+        if (n > m.nmaster) {
+            if (m.nmaster == 0) break :blk 0;
+            break :blk @intFromFloat(@as(f32, @floatFromInt(m.w.w)) * m.mfact);
+        }
+        break :blk m.w.w;
+    };
+
+    log.info("tile with {d} clients, with mw={d}", .{ n, mw });
 
     var i: u32 = 0;
     var my: i32 = 0; // master's y
     var ty: i32 = 0; // non-master's y
-    c_opt = if (m.clients) |c| c.nextTiled() else null;
+    var c_opt = if (m.clients) |c| c.nextTiled() else null;
     while (c_opt) |c| : ({
-        c_opt = c.next;
+        c_opt = c.nextTiledExclusive();
         i += 1;
     }) {
+        log.debug("n={d}, i={d}, ty={d}, my={d}", .{ n, i, ty, my });
         if (i < m.nmaster) {
             const h = @divFloor(m.w.h - @as(u32, @intCast(my)), @min(n, m.nmaster) - i);
             c.hintAndResize(.{
@@ -1730,12 +1725,12 @@ pub fn toggleTag(arg: *const Arg) void {
 /// (dwm) toggleview
 pub fn toggleView(arg: *const Arg) void {
     const mask = switch (arg.*) {
-        .ui => |v| v,
+        .ui => |v| v & cfg.TAGMASK,
         else => return,
     };
-    const newtagset = z.selmon.tagset[z.selmon.seltags] ^ (mask & cfg.TAGMASK);
+    const newtagset = z.selmon.tags ^ mask;
     if (newtagset != 0) {
-        z.selmon.tagset[z.selmon.seltags] = newtagset;
+        z.selmon.tags = newtagset;
         focus(global_allocator, null);
         arrange(global_allocator, z.selmon);
     }
@@ -1751,6 +1746,7 @@ pub fn pop(allocator: Allocator, c: *Client) void {
 
 /// (dwm) quit
 pub fn quit(_: *const Arg) void {
+    log.info("{s}", .{line});
     log.info("quit() called.", .{});
     z.running = false;
 }
@@ -1758,7 +1754,7 @@ pub fn quit(_: *const Arg) void {
 /// (dwm) zoom
 pub fn zoom(_: *const Arg) void {
     var c: ?*Client = z.selmon.sel orelse return;
-    if (c.?.is_floating.now or z.selmon.lt[z.selmon.sellt].arrange == null) return;
+    if (c.?.is_floating.now or z.selmon.lt.now.arrange == null) return;
     const nextTiled: ?*Client = if (z.selmon.clients) |x| x.nextTiled() else null;
     if (c == nextTiled) {
         c = if (c.?.next) |x| x.nextTiled() else null;
@@ -1771,8 +1767,6 @@ pub fn zoom(_: *const Arg) void {
 
 /// (dwm) drawbar
 fn drawbar(allocator: Allocator, m: *Monitor) void {
-    log.info("drawbar(show={}, height={d}, {*})", .{ m.show_bar, z.bar_height, m });
-
     if (!m.show_bar) return;
 
     var tw: u32 = 0;
@@ -1783,7 +1777,6 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
 
     // draw status first so it can be overdrawn by tags later
     if (m == z.selmon) { // status is only drawn on selected monitor
-        log.debug("drawbar: draw the status because this is the selected monitor.", .{});
         z.drw.setScheme(z.scheme.get(.Normal));
         tw = z.TEXTW(allocator, z.stext.get());
         _ = z.drw.drawText(allocator, .{
@@ -1793,7 +1786,6 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
             .h = z.bar_height,
         }, 0, z.stext.get(), 0);
     }
-    log.debug("Drawn status text({}). tw={d}", .{ m == z.selmon, tw });
 
     var c_opt = m.clients;
     while (c_opt) |c| : (c_opt = c.next) {
@@ -1806,7 +1798,7 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     for (0..cfg.tags.len) |i| {
         w = z.TEXTW(allocator, cfg.tags[i].text);
         const tag_mask = @as(u32, 1) << @intCast(i);
-        const selected = (m.tagset[m.seltags] & tag_mask) != 0;
+        const selected = m.tags & tag_mask != 0;
         z.drw.setScheme(z.scheme.get(if (selected) .Selected else .Normal));
         _ = z.drw.drawText(
             allocator,

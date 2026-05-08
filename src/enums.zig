@@ -100,8 +100,6 @@ pub const Rule = struct {
     /// Active tags bitmask.
     tags: u32,
     is_floating: bool,
-    /// TODO: see if this is really needed.
-    monitor: usize,
 };
 
 pub const Size = struct {

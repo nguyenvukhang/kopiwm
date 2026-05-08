@@ -76,9 +76,8 @@ pub const Client = struct {
     }
 
     /// (dwm) ISVISIBLE
-    pub fn isVisible(self: *Self) bool {
-        const m = self.mon;
-        return self.tags & m.tagset[m.seltags] != 0;
+    pub inline fn isVisible(self: *Self) bool {
+        return self.tags & self.mon.tags != 0;
     }
 
     /// (dwm) seturgent
@@ -93,22 +92,22 @@ pub const Client = struct {
 
     /// Gets a pointer to the node in the linked list `self.mon.stack` that
     /// points to `self`.
-    fn getStackPtr(self: *Self) ?*(?*Self) {
-        var opt: *?*Self = &self.mon.stack;
-        while (opt.*) |c| : (opt = &c.snext) {
-            if (c == self) return opt;
+    fn getStackPtr(self: *Self) *?*Self {
+        var c_opt: *?*Self = &self.mon.stack;
+        while (c_opt.*) |c| : (c_opt = &c.snext) {
+            if (c == self) return c_opt;
         }
-        return null;
+        @panic("Invalid state: Client pointer not found in owning stack.");
     }
 
     /// Gets a pointer to the node in the linked list `self.mon.clients` that
     /// points to `self`.
-    fn getPtr(self: *Self) ?*(?*Self) {
-        var opt: *?*Self = &self.mon.clients;
-        while (opt.*) |c| : (opt = &c.next) {
-            if (c == self) return opt;
+    fn getPtr(self: *Self) *?*Self {
+        var c_opt: *?*Self = &self.mon.clients;
+        while (c_opt.*) |c| : (c_opt = &c.next) {
+            if (c == self) return c_opt;
         }
-        return null;
+        @panic("Invalid state: Client pointer not found in owning list.");
     }
 
     /// (dwm) attach
@@ -128,16 +127,12 @@ pub const Client = struct {
 
     /// (dwm) detach
     pub fn detach(self: *Self) void {
-        if (self.getPtr()) |c| {
-            c.* = self.snext;
-        }
+        self.getPtr().* = self.next;
     }
 
     /// (dwm) detachstack
     pub fn detachStack(self: *Self) void {
-        if (self.getStackPtr()) |c| {
-            c.* = self.snext;
-        }
+        self.getStackPtr().* = self.snext;
 
         if (self == self.mon.sel) {
             var c_opt = self.mon.stack;
@@ -180,13 +175,11 @@ pub const Client = struct {
         if (X.XGetWMProtocols(z.dpy, self.win, &protocols, &n) != 0) {
             while (!exists and n > 0) {
                 n -= 1;
-                log.info("sendEvent::XGetWMProtocols = {d}, need {d}", .{ protocols.?[@intCast(n)], proto });
                 exists = protocols.?[@intCast(n)] == proto;
             }
             _ = X.XFree(@ptrCast(protocols));
-        } else log.info("sendEvent call to XGetWMProtocols failed.", .{});
+        }
         if (exists) {
-            log.info("Exists!", .{});
             var ev = X.XEvent{
                 .xclient = .{
                     .type = X.ClientMessage,
@@ -369,7 +362,7 @@ pub const Client = struct {
         if (rect.h < c.app.bar_height) rect.h = c.app.bar_height;
         if (rect.w < c.app.bar_height) rect.w = c.app.bar_height;
 
-        if (cfg.resizehints or c.is_floating.now or m.lt[m.sellt].arrange == null) {
+        if (cfg.resizehints or c.is_floating.now or m.lt.now.arrange == null) {
             if (!c.hintsvalid) {
                 self.updateSizeHints();
             }
@@ -536,17 +529,12 @@ pub const Client = struct {
             // Matched the rule!
             self.is_floating.set(rule.is_floating);
             self.tags |= rule.tags;
-            var m_opt = self.app.mons;
-            while (m_opt) |m| : (m_opt = m.next) {
-                if (m.num == rule.monitor) break;
-            }
-            if (m_opt) |m| self.mon = m;
         }
 
         if (ch.res_class) |x| _ = X.XFree(x);
         if (ch.res_name) |x| _ = X.XFree(x);
         if (self.tags & cfg.TAGMASK == 0) {
-            self.tags = self.mon.tagset[self.mon.seltags];
+            self.tags = self.mon.tags;
         } else {
             self.tags &= cfg.TAGMASK;
         }
@@ -572,12 +560,13 @@ pub const Client = struct {
     /// Refreshes the show-hide state of the entire linked list of Clients in
     /// the stack.
     pub fn showHide(c: *Self) void {
+        log.info("showHide called on {*} ({s})", .{ c, if (c.isVisible()) "show" else "hide" });
         if (c.isVisible()) {
             // Show clients top-down.
             _ = X.XMoveWindow(c.app.dpy, c.win, c.pos.now.x, c.pos.now.y);
             const should_resize = r: {
                 if (c.isfullscreen) break :r false;
-                if (c.mon.lt[c.mon.sellt].arrange) |_| break :r true;
+                if (c.mon.lt.now.arrange) |_| break :r true;
                 break :r c.is_floating.now;
             };
             if (should_resize) c.hintAndResize(c.pos.now, false);
@@ -593,7 +582,14 @@ pub const Client = struct {
         }
     }
 
+    pub inline fn isTiled(self: *Self) bool {
+        return !self.is_floating.now and self.isVisible();
+    }
+
     /// (dwm) nexttiled
+    /// Get the next element (possibly itself) in the linked list (given by
+    /// `self.next`) that is tiled. Could be the current element, could also be
+    /// null.
     pub fn nextTiled(self: *Self) ?*Self {
         var c_opt: ?*Self = self;
         // TODO: Again, figure out why this isn't using snext. Shouldn't the stack
@@ -602,10 +598,14 @@ pub const Client = struct {
         //
         // And what about if we reached the end? Should we wrap around?
         while (c_opt) |c| : (c_opt = c.next) {
-            if (!c.is_floating.now and c.isVisible()) {
-                return c;
-            }
+            if (c.isTiled()) return c;
         }
         return null;
+    }
+
+    /// Get the next element (NOT itself) in the linked list (given by
+    /// `self.next`) that is tiled.
+    pub fn nextTiledExclusive(self: *Self) ?*Self {
+        return if (self.next) |c| c.nextTiled() else null;
     }
 };

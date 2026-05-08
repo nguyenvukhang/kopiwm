@@ -1,1 +1,5 @@
-pub const DwmError = error{ OutOfMemory, SomeOtherError, FontCreateError };
+pub const DwmError = error{
+    OutOfMemory,
+    SomeOtherError,
+    FontCreateError,
+};

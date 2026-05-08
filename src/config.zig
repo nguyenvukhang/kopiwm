@@ -12,6 +12,13 @@ const Key = @import("enums.zig").Key;
 const Button = @import("enums.zig").Button;
 const Rule = @import("enums.zig").Rule;
 const M = @import("main.zig");
+const defaults = @import("config_defaults.zig");
+
+// False means use custom config. Defaults are kept because Zig does very
+// aggressive tree-shaking, so lots of code is just not checked at comptime if
+// a minimal config is used, so we keep it as a switch if ever we want to debug
+// those functions.
+const USE_DEFAULT_CONFIG = false;
 
 pub const BUTTONMASK = X.ButtonPressMask | X.ButtonReleaseMask;
 pub const MOUSEMASK = BUTTONMASK | X.PointerMotionMask;
@@ -32,7 +39,7 @@ pub const snap: i32 = 32;
 /// border pixel of windows
 pub const borderpx: u32 = 1;
 
-const Tag = struct {
+pub const Tag = struct {
     text: []const u8,
     key: X.KeySym,
 
@@ -65,6 +72,12 @@ pub const tags = [_]Tag{
 // the tag mask to use more bits.
 pub const TAGMASK: u32 = (@as(u32, 1) << tags.len) - 1;
 
+/// Gets the mask corresponding to a tag. It is on the user to guarantee that the index is
+/// within bounds.
+pub inline fn tagMask(tag_index: usize) u32 {
+    return @as(u32, 1) << @intCast(tag_index);
+}
+
 pub const fonts = [_][]const u8{"monospace:size=10"};
 
 /// Factor of the master area size [0.05...0.95].
@@ -89,7 +102,6 @@ pub const bar_pos: BarPosition = .top;
 
 pub const layouts = [_]Layout{
     .{ .symbol = "[]=", .arrange = M.tile },
-    .empty,
     .{ .symbol = "[M]", .arrange = M.monocle },
 };
 
@@ -122,82 +134,63 @@ const launchcmd: [*:null]const ?[*:0]const u8 = &.{ "rofi", "-show", "run", "-ma
 const termcmd: [*:null]const ?[*:0]const u8 = &.{"xterm"};
 
 // zig fmt: off
-const base_keys = [_]Key{
+const my_keys = [_]Key{
     // TODO: test to see if we DON'T specify null at the end of an args array,
     // will there still be a null there thanks to Zig?
-    .init(MODKEY,            X.XK_p,      .f(M.spawn,          .{ .args = launchcmd  })),
-    .init(MODKEY|ShiftMask,  X.XK_Return, .f(M.spawn,          .{ .args = termcmd    })),
-    .init(MODKEY,            X.XK_b,      .f(M.toggleBar,      undefined              )),
-    .init(MODKEY,            X.XK_j,      .f(M.focusStack,     .{ .d = .Next         })),
-    .init(MODKEY,            X.XK_k,      .f(M.focusStack,     .{ .d = .Prev         })),
-    .init(MODKEY,            X.XK_i,      .f(M.incNMaster,     .{ .i =  1            })),
-    .init(MODKEY,            X.XK_d,      .f(M.incNMaster,     .{ .i = -1            })),
-    .init(MODKEY,            X.XK_h,      .f(M.setMFact,       .{ .f =  0.05         })),
-    .init(MODKEY,            X.XK_l,      .f(M.incNMaster,     .{ .f = -0.05         })),
-    .init(MODKEY,            X.XK_Return, .f(M.zoom,           undefined              )),
-    .init(MODKEY,            X.XK_Tab,    .f(M.view,           undefined              )),
-    .init(MODKEY|ShiftMask,  X.XK_c,      .f(M.killClient,     undefined              )),
-    .init(MODKEY,            X.XK_t,      .f(M.setLayout,      .{ .l = &layouts[0]   })),
-    .init(MODKEY,            X.XK_f,      .f(M.setLayout,      .{ .l = &layouts[1]   })),
-    .init(MODKEY,            X.XK_m,      .f(M.setLayout,      .{ .l = &layouts[2]   })),
-    .init(MODKEY,            X.XK_space,  .f(M.setLayout,      .{ .l = &.empty       })),
-    .init(MODKEY|ShiftMask,  X.XK_space,  .f(M.toggleFloating, undefined              )),
-    .init(MODKEY,            X.XK_0,      .f(M.view,           .{ .ui = ~@as(u32, 0) })),
-    .init(MODKEY|ShiftMask,  X.XK_0,      .f(M.tag,            .{ .ui = ~@as(u32, 0) })),
-    .init(MODKEY,            X.XK_comma,  .f(M.focusMon,       .{ .d = .Prev         })),
-    .init(MODKEY,            X.XK_period, .f(M.focusMon,       .{ .d = .Next         })),
-    .init(MODKEY|ShiftMask,  X.XK_comma,  .f(M.tagMonitor,     .{ .d = .Prev         })),
-    .init(MODKEY|ShiftMask,  X.XK_period, .f(M.tagMonitor,     .{ .d = .Next         })),
-    .init(MODKEY|ShiftMask,  X.XK_q,      .f(M.quit,           undefined              )),
+    .init(MODKEY,                       X.XK_space,  .f(M.spawn,          .{ .args = launchcmd  })),
+    .init(MODKEY,                       X.XK_Return, .f(M.spawn,          .{ .args = termcmd    })),
+    .init(MODKEY,                       X.XK_j,      .f(M.focusStack,     .{ .d = .Next         })),
+    .init(MODKEY,                       X.XK_k,      .f(M.focusStack,     .{ .d = .Prev         })),
+    .init(MODKEY|ControlMask|ShiftMask, X.XK_equal,  .f(M.setMFact,       .{ .f =  0.04         })),
+    .init(MODKEY|ControlMask|ShiftMask, X.XK_minus,  .f(M.setMFact,       .{ .f = -0.04         })),
+    .init(MODKEY,                       X.XK_Return, .f(M.zoom,           undefined              )),
+    .init(MODKEY,                       X.XK_Tab,    .f(M.focusStack,     .{ .d = .Next         })),
+    .init(MODKEY,                       X.XK_q,      .f(M.killClient,     undefined              )),
+    .init(MODKEY|ControlMask,           X.XK_f,      .f(M.toggleFloating, undefined              )),
+    .init(HyperMask,                    X.XK_q,      .f(M.quit,           undefined              )),
 };
 // zig fmt: on
 
 /// A template of what's to be mapped for each tag available.
-const tag_keys_template = [_]Key{
-    // zig fmt: off
-    .init(MODKEY,                       0, .f(M.view,       .{ .ui = 0 })),
-    .init(MODKEY|ControlMask,           0, .f(M.toggleView, .{ .ui = 0 })),
-    .init(MODKEY|ShiftMask,             0, .f(M.tag,        .{ .ui = 0 })),
-    .init(MODKEY|ShiftMask|ControlMask, 0, .f(M.toggleTag,  .{ .ui = 0 })),
-    // zig fmt: on
+// zig fmt: off
+const my_tag_keys = [_]Key{
+    .init(MODKEY,           0, .f(M.view,       .{ .ui = 0 })),
+    .init(MODKEY|ShiftMask, 0, .f(M.tag,        .{ .ui = 0 })),
 };
+// zig fmt: on
 
-/// The total number of key maps.
-const K: usize = base_keys.len + tag_keys_template.len * tags.len;
-
-fn initKeys() [K]Key {
+pub fn initKeys(
+    base: []const Key,
+    tag_keys: []const Key,
+) [base.len + tag_keys.len * tags.len]Key {
+    const K = base.len + tag_keys.len * tags.len;
     var arr: [K]Key = undefined;
-    @memcpy(arr[0..base_keys.len], &base_keys);
-    var per_tag = tag_keys_template;
-    const T = tag_keys_template.len;
-    var j = base_keys.len;
+    @memcpy(arr[0..base.len], base);
+    const T = tag_keys.len;
     for (0..tags.len) |i| {
+        const j = base.len + i * tag_keys.len;
         const tag_mask = @as(u32, 1) << @intCast(i);
-        for (&per_tag) |*key| {
-            key.sym = tags[i].key;
-            key.lf.arg = .{ .ui = tag_mask };
+        @memcpy(arr[j .. j + T], tag_keys);
+        for (j..j + T) |k| {
+            arr[k].sym = tags[i].key;
+            arr[k].lf.arg = .{ .ui = tag_mask };
         }
-        @memcpy(arr[j..j + T], &per_tag);
-        j += T;
     }
     return arr;
 }
-pub const keys = initKeys();
+pub const keys = initKeys(
+    if (USE_DEFAULT_CONFIG) &defaults.base_keys else &my_keys,
+    if (USE_DEFAULT_CONFIG) &defaults.tag_keys else &my_tag_keys,
+);
 
 // zig fmt: off
-pub const buttons = [_]Button{
-.init(.LtSymbol,     0,        Button1,   .f( M.setLayout,        .{ .l = &.empty     } )),
-.init(.LtSymbol,     0,        Button3,   .f( M.setLayout,        .{ .l = &layouts[2] } )),
-.init(.WinTitle,     0,        Button2,   .f( M.zoom,             undefined             )),
-.init(.StatusText,   0,        Button2,   .f( M.spawn,            .{.args = &.{}}       )),
-.init(.ClientWin,    MODKEY,   Button1,   .F( M.moveMouse,        undefined             )),
-.init(.ClientWin,    MODKEY,   Button2,   .f( M.toggleFloating,   undefined             )),
-.init(.ClientWin,    MODKEY,   Button3,   .F( M.resizeMouse,      undefined             )),
-.init(.TagBar,       0,        Button1,   .f( M.view,             undefined             )),
-.init(.TagBar,       0,        Button3,   .f( M.toggleView,       undefined             )),
-.init(.TagBar,       MODKEY,   Button1,   .f( M.tag,              undefined             )),
-.init(.TagBar,       MODKEY,   Button3,   .f( M.toggleTag,        undefined             )),
+pub const my_buttons = [_]Button{
+.init(.ClientWin,    MODKEY,   Button1,   .F( M.moveMouse,        undefined)),
+.init(.ClientWin,    MODKEY,   Button3,   .F( M.resizeMouse,      undefined)),
+.init(.TagBar,       0,        Button1,   .f( M.view,             undefined)),
+.init(.TagBar,       0,        Button3,   .f( M.toggleView,       undefined)),
 };
-// // zig fmt: on
+// zig fmt: on
+pub const buttons: []const Button = if (USE_DEFAULT_CONFIG) &defaults.buttons else &my_buttons;
 
 pub const rules = [_]Rule{};
