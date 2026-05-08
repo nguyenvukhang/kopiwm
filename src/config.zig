@@ -74,7 +74,7 @@ pub inline fn tagMask(tag_index: usize) u32 {
     return @as(u32, 1) << @intCast(tag_index);
 }
 
-pub const fonts = [_][]const u8{"monospace:size=10"};
+pub const fonts = [_][]const u8{"sans:size=10.5"};
 
 /// Factor of the master area size [0.05...0.95].
 pub const mfact: f32 = 0.5;
