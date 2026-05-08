@@ -60,4 +60,19 @@ pub const Monitor = struct {
         const sel = self.sel orelse return false;
         return (sel.tags & mask) != 0;
     }
+
+    /// Count the number of clients that are tiled.
+    pub fn countTiledClients(self: *Self) u32 {
+        var c = self.clients orelse return 0;
+        var n: u32 = 0;
+        while (c.nextTiled()) |nt| {
+            // We found the next tiled client (i.e. `nt`), and so we add one to
+            // the count.
+            n += 1;
+            // But we cannot use `nt` again because the next tiled client of
+            // `nt` would be itself, resulting in an infinite loop.
+            c = nt.next orelse break;
+        }
+        return n;
+    }
 };

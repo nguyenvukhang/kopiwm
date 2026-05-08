@@ -1645,23 +1645,27 @@ pub fn view(arg: *const Arg) void {
 
 /// (dwm) tile
 pub fn tile(m: *Monitor) void {
-    var n: u32 = 0;
-    var c_opt = if (m.clients) |c| c.nextTiled() else null;
-    while (c_opt) |c| : (c_opt = c.next) n += 1;
+    const n = m.countTiledClients();
     if (n == 0) return;
-    const mw: u32 = if (n > m.nmaster)
-        (if (m.nmaster != 0) @intFromFloat(@as(f32, @floatFromInt(m.w.w)) * m.mfact) else 0)
-    else
-        m.w.w;
+    const mw: u32 = blk: {
+        if (n > m.nmaster) {
+            if (m.nmaster == 0) break :blk 0;
+            break :blk @intFromFloat(@as(f32, @floatFromInt(m.w.w)) * m.mfact);
+        }
+        break :blk m.w.w;
+    };
+
+    log.info("tile with {d} clients, with mw={d}", .{ n, mw });
 
     var i: u32 = 0;
     var my: i32 = 0; // master's y
     var ty: i32 = 0; // non-master's y
-    c_opt = if (m.clients) |c| c.nextTiled() else null;
+    var c_opt = if (m.clients) |c| c.nextTiled() else null;
     while (c_opt) |c| : ({
-        c_opt = c.next;
+        c_opt = c.nextTiledExclusive();
         i += 1;
     }) {
+        log.debug("n={d}, i={d}, ty={d}, my={d}", .{ n, i, ty, my });
         if (i < m.nmaster) {
             const h = @divFloor(m.w.h - @as(u32, @intCast(my)), @min(n, m.nmaster) - i);
             c.hintAndResize(.{

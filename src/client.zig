@@ -76,9 +76,8 @@ pub const Client = struct {
     }
 
     /// (dwm) ISVISIBLE
-    pub fn isVisible(self: *Self) bool {
-        const m = self.mon;
-        return self.tags & m.tags != 0;
+    pub inline fn isVisible(self: *Self) bool {
+        return self.tags & self.mon.tags != 0;
     }
 
     /// (dwm) seturgent
@@ -583,7 +582,14 @@ pub const Client = struct {
         }
     }
 
+    pub inline fn isTiled(self: *Self) bool {
+        return !self.is_floating.now and self.isVisible();
+    }
+
     /// (dwm) nexttiled
+    /// Get the next element (possibly itself) in the linked list (given by
+    /// `self.next`) that is tiled. Could be the current element, could also be
+    /// null.
     pub fn nextTiled(self: *Self) ?*Self {
         var c_opt: ?*Self = self;
         // TODO: Again, figure out why this isn't using snext. Shouldn't the stack
@@ -592,10 +598,14 @@ pub const Client = struct {
         //
         // And what about if we reached the end? Should we wrap around?
         while (c_opt) |c| : (c_opt = c.next) {
-            if (!c.is_floating.now and c.isVisible()) {
-                return c;
-            }
+            if (c.isTiled()) return c;
         }
         return null;
+    }
+
+    /// Get the next element (NOT itself) in the linked list (given by
+    /// `self.next`) that is tiled.
+    pub fn nextTiledExclusive(self: *Self) ?*Self {
+        return if (self.next) |c| c.nextTiled() else null;
     }
 };
