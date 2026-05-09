@@ -8,12 +8,10 @@ const cfg = @import("config.zig");
 const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
 const Client = @import("client.zig").Client;
-const WM = @import("enums.zig").WM;
 const Direction = @import("lazy_fn.zig").Direction;
 const Layout = @import("layout.zig").Layout;
 const Clk = @import("enums.zig").Clk;
 const Arg = @import("lazy_fn.zig").Arg;
-const Net = @import("enums.zig").Net;
 const Rect = @import("rect.zig").Rect;
 const SchemeState = @import("enums.zig").SchemeState;
 const ColorScheme = @import("drw.zig").ColorScheme;
@@ -22,6 +20,7 @@ const ForkError = std.posix.ForkError;
 const MOUSEMASK = @import("config.zig").MOUSEMASK;
 const DwmError = @import("errors.zig").DwmError;
 const HandlerFn = @import("enums.zig").HandlerFn;
+const atoms = @import("atoms.zig");
 
 const NAME = @import("build_opts").name;
 const VERSION = @import("build_opts").version;
@@ -1253,8 +1252,8 @@ fn setup(allocator: Allocator) DwmError!void {
 
     // Initialize atoms.
     const utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", X.False);
-    for (std.enums.values(WM)) |v| z.wmatom.set(v, X.XInternAtom(z.dpy, v.asStr(), X.False));
-    for (std.enums.values(Net)) |v| z.netatom.set(v, X.XInternAtom(z.dpy, v.asStr(), X.False));
+    atoms.initializeAtomsForEnum(atoms.WM, X.Atom, &z.wmatom, z.dpy);
+    atoms.initializeAtomsForEnum(atoms.Net, X.Atom, &z.netatom, z.dpy);
 
     // Initialize cursors.
     z.cursors.set(.Normal, z.drw.curCreate(X.XC_left_ptr));

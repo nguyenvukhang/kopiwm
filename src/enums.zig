@@ -6,54 +6,6 @@ const LazyFn = @import("lazy_fn.zig").LazyFn;
 const XEvent = X.XEvent;
 const Allocator = @import("std").mem.Allocator;
 
-/// (dwm) WM* atoms.
-pub const WM = enum(u8) {
-    const Self = @This();
-
-    Protocols,
-    Delete,
-    State,
-    TakeFocus,
-
-    pub fn asStr(self: *const Self) []const u8 {
-        return switch (self.*) {
-            .Protocols => "WM_PROTOCOLS",
-            .Delete => "WM_DELETE_WINDOW",
-            .State => "WM_STATE",
-            .TakeFocus => "WM_TAKE_FOCUS",
-        };
-    }
-};
-
-/// (dwm) Net* atoms.
-pub const Net = enum(u8) {
-    const Self = @This();
-
-    Supported,
-    WMName,
-    WMState,
-    WMCheck,
-    WMFullscreen,
-    ActiveWindow,
-    WMWindowType,
-    WMWindowTypeDialog,
-    ClientList,
-
-    pub fn asStr(self: *const Self) []const u8 {
-        return switch (self.*) {
-            .ActiveWindow => "_NET_ACTIVE_WINDOW",
-            .Supported => "_NET_SUPPORTED",
-            .WMName => "_NET_WM_NAME",
-            .WMState => "_NET_WM_STATE",
-            .WMCheck => "_NET_SUPPORTING_WM_CHECK",
-            .WMFullscreen => "_NET_WM_STATE_FULLSCREEN",
-            .WMWindowType => "_NET_WM_WINDOW_TYPE",
-            .WMWindowTypeDialog => "_NET_WM_WINDOW_TYPE_DIALOG",
-            .ClientList => "_NET_CLIENT_LIST",
-        };
-    }
-};
-
 /// (dwm) Clk* enums.
 pub const Clk = enum {
     /// User clicked on one of the tags in the tags list (traditionally located
