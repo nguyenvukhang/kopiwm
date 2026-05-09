@@ -47,7 +47,6 @@ pub const App = struct {
     selmon: *Monitor = undefined,
 
     root: Window = 0,
-    wmcheckwin: Window = 0,
 
     wmatom: EnumArray(WM, Atom) = .empty,
     netatom: EnumArray(Net, Atom) = .empty,

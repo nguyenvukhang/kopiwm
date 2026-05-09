@@ -16,11 +16,11 @@ const Rect = @import("rect.zig").Rect;
 const SchemeState = @import("enums.zig").SchemeState;
 const ColorScheme = @import("drw.zig").ColorScheme;
 const N = @import("enums.zig").N;
-const ForkError = std.posix.ForkError;
 const MOUSEMASK = @import("config.zig").MOUSEMASK;
 const DwmError = @import("errors.zig").DwmError;
 const HandlerFn = @import("enums.zig").HandlerFn;
 const atoms = @import("atoms.zig");
+const Xt = @import("x_tutorial.zig");
 
 const NAME = @import("build_opts").name;
 const VERSION = @import("build_opts").version;
@@ -34,7 +34,6 @@ var global_allocator: Allocator = undefined;
 const X = @import("c_lib.zig").X;
 const C = @import("c_lib.zig").C;
 const Window = X.Window;
-const Display = X.Display;
 const XErrorEvent = X.XErrorEvent;
 const XEvent = X.XEvent;
 
@@ -67,12 +66,12 @@ fn CLEANMASK(mask: u32) u32 {
         (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod2Mask | X.Mod3Mask | X.Mod4Mask | X.Mod5Mask);
 }
 
-fn xerrordummy(_: ?*Display, _: [*c]XErrorEvent) callconv(.c) c_int {
+fn xerrordummy(_: ?*Xt.Display, _: [*c]XErrorEvent) callconv(.c) c_int {
     return 0;
 }
 
 /// (dwm) xerrorstart
-fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
+fn xerrorstart(_dpy: ?*Xt.Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
     _ = _event;
     std.debug.print(NAME ++ ": another window manager is already running\n", .{});
@@ -80,7 +79,7 @@ fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
 }
 
 /// (dwm) xerror
-fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
+fn xerror(_dpy: ?*Xt.Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
     if (err_event == null) {
         std.debug.print(NAME ++ ": called xerror with null XErrorEvent value\n", .{});
@@ -111,7 +110,7 @@ fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     @panic("xerror called but xerrorlib not defined yet.");
 }
 
-var xerrorlib: ?*const fn (?*Display, [*c]XErrorEvent) callconv(.c) c_int = null;
+var xerrorlib: ?*const fn (?*Xt.Display, [*c]XErrorEvent) callconv(.c) c_int = null;
 
 /// (dwm) checkotherwm
 fn check_other_wm() void {
@@ -1219,7 +1218,7 @@ fn updategeom(allocator: Allocator, selmon: *?*Monitor) error{OutOfMemory}!bool 
 }
 
 /// (dwm) setup
-fn setup(allocator: Allocator) DwmError!void {
+fn setup(allocator: Allocator, wmcheckwin: *Xt.Window) DwmError!void {
     var sa: C.struct_sigaction = undefined;
 
     // Do not transform children into zombies when they terminate.
@@ -1272,11 +1271,11 @@ fn setup(allocator: Allocator) DwmError!void {
     updateStatus(allocator);
 
     // Supporting window for NetWMCheck.
-    z.wmcheckwin = X.XCreateSimpleWindow(z.dpy, z.root, 0, 0, 1, 1, 0, 0, 0);
+    wmcheckwin.* = X.XCreateSimpleWindow(z.dpy, z.root, 0, 0, 1, 1, 0, 0, 0);
     // The @ptrCast is hella sus from dwm. This is supposed to be a const char* in C.
-    _ = X.XChangeProperty(z.dpy, z.wmcheckwin, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(&z.wmcheckwin), 1);
-    _ = X.XChangeProperty(z.dpy, z.wmcheckwin, z.netatom.get(.WMName), utf8string, 8, X.PropModeReplace, "dwm", 3);
-    _ = X.XChangeProperty(z.dpy, z.root, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(&z.wmcheckwin), 1);
+    _ = X.XChangeProperty(z.dpy, wmcheckwin.*, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(wmcheckwin), 1);
+    _ = X.XChangeProperty(z.dpy, wmcheckwin.*, z.netatom.get(.WMName), utf8string, 8, X.PropModeReplace, "dwm", 3);
+    _ = X.XChangeProperty(z.dpy, z.root, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(wmcheckwin), 1);
 
     // EWMH support per view.
     // https://specifications.freedesktop.org/wm/latest/
@@ -1465,7 +1464,7 @@ fn updatenumlockmask() void {
 
 /// (dwm) cleanup
 // Continue to build this up as we go.
-fn cleanup(allocator: Allocator) void {
+fn cleanup(allocator: Allocator, wmcheckwin: *Xt.Window) void {
     // View all clients at once. ~0 yields a bitmask of all high bits. I don't
     // fully understand why we do this yet, but I think it helps with clearing
     // out the clients.
@@ -1488,7 +1487,7 @@ fn cleanup(allocator: Allocator) void {
     for (std.enums.values(SchemeState)) |ss| {
         z.drw.scmFree(allocator, z.scheme.get(ss));
     }
-    _ = X.XDestroyWindow(z.dpy, z.wmcheckwin);
+    _ = X.XDestroyWindow(z.dpy, wmcheckwin.*);
     z.drw.deinit(allocator);
     _ = X.XSync(z.dpy, X.False);
     _ = X.XSetInputFocus(z.dpy, X.PointerRoot, X.RevertToPointerRoot, X.CurrentTime);
@@ -1509,7 +1508,7 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
             }
         }
     }
-    _ = X.XUnmapWindow(z.dpy, mon.barwin);
+    _ = Xt.XUnmapWindow(z.dpy, mon.barwin);
     _ = X.XDestroyWindow(z.dpy, mon.barwin);
     allocator.destroy(mon);
 }
@@ -1527,7 +1526,7 @@ fn updateBars() void {
         if (m.barwin != 0) {
             continue;
         }
-        m.barwin = X.XCreateWindow(
+        m.barwin = Xt.XCreateWindow(
             z.dpy,
             z.root,
             m.w.x,
@@ -1841,137 +1840,63 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     z.drw.map(m.barwin, .{ .x = 0, .y = 0, .w = m.w.w, .h = z.bar_height });
 }
 
+/// Returns true if we should terminate the process immediately after this
+/// function ends.
+fn handleCliArgs(buffer: []u8) error{WriteFailed}!bool {
+    var stdout_writer = std.fs.File.stdout().writer(buffer);
+    var stdout = &stdout_writer.interface;
+    const argv = std.os.argv;
+    // If the only flag given is "-v", then print the version.
+    if (argv.len == 2 and mem.eql(u8, mem.span(argv[1]), "-v")) {
+        try stdout.print("{s}-{s}\n", .{ NAME, VERSION });
+        try stdout.flush();
+        return true;
+    }
+    // Otherwise, if there are any CLI args at all, print the super-minimal help
+    // text, which is to either run the binary with no flags, or run it with the
+    // "-v" flag.
+    else if (argv.len != 1) {
+        try stdout.print("usage: {s} [-v]\n", .{NAME});
+        try stdout.flush();
+        return true;
+    }
+    return false;
+}
+
 pub fn main() !void {
-    if (false) return simplemain();
     log.info("{s}", .{line});
     log.info("Started execution of {s}", .{NAME});
     log.info("{s}", .{line});
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        _ = gpa.deinit();
-        log.info("Closed the allocator", .{});
+    { // Handle the CLI args, if any.
+        var buffer: [64]u8 = undefined;
+        if (try handleCliArgs(&buffer)) return;
     }
+
+    var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
+    defer _ = gpa.deinit();
     const allocator = gpa.allocator();
     global_allocator = allocator;
 
-    var diebuf: [32]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&diebuf);
-    var stdout: QuickWrite = .init(&stdout_writer.interface);
-    var stderr_writer = std.fs.File.stderr().writer(&diebuf);
-    var stderr: QuickWrite = .init(&stderr_writer.interface);
-
-    { // Parse arguments.
-        const argv = std.os.argv;
-        if (argv.len == 2 and mem.eql(u8, mem.span(argv[1]), "-v"))
-            return try stdout.print("{s}-{s}\n", .{ NAME, VERSION })
-        else if (argv.len != 1)
-            return try stdout.print("usage: {s} [-v]\n", .{NAME});
-    }
-    if (C.setlocale(C.LC_CTYPE, "") == null or X.XSupportsLocale() == X.False) {
-        try stderr.print("warning: no locale support\n", .{});
+    if (C.setlocale(C.LC_CTYPE, "") == null or !Xt.XSupportsLocale()) {
+        std.debug.print("warning: no locale support\n", .{});
     }
     z.dpy = X.XOpenDisplay(null) orelse {
-        return try stdout.print(NAME ++ ": cannot open display\n", .{});
+        return std.debug.print(NAME ++ ": cannot open display\n", .{});
     };
     defer _ = X.XCloseDisplay(z.dpy);
 
     check_other_wm();
 
-    try setup(allocator);
-    defer cleanup(allocator);
-
-    log.info("{s}", .{line});
-    log.info("Completed setup()", .{});
-    log.info("{s}", .{line});
+    var wmcheckwin: Xt.Window = undefined;
+    try setup(allocator, &wmcheckwin);
+    defer cleanup(allocator, &wmcheckwin);
 
     try scan(allocator);
     log.info("{s}", .{line});
-    log.info("Completed scan()", .{});
+    log.info("Starting event loop", .{});
     log.info("{s}", .{line});
-
     try run(allocator);
-}
-
-var test_window: ?Window = null;
-
-fn testWindow() void {
-    const w = 100;
-    const h = 100;
-    var wa: X.XSetWindowAttributes = .{
-        .override_redirect = X.True,
-        .background_pixmap = X.ParentRelative,
-        .event_mask = X.ButtonPressMask | X.ExposureMask,
-    };
-    const win = X.XCreateWindow(
-        z.dpy,
-        z.root,
-        0,
-        0,
-        w,
-        h,
-        0,
-        X.DefaultDepth(z.dpy, z.screen),
-        X.CopyFromParent,
-        X.DefaultVisual(z.dpy, z.screen),
-        X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
-        &wa,
-    );
-    test_window = win;
-    // _ = X.XSelectInput(dpy, rootwin, X.ExposureMask | X.ButtonPressMask);
-    _ = X.XMapRaised(z.dpy, win);
-}
-
-pub fn simplemain() !void {
-    const dpy = X.XOpenDisplay(null) orelse {
-        return std.debug.print(NAME ++ ": cannot open display\n", .{});
-    };
-    defer _ = X.XCloseDisplay(dpy);
-
-    const w = 100;
-    const h = 100;
-
-    const scr = X.DefaultScreen(dpy);
-    const rootwin = X.RootWindow(dpy, scr);
-    const pixmap = X.XCreatePixmap(dpy, rootwin, w, h, @intCast(X.DefaultDepth(dpy, scr)));
-    // const cmap = X.DefaultColormap(dpy, scr);
-
-    var wa: X.XSetWindowAttributes = .{
-        .override_redirect = X.True,
-        .background_pixmap = X.ParentRelative,
-        .event_mask = X.ButtonPressMask | X.ExposureMask,
-    };
-    const win = X.XCreateWindow(
-        dpy,
-        rootwin,
-        0,
-        0,
-        w,
-        h,
-        0,
-        X.DefaultDepth(dpy, scr),
-        X.CopyFromParent,
-        X.DefaultVisual(dpy, scr),
-        X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
-        &wa,
-    );
-    const gc = X.XCreateGC(dpy, rootwin, 0, null);
-    _ = X.XSetForeground(dpy, gc, X.WhitePixel(dpy, scr));
-    _ = X.XSelectInput(dpy, rootwin, X.ExposureMask | X.ButtonPressMask);
-    _ = X.XMapRaised(dpy, win);
-
-    var ev: XEvent = undefined;
-    while (true) {
-        _ = X.XNextEvent(dpy, &ev);
-        if (ev.type == X.Expose and ev.xexpose.count < 1) {
-            // _ = X.XDrawString(dpy, win, gc, 10, 10, "Hello world", 12);
-            _ = X.XDrawString(dpy, pixmap, gc, 10, 10, "Hello world", 12);
-            // _ = X.XCopyArea(dpy, pixmap, win, gc, 0, 0, w, h, 0, 0);
-            // _ = X.XSync(dpy, X.False);
-        } else if (ev.type == X.ButtonPress) {
-            break;
-        }
-    }
 }
 
 test {

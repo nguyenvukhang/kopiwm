@@ -1,5 +1,6 @@
 const std = @import("std");
 const X = @import("c_lib.zig").X;
+const Xt = @import("x_tutorial.zig");
 const fc = @import("c_lib.zig").fc;
 const Rect = @import("rect.zig").Rect;
 const mem = std.mem;
@@ -7,7 +8,6 @@ const Allocator = mem.Allocator;
 const log = std.log;
 
 pub const Cursor = X.Cursor;
-pub const Display = X.Display;
 pub const Drawable = X.Drawable;
 pub const Window = X.Window;
 pub const XftColor = X.XftColor;
@@ -19,7 +19,7 @@ pub const FcPattern = X.FcPattern;
 pub const Fnt = struct {
     const Self = @This();
 
-    dpy: ?*Display,
+    dpy: ?*Xt.Display,
     h: u16,
     xfont: *XftFont,
     pattern: ?*FcPattern,
@@ -169,7 +169,7 @@ pub const Drw = struct {
     w: u32,
     /// Height.
     h: u32,
-    dpy: *Display,
+    dpy: *Xt.Display,
     screen: c_int,
     root: Window,
     drawable: Drawable,
@@ -182,7 +182,7 @@ pub const Drw = struct {
     /// (dwm) drw_create
     pub fn init(
         allocator: Allocator,
-        dpy: *Display,
+        dpy: *Xt.Display,
         screen: c_int,
         root: Window,
         /// width
