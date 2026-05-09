@@ -1221,7 +1221,6 @@ fn updategeom(allocator: Allocator, selmon: *?*Monitor) error{OutOfMemory}!bool 
 
 /// (dwm) setup
 fn setup(allocator: Allocator) DwmError!void {
-    var utf8string: X.Atom = undefined;
     var sa: C.struct_sigaction = undefined;
 
     // Do not transform children into zombies when they terminate.
@@ -1253,21 +1252,9 @@ fn setup(allocator: Allocator) DwmError!void {
     }
 
     // Initialize atoms.
-    utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", X.False);
-    z.wmatom.set(.Protocols, X.XInternAtom(z.dpy, "WM_PROTOCOLS", X.False));
-    z.wmatom.set(.Delete, X.XInternAtom(z.dpy, "WM_DELETE_WINDOW", X.False));
-    z.wmatom.set(.State, X.XInternAtom(z.dpy, "WM_STATE", X.False));
-    z.wmatom.set(.TakeFocus, X.XInternAtom(z.dpy, "WM_TAKE_FOCUS", X.False));
-
-    z.netatom.set(.ActiveWindow, X.XInternAtom(z.dpy, "_NET_ACTIVE_WINDOW", X.False));
-    z.netatom.set(.Supported, X.XInternAtom(z.dpy, "_NET_SUPPORTED", X.False));
-    z.netatom.set(.WMName, X.XInternAtom(z.dpy, "_NET_WM_NAME", X.False));
-    z.netatom.set(.WMState, X.XInternAtom(z.dpy, "_NET_WM_STATE", X.False));
-    z.netatom.set(.WMCheck, X.XInternAtom(z.dpy, "_NET_SUPPORTING_WM_CHECK", X.False));
-    z.netatom.set(.WMFullscreen, X.XInternAtom(z.dpy, "_NET_WM_STATE_FULLSCREEN", X.False));
-    z.netatom.set(.WMWindowType, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE", X.False));
-    z.netatom.set(.WMWindowTypeDialog, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE_DIALOG", X.False));
-    z.netatom.set(.ClientList, X.XInternAtom(z.dpy, "_NET_CLIENT_LIST", X.False));
+    const utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", X.False);
+    for (std.enums.values(WM)) |v| z.wmatom.set(v, X.XInternAtom(z.dpy, v.asStr(), X.False));
+    for (std.enums.values(Net)) |v| z.netatom.set(v, X.XInternAtom(z.dpy, v.asStr(), X.False));
 
     // Initialize cursors.
     z.cursors.set(.Normal, z.drw.curCreate(X.XC_left_ptr));
@@ -1294,7 +1281,16 @@ fn setup(allocator: Allocator) DwmError!void {
 
     // EWMH support per view.
     // https://specifications.freedesktop.org/wm/latest/
-    _ = X.XChangeProperty(z.dpy, z.root, z.netatom.get(.Supported), X.XA_ATOM, 32, X.PropModeReplace, @ptrCast(&z.netatom.values), @intCast(N(Net)));
+    _ = X.XChangeProperty(
+        z.dpy,
+        z.root,
+        z.netatom.get(.Supported),
+        X.XA_ATOM,
+        32,
+        X.PropModeReplace,
+        @ptrCast(&z.netatom.values),
+        @intCast(z.netatom.values.len),
+    );
     _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ClientList));
 
     // Select events.
