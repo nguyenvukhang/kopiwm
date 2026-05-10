@@ -78,6 +78,110 @@ pub inline fn XCreateWindow(
     );
 }
 
+/// The XGetWindowProperty function returns the actual type of the property; the
+/// actual format of the property; the number of 8-bit, 16-bit, or 32-bit items
+/// transferred; the number of bytes remaining to be read in the property; and a
+/// pointer to the data actually returned. XGetWindowProperty sets the return
+/// arguments as follows:
+///
+/// 1) If the specified property does not exist for the specified window,
+///    XGetWindowProperty returns None to actual_type_return and the value zero
+///    to actual_format_return and bytes_after_return. The nitems_return
+///    argument is empty. In this case, the delete argument is ignored.
+///
+/// 2) If the specified property exists but its type does not match the
+///    specified type, XGetWindowProperty returns the actual property type to
+///    actual_type_return, the actual property format (never zero) to
+///    actual_format_return, and the property length in bytes (even if the
+///    actual_format_return is 16 or 32) to bytes_after_return. It also ignores
+///    the delete argument. The nitems_return argument is empty.
+///
+/// 3) If the specified property exists and either you assign AnyPropertyType to
+///    the req_type argument or the specified type matches the actual property
+///    type, XGetWindowProperty returns the actual property type to
+///    actual_type_return and the actual property format (never zero) to
+///    actual_format_return. It also returns a value to bytes_after_return and
+///    nitems_return, by defining the following values:
+///     * N = actual length of the stored property in bytes (even if the format is 16 or 32)
+///     * I = 4 * long_offset
+///     * T = N - I
+///     * L = MINIMUM(T, 4 * long_length)
+///     * A = N - (I + L)
+///    The returned value starts at byte index I in the property (indexing from
+///    zero), and its length in bytes is L. If the value for long_offset causes L
+///    to be negative, a BadValue error results. The value of bytes_after_return
+///    is A, giving the number of trailing unread bytes in the stored property.
+///
+/// If the returned format is 8, the returned data is represented as a char
+/// array. If the returned format is 16, the returned data is represented as a
+/// short array and should be cast to that type to obtain the elements. If the
+/// returned format is 32, the returned data is represented as a long array and
+/// should be cast to that type to obtain the elements.
+///
+/// XGetWindowProperty always allocates one extra byte in prop_return (even if
+/// the property is zero length) and sets it to zero so that simple properties
+/// consisting of characters do not have to be copied into yet another string
+/// before use.
+///
+/// If delete is True and bytes_after_return is zero, XGetWindowProperty deletes
+/// the property from the window and generates a PropertyNotify event on the
+/// window.
+///
+/// The function returns true if it executes successfully. To free the resulting
+/// data, use XFree.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XGetWindowProperty.3.xhtml
+pub inline fn XGetWindowProperty(
+    display: ?*Display,
+    /// The window whose property you want to obtain.
+    w: Window,
+    property: Atom,
+    /// The offset in the specified property (in 32-bit quantities) where the
+    /// data is to be retrieved.
+    long_offset: c_long,
+    /// The length in 32-bit multiples of the data to be retrieved.
+    long_length: c_long,
+    /// Determines whether the property is deleted.
+    delete: bool,
+    /// The atom identifier associated with the property type or
+    /// AnyPropertyType.
+    req_type: Atom,
+    /// The atom identifier that defines the actual type of the property.
+    actual_type_return: [*c]Atom,
+    /// The actual format of the property.
+    actual_format_return: [*c]c_int,
+    nitems_return: [*c]c_ulong,
+    /// The number of bytes remaining to be read in the property if a partial
+    /// read was performed.
+    bytes_after_return: [*c]c_ulong,
+    /// Returns the data in the specified format. If the returned format is 8,
+    /// the returned data is represented as a char array. If the returned
+    /// format is 16, the returned data is represented as a array of short int
+    /// type and should be cast to that type to obtain the elements. If the
+    /// returned format is 32, the property data will be stored as an array of
+    /// longs (which in a 64-bit application will be 64-bit values that are
+    /// padded in the upper 4 bytes).
+    prop_return: [*c][*c]u8,
+) bool {
+    const result = X.XGetWindowProperty(
+        display,
+        w,
+        property,
+        long_offset,
+        long_length,
+        @intFromBool(delete),
+        req_type,
+        actual_type_return,
+        actual_format_return,
+        nitems_return,
+        bytes_after_return,
+        prop_return,
+    );
+    // From the original docs:
+    // "The function returns Success if it executes successfully."
+    return result == X.Success;
+}
+
 /// The XInternAtom function returns the atom identifier associated with the
 /// specified atom_name. If the atom name is not in the Host Portable Character
 /// Encoding, the result is implementation-dependent. Uppercase and lowercase

@@ -253,21 +253,9 @@ fn getState(w: Window) i32 {
     var property: ?[*]u8 = undefined;
     var result: i32 = -1;
 
-    const res = X.XGetWindowProperty(
-        z.dpy,
-        w,
-        z.wmatom.get(.State),
-        0, // long_offset: Specifies the offset in the specified property (in 32-bit quantities) where the data is to be retrieved.
-        2, // long_length: Specifies the length in 32-bit multiples of the data to be retrieved.
-        X.False,
-        z.wmatom.get(.State),
-        &real,
-        &format,
-        &n,
-        &extra,
-        &property,
-    );
-    if (res != X.Success) return -1;
+    const res = Xt.XGetWindowProperty(z.dpy, w, z.wmatom.get(.State), 0, 2, //
+        false, z.wmatom.get(.State), &real, &format, &n, &extra, &property);
+    if (!res) return -1;
     defer _ = X.XFree(property);
     if (property) |p| {
         if (n != 0 and format == 32) {

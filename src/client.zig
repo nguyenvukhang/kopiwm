@@ -12,6 +12,7 @@ const Atom = X.Atom;
 const toggle = @import("toggle.zig").toggle;
 const cfg = @import("config.zig");
 const Size = @import("enums.zig").Size;
+const Xt = @import("x_tutorial.zig");
 
 const ClientSizes = struct {
     base: ?Size = null,
@@ -228,21 +229,9 @@ pub const Client = struct {
         var dl: c_ulong = undefined; // dummy long.
         var property: ?[*]u8 = undefined;
 
-        const res = X.XGetWindowProperty(
-            dpy,
-            self.win,
-            prop,
-            0,
-            @sizeOf(Atom),
-            X.False,
-            X.XA_ATOM,
-            &da,
-            &format,
-            &nitems,
-            &dl,
-            &property,
-        );
-        if (res != X.Success) return null;
+        const res = Xt.XGetWindowProperty(dpy, self.win, prop, 0, @sizeOf(Atom), //
+            false, X.XA_ATOM, &da, &format, &nitems, &dl, &property);
+        if (!res) return null;
         defer _ = X.XFree(property);
         if (property) |p| {
             if (nitems > 0 and format == 32) {
