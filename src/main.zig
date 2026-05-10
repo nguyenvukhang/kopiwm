@@ -246,7 +246,7 @@ fn winToClient(w: Window) ?*Client {
 
 /// (dwm) getstate
 fn getState(w: Window) i32 {
-    var real: X.Atom = undefined;
+    var real: Xt.Atom = undefined;
     var format: c_int = undefined;
     var n: c_ulong = undefined;
     var extra: c_ulong = undefined;
@@ -1250,9 +1250,9 @@ fn setup(allocator: Allocator, wmcheckwin: *Xt.Window) DwmError!void {
     }
 
     // Initialize atoms.
-    const utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", X.False);
-    atoms.initializeAtomsForEnum(atoms.WM, X.Atom, &z.wmatom, z.dpy);
-    atoms.initializeAtomsForEnum(atoms.Net, X.Atom, &z.netatom, z.dpy);
+    const utf8string = Xt.XInternAtom(z.dpy, "UTF8_STRING", false).?;
+    atoms.initializeAtomsForEnum(atoms.WM, Xt.Atom, &z.wmatom, z.dpy);
+    atoms.initializeAtomsForEnum(atoms.Net, Xt.Atom, &z.netatom, z.dpy);
 
     // Initialize cursors.
     z.cursors.set(.Normal, z.drw.curCreate(X.XC_left_ptr));
