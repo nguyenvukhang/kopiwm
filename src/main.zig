@@ -985,7 +985,7 @@ pub fn moveMouse(_: *const Arg) DwmError!void {
             else => {},
         }
     }
-    _ = X.XUngrabPointer(z.dpy, X.CurrentTime);
+    Xt.XUngrabPointer(z.dpy, X.CurrentTime);
     const m_opt = c.pos.now.toMonitor(z.mons);
     if (m_opt != z.selmon) {
         if (m_opt) |m| {
@@ -1107,7 +1107,7 @@ pub fn resizeMouse(_: *const Arg) DwmError!void {
             @intCast(c.pos.now.w + c.bw.now - 1), //
             @intCast(c.pos.now.h + c.bw.now - 1));
     }
-    _ = X.XUngrabPointer(z.dpy, X.CurrentTime);
+    Xt.XUngrabPointer(z.dpy, X.CurrentTime);
     while (X.XCheckMaskEvent(z.dpy, X.EnterWindowMask, &ev) != 0) {}
     const m_opt = c.pos.now.toMonitor(z.mons);
     if (m_opt != z.selmon) {

@@ -405,6 +405,23 @@ pub inline fn XSync(display: *Display, discard: bool) void {
     _ = X.XSync(display, @intFromBool(discard));
 }
 
+/// The XUngrabPointer function releases the pointer and any queued events if
+/// this client has actively grabbed the pointer from XGrabPointer,
+/// XGrabButton, or from a normal button press. XUngrabPointer does not release
+/// the pointer if the specified time is earlier than the last-pointer-grab
+/// time or is later than the current X server time. It also generates
+/// EnterNotify and LeaveNotify events. The X server performs an UngrabPointer
+/// request automatically if the event window or confine_to window for an
+/// active pointer grab becomes not viewable or if window reconfiguration
+/// causes the confine_to window to lie completely outside the boundaries of
+/// the root window.
+///
+/// source: https://www.x.org/releases/X11R7.7/doc/man/man3/XGrabPointer.3.xhtml
+pub inline fn XUngrabPointer(display: *Display, time: Time) void {
+    // According to the docs, the return value is not used.
+    _ = X.XUngrabPointer(display, time);
+}
+
 /// The XUnmapWindow function unmaps the specified window and causes the X
 /// server to generate an UnmapNotify event. If the specified window is already
 /// unmapped, XUnmapWindow has no effect. Normal exposure processing on
