@@ -148,9 +148,9 @@ fn utf8decode(s: []const u8, codepoint: *u64, err: *bool) u3 {
 
 fn print_draw_error(res: c_int) void {
     switch (res) {
-        X.BadDrawable => log.err("Bad drawable error", .{}),
-        X.BadGC => log.err("Bad GC error", .{}),
-        X.BadMatch => log.err("Bad match error", .{}),
+        Xt.err.BadDrawable => log.err("Bad drawable error", .{}),
+        Xt.err.BadGC => log.err("Bad GC error", .{}),
+        Xt.err.BadMatch => log.err("Bad match error", .{}),
         else => {},
     }
 }

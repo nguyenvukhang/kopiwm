@@ -8,6 +8,7 @@ const X = @import("c_lib.zig").X;
 
 pub const Cursor = X.Cursor;
 pub const Drawable = X.Drawable;
+pub const KeySym = X.KeySym;
 pub const Window = X.Window;
 
 // -----------------------------------------------------------------------------
@@ -22,6 +23,7 @@ pub const Display = X.Display;
 
 pub const FcPattern = X.FcPattern;
 pub const Visual = X.Visual;
+pub const XErrorEvent = X.XErrorEvent;
 pub const XEvent = X.XEvent;
 pub const XSetWindowAttributes = X.XSetWindowAttributes;
 pub const XWindowAttributes = X.XWindowAttributes;
@@ -31,6 +33,25 @@ pub const XftFont = X.XftFont;
 // -----------------------------------------------------------------------------
 // Functions
 // -----------------------------------------------------------------------------
+
+/// The XCloseDisplay function closes the connection to the X server for the
+/// display specified in the Display structure and destroys all windows,
+/// resource IDs (Window, Font, Pixmap, Colormap, Cursor, and GContext), or
+/// other resources that the client has created on this display, unless the
+/// close-down mode of the resource has been changed (see XSetCloseDownMode).
+/// Therefore, these windows, resource IDs, and other resources should never be
+/// referenced again or an error will be generated. Before exiting, you should
+/// call XCloseDisplay explicitly so that any pending errors are reported as
+/// XCloseDisplay performs a final XSync operation.
+///
+/// XCloseDisplay can generate a BadGC error.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XOpenDisplay.3.xhtml
+pub inline fn XCloseDisplay(display: *Display) void {
+    // There is no mention in the docs on that the return value of XCloseDisplay
+    // signifies, hence we discard it.
+    _ = X.XCloseDisplay(display);
+}
 
 /// The XCreateWindow function creates an unmapped subwindow for a specified
 /// parent window, returns the window ID of the created window, and causes the
@@ -220,6 +241,34 @@ pub inline fn XInternAtom(
     return if (atom == X.None) null else atom;
 }
 
+/// The XOpenDisplay function returns a Display structure that serves as the
+/// connection to the X server and that contains all the information about that
+/// X server. XOpenDisplay connects your application to the X server through
+/// TCP or DECnet communications protocols, or through some local inter-process
+/// communication protocol. If the hostname is a host machine name and a single
+/// colon (:) separates the hostname and display number, XOpenDisplay connects
+/// using TCP streams. If the hostname is not specified, Xlib uses whatever it
+/// believes is the fastest transport. If the hostname is a host machine name
+/// and a double colon (::) separates the hostname and display number,
+/// XOpenDisplay connects using DECnet. A single X server can support any or
+/// all of these transport mechanisms simultaneously. A particular Xlib
+/// implementation can support many more of these transport mechanisms.
+///
+/// If successful, XOpenDisplay returns a pointer to a Display structure, which
+/// is defined in <X11/Xlib.h>. If XOpenDisplay does not succeed, it returns
+/// NULL. After a successful call to XOpenDisplay, all of the screens in the
+/// display can be used by the client. The screen number specified in the
+/// display_name argument is returned by the DefaultScreen macro (or the
+/// XDefaultScreen function). You can access elements of the Display and Screen
+/// structures only by using the information macros or functions. For
+/// information about using macros and functions to obtain information from the
+/// Display structure, see section 2.2.1.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XOpenDisplay.3.xhtml
+pub inline fn XOpenDisplay(display_name: [*c]const u8) ?*Display {
+    return X.XOpenDisplay(display_name);
+}
+
 /// The XSupportsLocale function returns True if Xlib functions are capable of
 /// operating under the current locale. If it returns False, Xlib
 /// locale-dependent functions for which the XLocaleNotSupported return status
@@ -243,7 +292,7 @@ pub inline fn XSupportsLocale() bool {
 /// including those events that were on the queue before XSync was called.
 /// Client applications seldom need to call XSync.
 ///
-/// source: https://www.x.org/releases/X11R7.7/doc/man/man3/XFlush.3.xhtml
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XFlush.3.xhtml
 pub inline fn XSync(display: ?*Display, discard: bool) void {
     // According to the docs in the source, the c_int output is only important
     // in the other functions documented on that html page, but not XSync. So
@@ -268,7 +317,7 @@ pub inline fn XUnmapWindow(display: ?*Display, window: Window) c_int {
 }
 
 // -----------------------------------------------------------------------------
-// Enums/Others
+// Enums
 // -----------------------------------------------------------------------------
 
 /// At the conceptual level, atoms are unique names that clients can use to
@@ -300,6 +349,80 @@ pub const None = X.None;
 
 pub const False = X.False;
 pub const True = X.True;
+
+// -----------------------------------------------------------------------------
+// Bitmasks
+// -----------------------------------------------------------------------------
+
+pub const masks = struct {
+    pub const ShiftMask = X.ShiftMask;
+    pub const ControlMask = X.ControlMask;
+    pub const ButtonPressMask = X.ButtonPressMask;
+    pub const ButtonReleaseMask = X.ButtonReleaseMask;
+    pub const PointerMotionMask = X.PointerMotionMask;
+
+    pub const Mod1Mask = X.Mod1Mask;
+    pub const Mod2Mask = X.Mod2Mask;
+    pub const Mod3Mask = X.Mod3Mask;
+    pub const Mod4Mask = X.Mod4Mask;
+    pub const Mod5Mask = X.Mod5Mask;
+};
+
+// -----------------------------------------------------------------------------
+// Keys and buttons
+// -----------------------------------------------------------------------------
+
+pub const keys = struct {
+    // zig fmt: off
+    pub const XK_a = X.XK_a; pub const XK_b = X.XK_b; pub const XK_c = X.XK_c; pub const XK_d = X.XK_d;
+    pub const XK_e = X.XK_e; pub const XK_f = X.XK_f; pub const XK_g = X.XK_g; pub const XK_h = X.XK_h;
+    pub const XK_i = X.XK_i; pub const XK_j = X.XK_j; pub const XK_k = X.XK_k; pub const XK_l = X.XK_l;
+    pub const XK_m = X.XK_m; pub const XK_n = X.XK_n; pub const XK_o = X.XK_o; pub const XK_p = X.XK_p;
+    pub const XK_q = X.XK_q; pub const XK_r = X.XK_r; pub const XK_s = X.XK_s; pub const XK_t = X.XK_t;
+    pub const XK_u = X.XK_u; pub const XK_v = X.XK_v; pub const XK_w = X.XK_w; pub const XK_x = X.XK_x;
+    pub const XK_y = X.XK_y; pub const XK_z = X.XK_z; // lower caae
+    pub const XK_A = X.XK_A; pub const XK_B = X.XK_B; pub const XK_C = X.XK_C; pub const XK_D = X.XK_D;
+    pub const XK_E = X.XK_E; pub const XK_F = X.XK_F; pub const XK_G = X.XK_G; pub const XK_H = X.XK_H;
+    pub const XK_I = X.XK_I; pub const XK_J = X.XK_J; pub const XK_K = X.XK_K; pub const XK_L = X.XK_L;
+    pub const XK_M = X.XK_M; pub const XK_N = X.XK_N; pub const XK_O = X.XK_O; pub const XK_P = X.XK_P;
+    pub const XK_Q = X.XK_Q; pub const XK_R = X.XK_R; pub const XK_S = X.XK_S; pub const XK_T = X.XK_T;
+    pub const XK_U = X.XK_U; pub const XK_V = X.XK_V; pub const XK_W = X.XK_W; pub const XK_X = X.XK_X;
+    pub const XK_Y = X.XK_Y; pub const XK_Z = X.XK_Z; // upper case
+    pub const XK_0 = X.XK_0; pub const XK_1 = X.XK_1; pub const XK_2 = X.XK_2; pub const XK_3 = X.XK_3;
+    pub const XK_4 = X.XK_4; pub const XK_5 = X.XK_5; pub const XK_6 = X.XK_6; pub const XK_7 = X.XK_7;
+    pub const XK_8 = X.XK_8; pub const XK_9 = X.XK_9; // numbers
+    // zig fmt: on
+    pub const XK_Return = X.XK_Return;
+    pub const XK_Tab = X.XK_Tab;
+    pub const XK_comma = X.XK_comma;
+    pub const XK_equal = X.XK_equal;
+    pub const XK_minus = X.XK_minus;
+    pub const XK_period = X.XK_period;
+    pub const XK_space = X.XK_space;
+
+    // AwesomeWM provides a very helpful graphic here:
+    // https://awesomewm.org/doc/api/libraries/mouse.html
+
+    /// Left click.
+    pub const Button1 = X.Button1;
+    /// Middle click.
+    pub const Button2 = X.Button2;
+    /// Right click.
+    pub const Button3 = X.Button3;
+    pub const Button4 = X.Button4;
+    pub const Button5 = X.Button5;
+};
+
+// -----------------------------------------------------------------------------
+// Errors
+// -----------------------------------------------------------------------------
+
+pub const err = struct {
+    pub const BadAccess = X.BadAccess;
+    pub const BadDrawable = X.BadDrawable;
+    pub const BadGC = X.BadGC;
+    pub const BadMatch = X.BadMatch;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Resources

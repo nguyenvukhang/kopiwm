@@ -33,9 +33,6 @@ var global_allocator: Allocator = undefined;
 // X11 stuff.
 const X = @import("c_lib.zig").X;
 const C = @import("c_lib.zig").C;
-const Window = X.Window;
-const XErrorEvent = X.XErrorEvent;
-const XEvent = X.XEvent;
 
 var z: dwmz.App = .init();
 
@@ -66,12 +63,12 @@ fn CLEANMASK(mask: u32) u32 {
         (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod2Mask | X.Mod3Mask | X.Mod4Mask | X.Mod5Mask);
 }
 
-fn xerrordummy(_: ?*Xt.Display, _: [*c]XErrorEvent) callconv(.c) c_int {
+fn xerrordummy(_: ?*Xt.Display, _: [*c]Xt.XErrorEvent) callconv(.c) c_int {
     return 0;
 }
 
 /// (dwm) xerrorstart
-fn xerrorstart(_dpy: ?*Xt.Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
+fn xerrorstart(_dpy: ?*Xt.Display, _event: [*c]Xt.XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
     _ = _event;
     std.debug.print(NAME ++ ": another window manager is already running\n", .{});
@@ -79,10 +76,10 @@ fn xerrorstart(_dpy: ?*Xt.Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
 }
 
 /// (dwm) xerror
-fn xerror(_dpy: ?*Xt.Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
+fn xerror(_dpy: ?*Xt.Display, err_event: [*c]Xt.XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
     if (err_event == null) {
-        std.debug.print(NAME ++ ": called xerror with null XErrorEvent value\n", .{});
+        std.debug.print(NAME ++ ": called xerror with null Xt.XErrorEvent value\n", .{});
         if (xerrorlib) |f| {
             return f(z.dpy, err_event);
         }
@@ -92,14 +89,14 @@ fn xerror(_dpy: ?*Xt.Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     const rc = e.request_code;
     const ec = e.error_code;
     if (ec == X.BadWindow or
-        (rc == X.X_SetInputFocus and ec == X.BadMatch) or
-        (rc == X.X_PolyText8 and ec == X.BadDrawable) or
-        (rc == X.X_PolyFillRectangle and ec == X.BadDrawable) or
-        (rc == X.X_PolySegment and ec == X.BadDrawable) or
-        (rc == X.X_ConfigureWindow and ec == X.BadMatch) or
-        (rc == X.X_GrabButton and ec == X.BadAccess) or
-        (rc == X.X_GrabKey and ec == X.BadAccess) or
-        (rc == X.X_CopyArea and ec == X.BadDrawable))
+        (rc == X.X_SetInputFocus and ec == Xt.err.BadMatch) or
+        (rc == X.X_PolyText8 and ec == Xt.err.BadDrawable) or
+        (rc == X.X_PolyFillRectangle and ec == Xt.err.BadDrawable) or
+        (rc == X.X_PolySegment and ec == Xt.err.BadDrawable) or
+        (rc == X.X_ConfigureWindow and ec == Xt.err.BadMatch) or
+        (rc == X.X_GrabButton and ec == Xt.err.BadAccess) or
+        (rc == X.X_GrabKey and ec == Xt.err.BadAccess) or
+        (rc == X.X_CopyArea and ec == Xt.err.BadDrawable))
     {
         return 0;
     }
@@ -110,7 +107,7 @@ fn xerror(_dpy: ?*Xt.Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     @panic("xerror called but xerrorlib not defined yet.");
 }
 
-var xerrorlib: ?*const fn (?*Xt.Display, [*c]XErrorEvent) callconv(.c) c_int = null;
+var xerrorlib: ?*const fn (?*Xt.Display, [*c]Xt.XErrorEvent) callconv(.c) c_int = null;
 
 /// (dwm) checkotherwm
 fn check_other_wm() void {
@@ -232,7 +229,7 @@ fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
 /// (dwm) wintoclient
 /// Searches all the monitors and all of their clients for one that matches
 /// the window search query. Returns the first hit.
-fn winToClient(w: Window) ?*Client {
+fn winToClient(w: Xt.Window) ?*Client {
     var m_opt = z.mons;
     var c_opt: ?*Client = null;
     while (m_opt) |m| : (m_opt = m.next) {
@@ -245,7 +242,7 @@ fn winToClient(w: Window) ?*Client {
 }
 
 /// (dwm) getstate
-fn getState(w: Window) i32 {
+fn getState(w: Xt.Window) i32 {
     var real: Xt.Atom = undefined;
     var format: c_int = undefined;
     var n: c_ulong = undefined;
@@ -266,10 +263,10 @@ fn getState(w: Window) i32 {
 }
 
 /// (dwm) manage
-fn manage(allocator: Allocator, w: Window, wa: *Xt.XWindowAttributes) error{OutOfMemory}!void {
+fn manage(allocator: Allocator, w: Xt.Window, wa: *Xt.XWindowAttributes) error{OutOfMemory}!void {
     const c = try allocator.create(Client);
     c.* = .init(&z, w, wa);
-    var trans: Window = X.None;
+    var trans: Xt.Window = X.None;
     var wc: X.XWindowChanges = undefined;
 
     log.info("Created client {*}", .{c});
@@ -438,7 +435,7 @@ fn restack(allocator: Allocator, m: *Monitor) void {
     }
 
     Xt.XSync(z.dpy, false);
-    var ev: XEvent = undefined;
+    var ev: Xt.XEvent = undefined;
     while (X.XCheckMaskEvent(z.dpy, X.EnterWindowMask, &ev) != 0) {}
 }
 
@@ -467,7 +464,7 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
 }
 
 /// (dwm) buttonpress
-fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
+fn buttonPress(allocator: Allocator, e: *Xt.XEvent) DwmError!void {
     const ev: X.XButtonPressedEvent = e.xbutton;
     var click: Clk = .RootWin;
     var arg: Arg = undefined;
@@ -530,7 +527,7 @@ fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
 }
 
 /// (dwm) clientmessage
-fn clientMessage(e: *XEvent) void {
+fn clientMessage(e: *Xt.XEvent) void {
     const ev: X.XClientMessageEvent = e.xclient;
     var c: *Client = winToClient(ev.window) orelse return;
 
@@ -551,7 +548,7 @@ fn clientMessage(e: *XEvent) void {
 }
 
 /// (dwm) configurerequest
-fn configureRequest(e: *XEvent) void {
+fn configureRequest(e: *Xt.XEvent) void {
     const ev = e.xconfigurerequest;
     const vmask = ev.value_mask;
 
@@ -612,7 +609,7 @@ fn configureRequest(e: *XEvent) void {
 }
 
 /// (dwm) configurenotify
-fn configureNotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
+fn configureNotify(allocator: Allocator, e: *Xt.XEvent) error{OutOfMemory}!void {
     const ev: X.XConfigureEvent = e.xconfigure;
     if (ev.window != z.root) return;
     const dirty = z.s.w != ev.width or z.s.h != ev.height;
@@ -641,13 +638,13 @@ fn configureNotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
 }
 
 /// (dwm) destroynotify
-fn destroyNotify(allocator: Allocator, e: *XEvent) void {
+fn destroyNotify(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XDestroyWindowEvent = e.xdestroywindow;
     if (winToClient(ev.window)) |c| unmanage(allocator, c, true);
 }
 
 /// (dwm) enternotify
-fn enterNotify(allocator: Allocator, e: *XEvent) void {
+fn enterNotify(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XCrossingEvent = e.xcrossing;
     if ((ev.mode != X.NotifyNormal or ev.detail == X.NotifyInferior) and ev.window != z.root) {
         return;
@@ -664,7 +661,7 @@ fn enterNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// (dwm) expose
-fn expose(allocator: Allocator, e: *XEvent) void {
+fn expose(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XExposeEvent = e.xexpose;
     if (ev.count == 0) {
         drawbar(allocator, wintomon(ev.window));
@@ -672,7 +669,7 @@ fn expose(allocator: Allocator, e: *XEvent) void {
 }
 
 /// (dwm) focusin
-fn focusIn(e: *XEvent) void {
+fn focusIn(e: *Xt.XEvent) void {
     const ev: X.XFocusChangeEvent = e.xfocus;
     if (z.selmon.sel) |sel| {
         if (ev.window != sel.win) sel.setFocus();
@@ -680,7 +677,7 @@ fn focusIn(e: *XEvent) void {
 }
 
 /// (dwm) keypress
-fn keyPress(e: *XEvent) DwmError!void {
+fn keyPress(e: *Xt.XEvent) DwmError!void {
     const ev: X.XKeyEvent = e.xkey;
     const keysym = X.XkbKeycodeToKeysym(z.dpy, @intCast(ev.keycode), 0, 0);
     for (cfg.keys) |key| {
@@ -694,7 +691,7 @@ fn keyPress(e: *XEvent) DwmError!void {
 }
 
 /// (dwm) mappingnotify
-fn mappingNotify(e: *XEvent) void {
+fn mappingNotify(e: *Xt.XEvent) void {
     const ev: *X.XMappingEvent = &e.xmapping;
     _ = X.XRefreshKeyboardMapping(ev);
     if (ev.request == X.MappingKeyboard) {
@@ -703,7 +700,7 @@ fn mappingNotify(e: *XEvent) void {
 }
 
 /// (dwm) maprequest
-fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
+fn mapRequest(allocator: Allocator, e: *Xt.XEvent) error{OutOfMemory}!void {
     const ev: X.XMapRequestEvent = e.xmaprequest;
     var wa: Xt.XWindowAttributes = undefined;
 
@@ -717,7 +714,7 @@ fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
 }
 
 /// (dwm) motionnotify
-fn motionNotify(allocator: Allocator, e: *XEvent) void {
+fn motionNotify(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XMotionEvent = e.xmotion;
     const static = struct {
         var mon: ?*Monitor = null;
@@ -738,7 +735,7 @@ fn motionNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// (dwm) propertynotify
-fn propertyNotify(allocator: Allocator, e: *XEvent) void {
+fn propertyNotify(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XPropertyEvent = e.xproperty;
     if (ev.window == z.root and ev.atom == X.XA_WM_NAME) {
         updateStatus(allocator);
@@ -747,7 +744,7 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
     } else if (winToClient(ev.window)) |c| {
         switch (ev.atom) {
             X.XA_WM_TRANSIENT_FOR => {
-                var trans: Window = undefined;
+                var trans: Xt.Window = undefined;
                 const b = !c.is_floating.now and
                     X.XGetTransientForHint(z.dpy, c.win, &trans) != 0;
                 c.is_floating.set(winToClient(trans) != null);
@@ -773,7 +770,7 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// (dwm) unmapnotify
-fn unmapNotify(allocator: Allocator, e: *XEvent) void {
+fn unmapNotify(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XUnmapEvent = e.xunmap;
     if (winToClient(ev.window)) |c| {
         if (ev.send_event == 0) {
@@ -791,7 +788,7 @@ const TIMEOUT: bool = false;
 /// main event loop
 fn run(allocator: Allocator) DwmError!void {
     Xt.XSync(z.dpy, false);
-    var ev: XEvent = undefined;
+    var ev: Xt.XEvent = undefined;
     const start = std.time.timestamp();
 
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
@@ -800,7 +797,7 @@ fn run(allocator: Allocator) DwmError!void {
     }
 }
 
-inline fn runOne(allocator: Allocator, ev: *XEvent) DwmError!void {
+inline fn runOne(allocator: Allocator, ev: *Xt.XEvent) DwmError!void {
     if (handler[@intCast(ev.type)]) |handler_fn| {
         switch (handler_fn) {
             .NoAllocE => |f| try f(ev),
@@ -844,15 +841,15 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
     var wa: Xt.XWindowAttributes = undefined;
     var num: c_uint = undefined;
     var i: c_uint = undefined;
-    var d1: Window = undefined;
-    var d2: Window = undefined;
-    var wins_opt: ?[*]Window = undefined;
+    var d1: Xt.Window = undefined;
+    var d2: Xt.Window = undefined;
+    var wins_opt: ?[*]Xt.Window = undefined;
 
     if (X.XQueryTree(z.dpy, z.root, &d1, &d2, &wins_opt, &num) == 0) {
         return;
     }
     // No need to call XFree because null in Zig means NULL in C.
-    const wins: [*]Window = wins_opt orelse return;
+    const wins: [*]Xt.Window = wins_opt orelse return;
     defer _ = X.XFree(wins);
 
     // Note: this section down here in important in deciding which window to be
@@ -956,7 +953,7 @@ pub fn moveMouse(_: *const Arg) DwmError!void {
     var x: c_int = undefined;
     var y: c_int = undefined;
     if (!z.getRootPtr(&x, &y)) return;
-    var ev: XEvent = undefined;
+    var ev: Xt.XEvent = undefined;
     var lasttime: X.Time = 0;
     while (true) {
         _ = X.XMaskEvent(z.dpy, MOUSEMASK | X.ExposureMask | X.SubstructureRedirectMask, &ev);
@@ -1069,7 +1066,7 @@ pub fn resizeMouse(_: *const Arg) DwmError!void {
             @intFromFloat(z.selmon.mfact * @as(f32, @floatFromInt(z.selmon.m.w))), //
             @intCast(@divFloor(z.selmon.m.h, 2)));
     }
-    var ev: XEvent = undefined;
+    var ev: Xt.XEvent = undefined;
     var lasttime: X.Time = 0;
     while (true) {
         _ = X.XMaskEvent(z.dpy, MOUSEMASK | X.ExposureMask | X.SubstructureRedirectMask, &ev);
@@ -1160,7 +1157,7 @@ pub fn toggleFloating(_: *const Arg) void {
 }
 
 /// (dwm) wintomon
-fn wintomon(w: Window) *Monitor {
+fn wintomon(w: Xt.Window) *Monitor {
     var x: c_int = undefined;
     var y: c_int = undefined;
     if (w == z.root and z.getRootPtr(&x, &y)) {
@@ -1867,10 +1864,10 @@ pub fn main() !void {
     if (C.setlocale(C.LC_CTYPE, "") == null or !Xt.XSupportsLocale()) {
         std.debug.print("warning: no locale support\n", .{});
     }
-    z.dpy = X.XOpenDisplay(null) orelse {
+    z.dpy = Xt.XOpenDisplay(null) orelse {
         return std.debug.print(NAME ++ ": cannot open display\n", .{});
     };
-    defer _ = X.XCloseDisplay(z.dpy);
+    defer Xt.XCloseDisplay(z.dpy);
 
     check_other_wm();
 

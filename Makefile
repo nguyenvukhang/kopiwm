@@ -4,7 +4,10 @@ MAKEFILE_DIR := $(realpath $(dir $(MAKEFILE_PATH)))
 ZIG_OUT := $(MAKEFILE_DIR)/zig-out
 LOG_DIR := $(ZIG_OUT)
 
-quick: quick-make-command
+quick: x quick-make-command
+
+x:
+	rg 'X\.' --glob '!*x_tutorial*' --stats
 
 build:
 	zig build
