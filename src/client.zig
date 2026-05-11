@@ -221,7 +221,7 @@ pub const Client = struct {
     }
 
     /// (dwm) getatomprop
-    fn getAtomProp(self: *Self, dpy: ?*Display, prop: Atom) ?Atom {
+    fn getAtomProp(self: *Self, dpy: *Display, prop: Atom) ?Atom {
         var da: Atom = undefined; // dummy atom.
         var atom: Atom = undefined;
         var format: c_int = undefined;

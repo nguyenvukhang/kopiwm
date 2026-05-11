@@ -266,7 +266,7 @@ fn getState(w: Xt.Window) i32 {
 fn manage(allocator: Allocator, w: Xt.Window, wa: *Xt.XWindowAttributes) error{OutOfMemory}!void {
     const c = try allocator.create(Client);
     c.* = .init(&z, w, wa);
-    var trans: Xt.Window = X.None;
+    var trans: Xt.Window = Xt.None;
     var wc: X.XWindowChanges = undefined;
 
     log.info("Created client {*}", .{c});
@@ -313,7 +313,7 @@ fn manage(allocator: Allocator, w: Xt.Window, wa: *Xt.XWindowAttributes) error{O
     grabbuttons(c, false);
 
     if (!c.is_floating.now) {
-        c.is_floating = .init(trans != X.None or c.is_fixed);
+        c.is_floating = .init(trans != Xt.None or c.is_fixed);
     }
     if (c.is_floating.now) {
         _ = X.XRaiseWindow(z.dpy, c.win);
@@ -938,18 +938,9 @@ pub fn moveMouse(_: *const Arg) DwmError!void {
     const ocx = c.pos.now.x;
     const ocy = c.pos.now.y;
 
-    const grab_res = X.XGrabPointer(
-        z.dpy,
-        z.root,
-        X.False,
-        MOUSEMASK,
-        X.GrabModeAsync,
-        X.GrabModeAsync,
-        X.None,
-        z.cursors.get(.Move),
-        X.CurrentTime,
-    );
-    if (grab_res != X.GrabSuccess) return;
+    const grab_ok = Xt.XGrabPointer(z.dpy, z.root, false, MOUSEMASK, .Async, //
+        .Async, Xt.None, z.cursors.get(.Move), X.CurrentTime);
+    if (!grab_ok) return;
     var x: c_int = undefined;
     var y: c_int = undefined;
     if (!z.getRootPtr(&x, &y)) return;
@@ -1045,24 +1036,24 @@ pub fn resizeMouse(_: *const Arg) DwmError!void {
     const ocx = c.pos.now.x;
     const ocy = c.pos.now.y;
 
-    const grab_res = X.XGrabPointer(
+    const grab_ok = Xt.XGrabPointer(
         z.dpy,
         z.root,
-        X.False,
+        false,
         MOUSEMASK,
-        X.GrabModeAsync,
-        X.GrabModeAsync,
-        X.None,
+        .Async,
+        .Async,
+        Xt.None,
         z.cursors.get(.Resize),
-        X.CurrentTime,
+        Xt.CurrentTime,
     );
-    if (grab_res != X.GrabSuccess) return;
+    if (!grab_ok) return;
     if (c.is_floating.now) {
-        _ = X.XWarpPointer(z.dpy, X.None, c.win, 0, 0, 0, 0, //
+        _ = X.XWarpPointer(z.dpy, Xt.None, c.win, 0, 0, 0, 0, //
             @intCast(c.pos.now.w + c.bw.now - 1), //
             @intCast(c.pos.now.h + c.bw.now - 1));
     } else {
-        _ = X.XWarpPointer(z.dpy, X.None, z.selmon.barwin, 0, 0, 0, 0, //
+        _ = X.XWarpPointer(z.dpy, Xt.None, z.selmon.barwin, 0, 0, 0, 0, //
             @intFromFloat(z.selmon.mfact * @as(f32, @floatFromInt(z.selmon.m.w))), //
             @intCast(@divFloor(z.selmon.m.h, 2)));
     }
@@ -1112,7 +1103,7 @@ pub fn resizeMouse(_: *const Arg) DwmError!void {
         }
     }
     if (c.is_floating.now) {
-        _ = X.XWarpPointer(z.dpy, X.None, c.win, 0, 0, 0, 0, //
+        _ = X.XWarpPointer(z.dpy, Xt.None, c.win, 0, 0, 0, 0, //
             @intCast(c.pos.now.w + c.bw.now - 1), //
             @intCast(c.pos.now.h + c.bw.now - 1));
     }
@@ -1365,8 +1356,8 @@ fn grabbuttons(c: *Client, focused: bool) void {
             X.ButtonPressMask | X.ButtonReleaseMask,
             X.GrabModeSync,
             X.GrabModeSync,
-            X.None,
-            X.None,
+            Xt.None,
+            Xt.None,
         );
     }
     for (cfg.buttons) |button| {
@@ -1381,8 +1372,8 @@ fn grabbuttons(c: *Client, focused: bool) void {
                     X.ButtonPressMask | X.ButtonReleaseMask,
                     X.GrabModeAsync,
                     X.GrabModeSync,
-                    X.None,
-                    X.None,
+                    Xt.None,
+                    Xt.None,
                 );
             }
         }

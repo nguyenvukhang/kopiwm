@@ -6,10 +6,18 @@ const X = @import("c_lib.zig").X;
 // XID aliases
 // -----------------------------------------------------------------------------
 
+/// See the XC_* defines in X11. The usual cursor would be `XC_left_ptr`.
 pub const Cursor = X.Cursor;
 pub const Drawable = X.Drawable;
 pub const KeySym = X.KeySym;
+/// To specify a null state, use `None`.
 pub const Window = X.Window;
+
+// -----------------------------------------------------------------------------
+// Integer type aliases
+// -----------------------------------------------------------------------------
+
+pub const Time = X.Time;
 
 // -----------------------------------------------------------------------------
 // Structs
@@ -79,7 +87,7 @@ pub inline fn XCloseDisplay(display: *Display) void {
 ///
 /// source: https://x.org/releases/X11R7.7/doc/man/man3/XCreateWindow.3.xhtml
 pub inline fn XCreateWindow(
-    display: ?*Display,
+    display: *Display,
     parent: Window,
     x: c_int,
     y: c_int,
@@ -165,7 +173,7 @@ pub inline fn XCreateWindow(
 ///
 /// source: https://x.org/releases/X11R7.7/doc/man/man3/XGetWindowProperty.3.xhtml
 pub inline fn XGetWindowProperty(
-    display: ?*Display,
+    display: *Display,
     /// The window whose property you want to obtain.
     w: Window,
     property: Atom,
@@ -215,6 +223,103 @@ pub inline fn XGetWindowProperty(
     return result == X.Success;
 }
 
+/// The XGrabPointer function actively grabs control of the pointer and returns
+/// true if the grab was successful. Further pointer events are reported only
+/// to the grabbing client. XGrabPointer overrides any active pointer grab by
+/// this client. If owner_events is False, all generated pointer events are
+/// reported with respect to grab_window and are reported only if selected by
+/// event_mask. If owner_events is True and if a generated pointer event would
+/// normally be reported to this client, it is reported as usual. Otherwise,
+/// the event is reported with respect to the grab_window and is reported only
+/// if selected by event_mask. For either value of owner_events, unreported
+/// events are discarded.
+///
+/// XGrabPointer generates EnterNotify and LeaveNotify events.
+///
+/// Either if grab_window or confine_to window is not viewable or if the
+/// confine_to window lies completely outside the boundaries of the root
+/// window, XGrabPointer fails and returns GrabNotViewable. If the pointer is
+/// actively grabbed by some other client, it fails and returns AlreadyGrabbed.
+/// If the pointer is frozen by an active grab of another client, it fails and
+/// returns GrabFrozen. If the specified time is earlier than the
+/// last-pointer-grab time or later than the current X server time, it fails
+/// and returns GrabInvalidTime. Otherwise, the last-pointer-grab time is set
+/// to the specified time (CurrentTime is replaced by the current X server
+/// time).
+///
+/// XGrabPointer can generate BadCursor, BadValue, and BadWindow errors.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XGrabPointer.3.xhtml
+pub inline fn XGrabPointer(
+    display: *Display,
+    grab_window: Window,
+    owner_events: bool,
+    event_mask: c_uint,
+    /// If it's GrabModeAsync, pointer event processing continues as usual. If
+    /// the pointer is currently frozen by this client, the processing of
+    /// events for the pointer is resumed. If the pointer_mode is GrabModeSync,
+    /// the state of the pointer, as seen by client applications, appears to
+    /// freeze, and the X server generates no further pointer events until the
+    /// grabbing client calls XAllowEvents or until the pointer grab is
+    /// released. Actual pointer changes are not lost while the pointer is
+    /// frozen; they are simply queued in the server for later processing.
+    pointer_mode: GrabMode,
+    /// If it's GrabModeAsync, keyboard event processing is unaffected by
+    /// activation of the grab. If the keyboard_mode is GrabModeSync, the state
+    /// of the keyboard, as seen by client applications, appears to freeze, and
+    /// the X server generates no further keyboard events until the grabbing
+    /// client calls XAllowEvents or until the pointer grab is released. Actual
+    /// keyboard changes are not lost while the pointer is frozen; they are
+    /// simply queued in the server for later processing.
+    keyboard_mode: GrabMode,
+    /// If a confine_to window is specified, the pointer is restricted to stay
+    /// contained in that window. The confine_to window need have no
+    /// relationship to the grab_window. If the pointer is not initially in the
+    /// confine_to window, it is warped automatically to the closest edge just
+    /// before the grab activates and enter/leave events are generated as
+    /// usual. If the confine_to window is subsequently reconfigured, the
+    /// pointer is warped automatically, as necessary, to keep it contained in
+    /// the window.
+    confine_to: Window,
+    /// If a cursor is specified, it is displayed regardless of what window the
+    /// pointer is in. If None is specified, the normal cursor for that window
+    /// is displayed when the pointer is in grab_window or one of its
+    /// subwindows; otherwise, the cursor for grab_window is displayed.
+    cursor: Cursor,
+    /// The time argument allows you to avoid certain circumstances that come
+    /// up if applications take a long time to respond or if there are long
+    /// network delays. Consider a situation where you have two applications,
+    /// both of which normally grab the pointer when clicked on. If both
+    /// applications specify the timestamp from the event, the second
+    /// application may wake up faster and successfully grab the pointer before
+    /// the first application. The first application then will get an
+    /// indication that the other application grabbed the pointer before its
+    /// request was processed.
+    time: Time,
+) bool {
+    const result = X.XGrabPointer(
+        display,
+        grab_window,
+        @intFromBool(owner_events),
+        event_mask,
+        switch (pointer_mode) {
+            .Sync => X.GrabModeSync,
+            .Async => X.GrabModeAsync,
+        },
+        switch (keyboard_mode) {
+            .Sync => X.GrabModeSync,
+            .Async => X.GrabModeAsync,
+        },
+        confine_to,
+        cursor,
+        time,
+    );
+    // From the docs:
+    // "The XGrabPointer function actively grabs control of the pointer and
+    // returns GrabSuccess if the grab was successful."
+    return result == X.GrabSuccess;
+}
+
 /// The XInternAtom function returns the atom identifier associated with the
 /// specified atom_name. If the atom name is not in the Host Portable Character
 /// Encoding, the result is implementation-dependent. Uppercase and lowercase
@@ -226,7 +331,7 @@ pub inline fn XGetWindowProperty(
 ///
 /// source: https://x.org/releases/X11R7.7/doc/man/man3/XInternAtom.3.xhtml
 pub inline fn XInternAtom(
-    display: ?*Display,
+    display: *Display,
     atom_name: [*c]const u8,
     // If only_if_exists is False, the atom is created if it does not exist.
     only_if_exists: bool,
@@ -293,7 +398,7 @@ pub inline fn XSupportsLocale() bool {
 /// Client applications seldom need to call XSync.
 ///
 /// source: https://x.org/releases/X11R7.7/doc/man/man3/XFlush.3.xhtml
-pub inline fn XSync(display: ?*Display, discard: bool) void {
+pub inline fn XSync(display: *Display, discard: bool) void {
     // According to the docs in the source, the c_int output is only important
     // in the other functions documented on that html page, but not XSync. So
     // we discard it.
@@ -312,7 +417,7 @@ pub inline fn XSync(display: ?*Display, discard: bool) void {
 /// XUnmapWindow can generate a BadWindow error.
 ///
 /// source: https://x.org/releases/X11R7.7/doc/man/man3/XUnmapWindow.3.xhtml
-pub inline fn XUnmapWindow(display: ?*Display, window: Window) c_int {
+pub inline fn XUnmapWindow(display: *Display, window: Window) c_int {
     return X.XUnmapWindow(display, window);
 }
 
@@ -422,6 +527,13 @@ pub const err = struct {
     pub const BadDrawable = X.BadDrawable;
     pub const BadGC = X.BadGC;
     pub const BadMatch = X.BadMatch;
+};
+
+pub const GrabMode = enum {
+    /// Equivalent to X's GrabModeSync.
+    Sync,
+    /// Equivalent to X's GrabModeAsync.
+    Async,
 };
 
 ////////////////////////////////////////////////////////////////////////////////
