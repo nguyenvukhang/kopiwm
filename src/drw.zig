@@ -7,13 +7,6 @@ const mem = std.mem;
 const Allocator = mem.Allocator;
 const log = std.log;
 
-pub const Cursor = X.Cursor;
-pub const Drawable = X.Drawable;
-pub const Window = X.Window;
-pub const XftColor = X.XftColor;
-pub const XftFont = X.XftFont;
-pub const FcPattern = X.FcPattern;
-
 // TODO: change this to Font when all is said and done.
 /// This represents a linked list of fonts.
 pub const Fnt = struct {
@@ -21,8 +14,8 @@ pub const Fnt = struct {
 
     dpy: ?*Xt.Display,
     h: u16,
-    xfont: *XftFont,
-    pattern: ?*FcPattern,
+    xfont: *Xt.XftFont,
+    pattern: ?*Xt.FcPattern,
     next: ?*Fnt,
 
     /// (dwm) drw_font_getexts
@@ -53,17 +46,17 @@ pub fn Scheme(comptime T: type) type {
     };
 }
 
-pub const ColorScheme = Scheme(XftColor);
+pub const ColorScheme = Scheme(Xt.XftColor);
 
 /// (dwm) xfont_create
 fn xfontCreate(
     allocator: Allocator,
     drw: *const Drw,
     fontname: []const u8,
-    font_pattern: ?*FcPattern,
+    font_pattern: ?*Xt.FcPattern,
 ) error{ OutOfMemory, FontCreateError }!*Fnt {
-    var xfont: ?*XftFont = null;
-    var pattern: ?*FcPattern = null;
+    var xfont: ?*Xt.XftFont = null;
+    var pattern: ?*Xt.FcPattern = null;
 
     if (fontname.len > 0) {
         // Using the pattern found at font->xfont->pattern does not yield the
@@ -171,8 +164,8 @@ pub const Drw = struct {
     h: u32,
     dpy: *Xt.Display,
     screen: c_int,
-    root: Window,
-    drawable: Drawable,
+    root: Xt.Window,
+    drawable: Xt.Drawable,
     gc: X.GC,
     scheme: ?*ColorScheme = null,
     /// A linked list of fonts. Guaranteed to have at least one after calling
@@ -184,7 +177,7 @@ pub const Drw = struct {
         allocator: Allocator,
         dpy: *Xt.Display,
         screen: c_int,
-        root: Window,
+        root: Xt.Window,
         /// width
         w: u32,
         /// height
@@ -262,7 +255,7 @@ pub const Drw = struct {
     }
 
     /// (dwm) drw_clr_create
-    pub fn clrCreate(self: *Self, dest: *XftColor, color_name: []const u8) void {
+    pub fn clrCreate(self: *Self, dest: *Xt.XftColor, color_name: []const u8) void {
         const result = X.XftColorAllocName(
             self.dpy,
             X.DefaultVisual(self.dpy, self.screen),
@@ -278,7 +271,7 @@ pub const Drw = struct {
     }
 
     /// (dwm) drw_clr_free
-    pub fn clrFree(self: *Self, c: *XftColor) void {
+    pub fn clrFree(self: *Self, c: *Xt.XftColor) void {
         X.XftColorFree(
             self.dpy,
             X.DefaultVisual(self.dpy, self.screen),
@@ -309,12 +302,12 @@ pub const Drw = struct {
     }
 
     /// (dwm) drw_cur_create
-    pub fn curCreate(self: *Self, shape: c_uint) Cursor {
+    pub fn curCreate(self: *Self, shape: c_uint) Xt.Cursor {
         return X.XCreateFontCursor(self.dpy, shape);
     }
 
     /// (dwm) drw_cur_free
-    pub fn curFree(self: *Self, cursor: Cursor) void {
+    pub fn curFree(self: *Self, cursor: Xt.Cursor) void {
         _ = X.XFreeCursor(self.dpy, cursor);
     }
 
@@ -419,7 +412,7 @@ pub const Drw = struct {
         var utf8str: []const u8 = undefined;
         var ty: i32 = 0;
         var charexists = false;
-        var match_opt: ?*X.FcPattern = null;
+        var match_opt: ?*Xt.FcPattern = null;
         var result: X.XftResult = undefined;
         var utf8charlen: u3 = undefined;
         var ew: u32 = undefined;
@@ -572,7 +565,7 @@ pub const Drw = struct {
     }
 
     /// (dwm) drw_map
-    pub fn map(self: *Self, w: Window, r: Rect) void {
+    pub fn map(self: *Self, w: Xt.Window, r: Rect) void {
         const res = X.XCopyArea(self.dpy, self.drawable, w, self.gc, r.x, r.y, r.w, r.h, r.x, r.y);
         print_draw_error(res);
         Xt.XSync(self.dpy, false);

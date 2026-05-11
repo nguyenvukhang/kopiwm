@@ -3,6 +3,14 @@
 const X = @import("c_lib.zig").X;
 
 // -----------------------------------------------------------------------------
+// XID aliases
+// -----------------------------------------------------------------------------
+
+pub const Cursor = X.Cursor;
+pub const Drawable = X.Drawable;
+pub const Window = X.Window;
+
+// -----------------------------------------------------------------------------
 // Structs
 // -----------------------------------------------------------------------------
 
@@ -12,11 +20,13 @@ const X = @import("c_lib.zig").X;
 /// source: https://x.org/releases/X11R7.7/doc/man/man3/XOpenDisplay.3.xhtml
 pub const Display = X.Display;
 
+pub const FcPattern = X.FcPattern;
 pub const Visual = X.Visual;
-pub const Window = X.Window;
 pub const XEvent = X.XEvent;
 pub const XSetWindowAttributes = X.XSetWindowAttributes;
 pub const XWindowAttributes = X.XWindowAttributes;
+pub const XftColor = X.XftColor;
+pub const XftFont = X.XftFont;
 
 // -----------------------------------------------------------------------------
 // Functions
