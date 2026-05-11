@@ -25,7 +25,7 @@ const Xt = @import("x_tutorial.zig");
 const NAME = @import("build_opts").name;
 const VERSION = @import("build_opts").version;
 
-const line = "----------------------------------------------------------------------";
+const LINE = "----------------------------------------------------------------------";
 
 // This exists because of config callbacks.
 var global_allocator: Allocator = undefined;
@@ -1714,7 +1714,7 @@ pub fn pop(allocator: Allocator, c: *Client) void {
 
 /// (dwm) quit
 pub fn quit(_: *const Arg) void {
-    log.info("{s}", .{line});
+    log.info("{s}", .{LINE});
     log.info("quit() called.", .{});
     z.running = false;
 }
@@ -1838,9 +1838,9 @@ fn handleCliArgs(buffer: []u8) error{WriteFailed}!bool {
 }
 
 pub fn main() !void {
-    log.info("{s}", .{line});
+    log.info("{s}", .{LINE});
     log.info("Started execution of {s}", .{NAME});
-    log.info("{s}", .{line});
+    log.info("{s}", .{LINE});
 
     { // Handle the CLI args, if any.
         var buffer: [64]u8 = undefined;
@@ -1867,12 +1867,19 @@ pub fn main() !void {
     defer cleanup(allocator, &wmcheckwin);
 
     try scan(allocator);
-    log.info("{s}", .{line});
+    log.info("{s}", .{LINE});
     log.info("Starting event loop", .{});
-    log.info("{s}", .{line});
+    log.info("{s}", .{LINE});
     try run(allocator);
 }
 
-test {
-    _ = @import("small.zig");
+test "All inline functions for docs" {
+    const source: []const u8 = @embedFile("x_tutorial.zig");
+    var iter = std.mem.splitScalar(u8, source, '\n');
+    while (iter.next()) |line| {
+        // We don't want any non-inlined functions because they really are just
+        // macros of X11 library functions that contain docs.
+        const contains_pub_fn = std.mem.containsAtLeast(u8, line, 1, "pub fn");
+        try std.testing.expect(!contains_pub_fn);
+    }
 }
