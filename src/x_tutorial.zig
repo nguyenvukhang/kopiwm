@@ -416,7 +416,7 @@ pub inline fn XSync(display: *Display, discard: bool) void {
 /// causes the confine_to window to lie completely outside the boundaries of
 /// the root window.
 ///
-/// source: https://www.x.org/releases/X11R7.7/doc/man/man3/XGrabPointer.3.xhtml
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XGrabPointer.3.xhtml
 pub inline fn XUngrabPointer(display: *Display, time: Time) void {
     // According to the docs, the return value is not used.
     _ = X.XUngrabPointer(display, time);

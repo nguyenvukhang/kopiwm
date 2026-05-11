@@ -1883,3 +1883,18 @@ test "All inline functions for docs" {
         try std.testing.expect(!contains_pub_fn);
     }
 }
+
+test "All inline functions have sources" {
+    const source: []const u8 = @embedFile("x_tutorial.zig");
+    var iter = std.mem.splitScalar(u8, source, '\n');
+    const n = 2;
+    var prev: [n]?[]const u8 = undefined;
+    while (iter.next()) |line| {
+        if (std.mem.startsWith(u8, line, "pub inline fn")) {
+            try std.testing.expectStringStartsWith(prev[1].?, "///");
+            try std.testing.expectStringStartsWith(prev[0].?, "/// source: https://x.org/");
+        }
+        @memmove(prev[1..n], prev[0 .. n - 1]);
+        prev[0] = line;
+    }
+}
