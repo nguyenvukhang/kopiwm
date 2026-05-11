@@ -1,9 +1,8 @@
-const X = @import("c_lib.zig").X;
+const Xt = @import("x_tutorial.zig");
 const App = @import("app.zig").App;
 const Layout = @import("layout.zig").Layout;
 const DwmError = @import("errors.zig").DwmError;
 const LazyFn = @import("lazy_fn.zig").LazyFn;
-const XEvent = X.XEvent;
 const Allocator = @import("std").mem.Allocator;
 
 /// (dwm) Clk* enums.
@@ -44,10 +43,10 @@ pub const Key = struct {
     /// Modifier keys, in any.
     mod: c_uint,
     /// X keysym.
-    sym: X.KeySym,
+    sym: Xt.KeySym,
     lf: LazyFn,
 
-    pub fn init(mod: c_uint, sym: X.KeySym, lf: LazyFn) @This() {
+    pub fn init(mod: c_uint, sym: Xt.KeySym, lf: LazyFn) @This() {
         return .{ .mod = mod, .sym = sym, .lf = lf };
     }
 };
@@ -93,8 +92,8 @@ pub const Size = struct {
 
 pub const HandlerFnTag = enum { NoAllocE, AllocE, NoAlloc, Alloc };
 pub const HandlerFn = union(HandlerFnTag) {
-    NoAllocE: *const fn (*XEvent) DwmError!void,
-    AllocE: *const fn (Allocator, *XEvent) DwmError!void,
-    NoAlloc: *const fn (*XEvent) void,
-    Alloc: *const fn (Allocator, *XEvent) void,
+    NoAllocE: *const fn (*Xt.XEvent) DwmError!void,
+    AllocE: *const fn (Allocator, *Xt.XEvent) DwmError!void,
+    NoAlloc: *const fn (*Xt.XEvent) void,
+    Alloc: *const fn (Allocator, *Xt.XEvent) void,
 };

@@ -1391,7 +1391,7 @@ fn grabkeys() void {
 
     _ = X.XUngrabKey(z.dpy, X.AnyKey, X.AnyModifier, z.root);
     _ = X.XDisplayKeycodes(z.dpy, &start, &end);
-    const syms: [*]X.KeySym =
+    const syms: [*]Xt.KeySym =
         X.XGetKeyboardMapping(z.dpy, @intCast(start), end - start + 1, &skip) orelse
         return;
     defer _ = X.XFree(syms);
