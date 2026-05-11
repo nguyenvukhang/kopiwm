@@ -117,9 +117,9 @@ fn check_other_wm() void {
     xerrorlib = X.XSetErrorHandler(xerrorstart);
     // this causes an error if some other window manager is running
     _ = X.XSelectInput(z.dpy, X.DefaultRootWindow(z.dpy), X.SubstructureRedirectMask);
-    _ = X.XSync(z.dpy, X.False);
+    Xt.XSync(z.dpy, false);
     _ = X.XSetErrorHandler(xerror);
-    _ = X.XSync(z.dpy, X.False);
+    Xt.XSync(z.dpy, false);
 }
 
 /// (dwm) dirtomon
@@ -266,7 +266,7 @@ fn getState(w: Window) i32 {
 }
 
 /// (dwm) manage
-fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOfMemory}!void {
+fn manage(allocator: Allocator, w: Window, wa: *Xt.XWindowAttributes) error{OutOfMemory}!void {
     const c = try allocator.create(Client);
     c.* = .init(&z, w, wa);
     var trans: Window = X.None;
@@ -369,7 +369,7 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
         _ = X.XConfigureWindow(z.dpy, c.win, X.CWBorderWidth, &wc); // restore border
         _ = X.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
         c.setState(X.WithdrawnState);
-        _ = X.XSync(z.dpy, X.False);
+        Xt.XSync(z.dpy, false);
         _ = X.XSetErrorHandler(xerror);
         _ = X.XUngrabServer(z.dpy);
     }
@@ -437,7 +437,7 @@ fn restack(allocator: Allocator, m: *Monitor) void {
         }
     }
 
-    _ = X.XSync(z.dpy, X.False);
+    Xt.XSync(z.dpy, false);
     var ev: XEvent = undefined;
     while (X.XCheckMaskEvent(z.dpy, X.EnterWindowMask, &ev) != 0) {}
 }
@@ -608,9 +608,7 @@ fn configureRequest(e: *XEvent) void {
         };
         _ = X.XConfigureWindow(z.dpy, ev.window, @intCast(vmask), &wc);
     }
-
-    // if ((c = wintoclient(ev->window))) {
-    _ = X.XSync(z.dpy, X.False);
+    Xt.XSync(z.dpy, false);
 }
 
 /// (dwm) configurenotify
@@ -707,7 +705,7 @@ fn mappingNotify(e: *XEvent) void {
 /// (dwm) maprequest
 fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
     const ev: X.XMapRequestEvent = e.xmaprequest;
-    var wa: X.XWindowAttributes = undefined;
+    var wa: Xt.XWindowAttributes = undefined;
 
     const res = X.XGetWindowAttributes(z.dpy, ev.window, &wa);
     if (res == 0 or wa.override_redirect != 0) return;
@@ -792,7 +790,7 @@ const TIMEOUT: bool = false;
 /// (dwm) run
 /// main event loop
 fn run(allocator: Allocator) DwmError!void {
-    _ = X.XSync(z.dpy, X.False);
+    Xt.XSync(z.dpy, false);
     var ev: XEvent = undefined;
     const start = std.time.timestamp();
 
@@ -843,7 +841,7 @@ fn createHandler() [X.LASTEvent]?HandlerFn {
 
 /// (dwm) scan
 fn scan(allocator: Allocator) error{OutOfMemory}!void {
-    var wa: X.XWindowAttributes = undefined;
+    var wa: Xt.XWindowAttributes = undefined;
     var num: c_uint = undefined;
     var i: c_uint = undefined;
     var d1: Window = undefined;
@@ -904,7 +902,7 @@ pub fn killClient(_: *const Arg) void {
         _ = X.XSetErrorHandler(xerrordummy);
         _ = X.XSetCloseDownMode(z.dpy, X.DestroyAll);
         _ = X.XKillClient(z.dpy, sel.win);
-        _ = X.XSync(z.dpy, X.False);
+        Xt.XSync(z.dpy, false);
         _ = X.XSetErrorHandler(xerror);
         _ = X.XUngrabServer(z.dpy);
     } else {
@@ -1477,7 +1475,7 @@ fn cleanup(allocator: Allocator, wmcheckwin: *Xt.Window) void {
     }
     _ = X.XDestroyWindow(z.dpy, wmcheckwin.*);
     z.drw.deinit(allocator);
-    _ = X.XSync(z.dpy, X.False);
+    Xt.XSync(z.dpy, false);
     _ = X.XSetInputFocus(z.dpy, X.PointerRoot, X.RevertToPointerRoot, X.CurrentTime);
     _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));
 }

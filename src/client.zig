@@ -181,9 +181,9 @@ pub const Client = struct {
             _ = X.XFree(@ptrCast(protocols));
         }
         if (exists) {
-            var ev = X.XEvent{
+            var ev = Xt.XEvent{
                 .xclient = .{
-                    .type = X.ClientMessage,
+                    .type = Xt.ClientMessage,
                     .window = self.win,
                     .message_type = z.wmatom.get(.Protocols),
                     .format = 32,
@@ -191,7 +191,7 @@ pub const Client = struct {
             };
             ev.xclient.data.l[0] = @intCast(proto);
             ev.xclient.data.l[1] = X.CurrentTime;
-            _ = X.XSendEvent(z.dpy, self.win, X.False, X.NoEventMask, &ev);
+            _ = X.XSendEvent(z.dpy, self.win, X.False, Xt.NoEventMask, &ev);
         }
         return exists;
     }
@@ -208,15 +208,15 @@ pub const Client = struct {
 
     /// (dwm) configure
     pub fn configure(self: *const Self, dpy: ?*Display) void {
-        var xconf = self.pos.now.toX(X.XConfigureEvent);
-        xconf.type = X.ConfigureNotify;
+        var xconf = self.pos.now.toX(Xt.XConfigureEvent);
+        xconf.type = Xt.ConfigureNotify;
         xconf.display = dpy;
         xconf.event = self.win;
         xconf.window = self.win;
         xconf.border_width = @intCast(self.bw.now);
-        xconf.above = X.None;
-        xconf.override_redirect = X.False;
-        var event = X.XEvent{ .xconfigure = xconf };
+        xconf.above = Xt.None;
+        xconf.override_redirect = Xt.False;
+        var event = Xt.XEvent{ .xconfigure = xconf };
         _ = X.XSendEvent(dpy, self.win, X.False, X.StructureNotifyMask, &event);
     }
 
@@ -303,7 +303,7 @@ pub const Client = struct {
         _ = X.XConfigureWindow(z.dpy, self.win, flags, &wc);
         self.pos.set(rect);
         self.configure(z.dpy);
-        _ = X.XSync(z.dpy, X.False);
+        Xt.XSync(z.dpy, false);
     }
 
     /// (dwm) resize
