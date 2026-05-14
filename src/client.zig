@@ -552,7 +552,7 @@ pub const Client = struct {
         log.info("showHide called on {*} ({s})", .{ c, if (c.isVisible()) "show" else "hide" });
         if (c.isVisible()) {
             // Show clients top-down.
-            _ = X.XMoveWindow(c.app.dpy, c.win, c.pos.now.x, c.pos.now.y);
+            _ = Xt.XMoveWindow(c.app.dpy, c.win, c.pos.now.x, c.pos.now.y);
             const should_resize = r: {
                 if (c.isfullscreen) break :r false;
                 if (c.mon.lt.now.arrange) |_| break :r true;
@@ -567,7 +567,7 @@ pub const Client = struct {
             // x-coordinate. Is the goal to send it outside of the screen?
             // But if so, then shouldn't we send it based on the width of the
             // screen instead of the client?
-            _ = X.XMoveWindow(c.app.dpy, c.win, c.width() * -2, c.pos.now.y);
+            _ = Xt.XMoveWindow(c.app.dpy, c.win, c.width() * -2, c.pos.now.y);
         }
     }
 

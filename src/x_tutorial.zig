@@ -1,4 +1,6 @@
 //! X Library functions with extra notes/docs attached.
+//!
+//! https://x.org/releases/X11R7.7/doc/man/man3/
 
 const X = @import("c_lib.zig").X;
 
@@ -344,6 +346,37 @@ pub inline fn XInternAtom(
     // #endif
     // ```
     return if (atom == X.None) null else atom;
+}
+
+/// The XMoveWindow function moves the specified window to the specified x and
+/// y coordinates, but it does not change the window's size, raise the window,
+/// or change the mapping state of the window. Moving a mapped window may or
+/// may not lose the window's contents depending on if the window is obscured
+/// by nonchildren and if no backing store exists. If the contents of the
+/// window are lost, the X server generates Expose events. Moving a mapped
+/// window generates Expose events on any formerly obscured windows.
+///
+/// If the override-redirect flag of the window is False and some other client
+/// has selected SubstructureRedirectMask on the parent, the X server generates
+/// a ConfigureRequest event, and no further processing is performed.
+/// Otherwise, the window is moved.
+///
+/// XMoveWindow can generate a BadWindow error.
+///
+/// https://x.org/releases/X11R7.7/doc/man/man3/XConfigureWindow.3.xhtml
+pub inline fn XMoveWindow(
+    display: *Display,
+    window: Window,
+    x: c_int,
+    y: c_int,
+) void {
+    // The x and y coordinates are the new location of the top-left pixel of
+    // the window's border or the window itself if it has no border or define
+    // the new position of the window relative to its parent.
+
+    // It is not specified in documentation what the return value of XMoveWindow
+    // is, so we shall discard it.
+    _ = X.XMoveWindow(display, window, x, y);
 }
 
 /// The XOpenDisplay function returns a Display structure that serves as the
