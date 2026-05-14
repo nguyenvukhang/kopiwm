@@ -9,6 +9,7 @@ const WM = @import("atoms.zig").WM;
 const SchemeState = @import("enums.zig").SchemeState;
 const CursorState = @import("enums.zig").CursorState;
 const Size = @import("enums.zig").Size;
+const Coordinates = @import("enums.zig").Coordinates;
 const fstr = @import("fstr.zig").fstr;
 const Client = @import("client.zig").Client;
 const Allocator = std.mem.Allocator;
@@ -87,14 +88,11 @@ pub const App = struct {
     }
 
     /// (dwm) getrootptr
-    pub fn getRootPtr(self: *const Self, x: *c_int, y: *c_int) bool {
-        var w: Window = undefined;
-        var d_int: c_int = undefined; // dummy c_int.
-        var d_uint: c_uint = undefined; // dummy c_uint.
+    pub fn getRootPtr(self: *const Self) ?Coordinates(c_int) {
         // XQueryPointer returns the root window the pointer is logically on and
         // the pointer coordinates relative to the root window's origin.
-        const res: X.Bool = X.XQueryPointer(self.dpy, self.root, &w, &w, x, y, &d_int, &d_int, &d_uint);
-        return res != 0;
+        const res = Xt.XQueryPointer(self.dpy, self.root);
+        return if (res.win_pos) |_| res.root_pos else null;
     }
 
     /// Gets the property of a window in text form, and writes it to `buffer`.

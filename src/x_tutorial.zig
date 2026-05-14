@@ -3,6 +3,7 @@
 //! https://x.org/releases/X11R7.7/doc/man/man3/
 
 const X = @import("c_lib.zig").X;
+const Coordinates = @import("enums.zig").Coordinates;
 
 // -----------------------------------------------------------------------------
 // XID aliases
@@ -479,6 +480,78 @@ pub inline fn XMoveWindow(
 /// source: https://x.org/releases/X11R7.7/doc/man/man3/XOpenDisplay.3.xhtml
 pub inline fn XOpenDisplay(display_name: [*c]const u8) ?*Display {
     return X.XOpenDisplay(display_name);
+}
+
+pub const XQueryPointerResult = struct {
+    /// The root window the pointer is logically on.
+    root_window: Window,
+    /// The coordinates of the pointer relative to the root window's origin.
+    root_pos: Coordinates(c_int),
+    /// This is non-null if and only if the pointer is on the same screen as the
+    /// specified window. It is the coordinates of the cursor relative to the
+    /// origin of the specified window.
+    win_pos: ?Coordinates(c_int),
+    /// Returns the child window that the pointer is located in, if any.
+    child: ?Window,
+    /// The current logical state of the keyboard buttons and the modifier
+    /// keys. That is, the bitwise inclusive OR of one or more of the button or
+    /// modifier key bitmasks to match the current state of the mouse buttons
+    /// and the modifier keys.
+    mask: c_uint,
+};
+
+/// The XQueryPointer function returns the root window the pointer is logically
+/// on and the pointer coordinates relative to the root window's origin. If
+/// XQueryPointer returns False, the pointer is not on the same screen as the
+/// specified window, and XQueryPointer returns None to child_return and zero
+/// to win_x_return and win_y_return. If XQueryPointer returns True, the
+/// pointer coordinates returned to win_x_return and win_y_return are relative
+/// to the origin of the specified window. In this case, XQueryPointer returns
+/// the child that contains the pointer, if any, or else None to child_return.
+///
+/// XQueryPointer returns the current logical state of the keyboard buttons and
+/// the modifier keys in mask_return. It sets mask_return to the bitwise
+/// inclusive OR of one or more of the button or modifier key bitmasks to match
+/// the current state of the mouse buttons and the modifier keys.
+///
+/// XQueryPointer can generate a BadWindow error.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XQueryPointer.3.xhtml
+pub inline fn XQueryPointer(
+    display: *Display,
+    window: Window,
+) XQueryPointerResult {
+    var r: XQueryPointerResult = .{
+        .root_window = undefined,
+        .root_pos = .zero,
+        .win_pos = .zero,
+        .child = 0,
+        .mask = undefined,
+    };
+    // Bool XQueryPointer(Display *display, Window w,
+    //                    Window *root_return,
+    //                    Window *child_return,
+    //                    int *root_x_return,
+    //                    int *root_y_return,
+    //                    int *win_x_return,
+    //                    int *win_y_return,
+    //                    unsigned int *mask_return);
+    const result = X.XQueryPointer(display, window, &r.root_window, &r.child.?, //
+        &r.root_pos.x, &r.root_pos.y, &r.win_pos.?.x, &r.win_pos.?.y, &r.mask);
+    if (result == 0) {
+        // If XQueryPointer returns False, the pointer is not on the same
+        // screen as the specified window, and XQueryPointer returns None to
+        // child_return and zero to win_x_return and win_y_return.
+        r.child = null;
+        r.win_pos = null;
+    } else {
+        // If XQueryPointer returns True, the pointer coordinates returned to
+        // win_x_return and win_y_return are relative to the origin of the
+        // specified window. In this case, XQueryPointer returns the child that
+        // contains the pointer, if any, or else None to child_return.
+        if (r.child == X.None) r.child = null;
+    }
+    return r;
 }
 
 /// The XSupportsLocale function returns True if Xlib functions are capable of

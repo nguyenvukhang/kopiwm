@@ -77,18 +77,29 @@ pub const Rule = struct {
 
 pub const Size = struct {
     const Self = @This();
-
     /// Width.
     w: u32,
     /// Height.
     h: u32,
-
     pub const zero: Self = .{ .w = 0, .h = 0 };
-
     pub inline fn eq(lhs: *const Self, rhs: *const Self) bool {
         return lhs.w == rhs.w and lhs.h == rhs.h;
     }
 };
+
+pub fn Coordinates(comptime T: type) type {
+    return struct {
+        const Self = @This();
+        /// x-coordinate.
+        x: T,
+        /// y-coordinate.
+        y: T,
+        pub const zero: Self = .{ .x = 0, .y = 0 };
+        pub inline fn eq(lhs: *const Self, rhs: *const Self) bool {
+            return lhs.x == rhs.x and lhs.y == rhs.y;
+        }
+    };
+}
 
 pub const HandlerFnTag = enum { NoAllocE, AllocE, NoAlloc, Alloc };
 pub const HandlerFn = union(HandlerFnTag) {

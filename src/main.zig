@@ -940,9 +940,9 @@ pub fn moveMouse(_: *const Arg) DwmError!void {
     const grab_ok = Xt.XGrabPointer(z.dpy, z.root, false, MOUSEMASK, .Async, //
         .Async, Xt.None, z.cursors.get(.Move), X.CurrentTime);
     if (!grab_ok) return;
-    var x: c_int = undefined;
-    var y: c_int = undefined;
-    if (!z.getRootPtr(&x, &y)) return;
+    const coords = z.getRootPtr() orelse return;
+    const x = coords.x;
+    const y = coords.y;
     var ev: Xt.XEvent = undefined;
     var lasttime: X.Time = 0;
     while (true) {
@@ -1148,13 +1148,13 @@ pub fn toggleFloating(_: *const Arg) void {
 
 /// (dwm) wintomon
 fn wintomon(w: Xt.Window) *Monitor {
-    var x: c_int = undefined;
-    var y: c_int = undefined;
-    if (w == z.root and z.getRootPtr(&x, &y)) {
-        const r = Rect{ .x = @intCast(x), .y = @intCast(y), .w = 1, .h = 1 };
-        // To guarantee a non-null return of `*Monitor`, we deviate a tad from
-        // dwm's behaviour and return `selmon` if nothing is found.
-        return r.toMonitor(z.mons) orelse (z.mons orelse unreachable);
+    if (w == z.root) {
+        if (z.getRootPtr()) |coords| {
+            const r = Rect{ .x = @intCast(coords.x), .y = @intCast(coords.y), .w = 1, .h = 1 };
+            // To guarantee a non-null return of `*Monitor`, we deviate a tad from
+            // dwm's behaviour and return `selmon` if nothing is found.
+            return r.toMonitor(z.mons) orelse (z.mons orelse unreachable);
+        }
     }
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
