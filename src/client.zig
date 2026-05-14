@@ -8,7 +8,6 @@ const Window = X.Window;
 const fstr = @import("fstr.zig").fstr;
 const Display = X.Display;
 const Rect = @import("rect.zig").Rect;
-const Atom = X.Atom;
 const toggle = @import("toggle.zig").toggle;
 const cfg = @import("config.zig");
 const Size = @import("enums.zig").Size;
@@ -167,10 +166,10 @@ pub const Client = struct {
 
     /// (dwm) sendevent
     /// Returns true upon successful execution.
-    pub fn sendEvent(self: *Self, proto: Atom) bool {
+    pub fn sendEvent(self: *Self, proto: Xt.Atom) bool {
         const z = self.app;
         var n: c_int = undefined;
-        var protocols: ?[*]Atom = undefined;
+        var protocols: ?[*]Xt.Atom = undefined;
         var exists = false;
 
         if (X.XGetWMProtocols(z.dpy, self.win, &protocols, &n) != 0) {
@@ -221,21 +220,21 @@ pub const Client = struct {
     }
 
     /// (dwm) getatomprop
-    fn getAtomProp(self: *Self, dpy: *Display, prop: Atom) ?Atom {
-        var da: Atom = undefined; // dummy atom.
-        var atom: Atom = undefined;
+    fn getAtomProp(self: *Self, dpy: *Display, prop: Xt.Atom) ?Xt.Atom {
+        var da: Xt.Atom = undefined; // dummy atom.
+        var atom: Xt.Atom = undefined;
         var format: c_int = undefined;
         var nitems: c_ulong = undefined;
         var dl: c_ulong = undefined; // dummy long.
         var property: ?[*]u8 = undefined;
 
-        const res = Xt.XGetWindowProperty(dpy, self.win, prop, 0, @sizeOf(Atom), //
+        const res = Xt.XGetWindowProperty(dpy, self.win, prop, 0, @sizeOf(Xt.Atom), //
             false, X.XA_ATOM, &da, &format, &nitems, &dl, &property);
         if (!res) return null;
         defer _ = X.XFree(property);
         if (property) |p| {
             if (nitems > 0 and format == 32) {
-                atom = @as([*]Atom, @ptrCast(@alignCast(p)))[0];
+                atom = @as([*]Xt.Atom, @ptrCast(@alignCast(p)))[0];
             }
         }
         return atom;

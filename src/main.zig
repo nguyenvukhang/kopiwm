@@ -354,7 +354,6 @@ fn manage(allocator: Allocator, w: Xt.Window, wa: *Xt.XWindowAttributes) error{O
 /// (dwm) unmanage
 /// Destroys a client and removes it from the monitor that owns it.
 fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
-    const m = c.mon;
     c.detach();
     c.detachStack();
 
@@ -373,7 +372,7 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
     allocator.destroy(c);
     focus(allocator, null);
     updateClientList();
-    arrange(allocator, m);
+    arrange(allocator, c.mon);
 }
 
 /// (dwm) updateclientlist

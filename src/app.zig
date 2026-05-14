@@ -3,6 +3,7 @@ const std = @import("std");
 const log = std.log;
 const build_opts = @import("build_opts");
 const X = @import("c_lib.zig").X;
+const Xt = @import("x_tutorial.zig");
 const Net = @import("atoms.zig").Net;
 const WM = @import("atoms.zig").WM;
 const SchemeState = @import("enums.zig").SchemeState;
@@ -17,7 +18,6 @@ const Drw = @import("drw.zig").Drw;
 const ColorScheme = @import("drw.zig").ColorScheme;
 const Monitor = @import("monitor.zig").Monitor;
 const Window = X.Window;
-const Atom = X.Atom;
 const Cursor = X.Cursor;
 
 pub const App = struct {
@@ -48,8 +48,8 @@ pub const App = struct {
 
     root: Window = 0,
 
-    wmatom: EnumArray(WM, Atom) = .empty,
-    netatom: EnumArray(Net, Atom) = .empty,
+    wmatom: EnumArray(WM, Xt.Atom) = .empty,
+    netatom: EnumArray(Net, Xt.Atom) = .empty,
     cursors: EnumArray(CursorState, Cursor) = .empty,
     scheme: EnumArray(SchemeState, *ColorScheme) = .empty,
 
@@ -100,7 +100,7 @@ pub const App = struct {
     /// Gets the property of a window in text form, and writes it to `buffer`.
     /// Returns the number of valid bytes written to the buffer.
     /// (dwm) gettextprop
-    pub fn getTextProp(self: *const Self, w: Window, atom: X.Atom, buffer: []u8) ?usize {
+    pub fn getTextProp(self: *const Self, w: Window, atom: Xt.Atom, buffer: []u8) ?usize {
         if (buffer.len == 0) return null;
         var tp: X.XTextProperty = undefined;
         if (X.XGetTextProperty(self.dpy, w, &tp, atom) == 0 or tp.nitems == 0) {
