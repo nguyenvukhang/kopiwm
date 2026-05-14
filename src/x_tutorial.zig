@@ -279,6 +279,78 @@ pub inline fn XGetWindowProperty(
     return result == X.Success;
 }
 
+/// The XGrabButton function establishes a passive grab. In the future, the
+/// pointer is actively grabbed (as for XGrabPointer), the last-pointer-grab
+/// time is set to the time at which the button was pressed (as transmitted in
+/// the ButtonPress event), and the ButtonPress event is reported if all of the
+/// following conditions are true:
+///
+/// 1. The pointer is not grabbed, and the specified button is logically pressed
+///    when the specified modifier keys are logically down, and no other buttons
+///    or modifier keys are logically down.
+/// 2. The grab_window contains the pointer.
+/// 3. The confine_to window (if any) is viewable.
+/// 4. A passive grab on the same button/key combination does not exist on any
+///    ancestor of grab_window.
+///
+/// The interpretation of the remaining arguments is as for XGrabPointer. The
+/// active grab is terminated automatically when the logical state of the
+/// pointer has all buttons released (independent of the state of the logical
+/// modifier keys), at which point a ButtonRelease event is reported to the
+/// grabbing window.
+///
+/// Note that the logical state of a device (as seen by client applications)
+/// may lag the physical state if device event processing is frozen.
+///
+/// This request overrides all previous grabs by the same client on the same
+/// button/key combinations on the same window. A modifiers of AnyModifier is
+/// equivalent to issuing the grab request for all possible modifier
+/// combinations (including the combination of no modifiers). It is not
+/// required that all modifiers specified have currently assigned KeyCodes. A
+/// button of AnyButton is equivalent to issuing the request for all possible
+/// buttons. Otherwise, it is not required that the specified button currently
+/// be assigned to a physical button.
+///
+/// If some other client has already issued a XGrabButton with the same
+/// button/key combination on the same window, a BadAccess error results. When
+/// using AnyModifier or AnyButton, the request fails completely, and a
+/// BadAccess error results (no grabs are established) if there is a
+/// conflicting grab for any combination. XGrabButton has no effect on an
+/// active grab.
+///
+/// XGrabButton can generate BadCursor, BadValue, and BadWindow errors.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XGrabButton.3.xhtml
+pub inline fn XGrabButton(
+    display: *Display,
+    /// Specifies the pointer button that is to be grabbed or released or AnyButton.
+    button: c_uint,
+    modifiers: c_uint,
+    grab_window: Window,
+    owner_events: bool,
+    event_mask: c_uint,
+    pointer_mode: GrabMode,
+    keyboard_mode: GrabMode,
+    confine_to: Window,
+    cursor: Cursor,
+) void {
+    // Inferrably, since XGrabButton is very similar to XGrabPointer, the
+    // returned integer could mean X.GrabSuccess. However, since it's not
+    // explicitly stated in the documentation, we shall discard it.
+    _ = X.XGrabButton(
+        display,
+        button,
+        modifiers,
+        grab_window,
+        @intFromBool(owner_events),
+        event_mask,
+        @intFromEnum(pointer_mode),
+        @intFromEnum(keyboard_mode),
+        confine_to,
+        cursor,
+    );
+}
+
 /// The XGrabPointer function actively grabs control of the pointer and returns
 /// true if the grab was successful. Further pointer events are reported only
 /// to the grabbing client. XGrabPointer overrides any active pointer grab by
