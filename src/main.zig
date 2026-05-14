@@ -363,7 +363,7 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
         _ = X.XSelectInput(z.dpy, c.win, X.NoEventMask);
         var wc: X.XWindowChanges = .{ .border_width = @intCast(c.bw.prev) };
         _ = X.XConfigureWindow(z.dpy, c.win, X.CWBorderWidth, &wc); // restore border
-        _ = X.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
+        Xt.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
         c.setState(X.WithdrawnState);
         Xt.XSync(z.dpy, false);
         _ = X.XSetErrorHandler(xerror);
@@ -1344,7 +1344,7 @@ fn drawbars(allocator: Allocator) void {
 fn grabbuttons(c: *Client, focused: bool) void {
     updatenumlockmask();
     const modifiers: [4]c_uint = .{ 0, X.LockMask, z.numlockmask, z.numlockmask | X.LockMask };
-    _ = X.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
+    Xt.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
     if (!focused) {
         Xt.XGrabButton(
             z.dpy,

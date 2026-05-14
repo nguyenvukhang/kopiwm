@@ -657,6 +657,30 @@ pub inline fn XSync(display: *Display, discard: bool) void {
     _ = X.XSync(display, @intFromBool(discard));
 }
 
+/// The XUngrabButton function releases the passive button/key combination on
+/// the specified window if it was grabbed by this client. A modifiers of
+/// AnyModifier is equivalent to issuing the ungrab request for all possible
+/// modifier combinations, including the combination of no modifiers. A button
+/// of AnyButton is equivalent to issuing the request for all possible buttons.
+/// XUngrabButton has no effect on an active grab.
+///
+/// XUngrabButton can generate BadValue and BadWindow errors.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XGrabButton.3.xhtml
+pub inline fn XUngrabButton(
+    display: *Display,
+    /// Specifies the pointer button that is to be grabbed or released or
+    /// AnyButton.
+    button: c_uint,
+    /// Specifies the set of keymasks or AnyModifier. The mask is the bitwise
+    /// inclusive OR of the valid keymask bits.
+    modifiers: c_uint,
+    grab_window: Window,
+) void {
+    // According to the docs, the return value is not used.
+    _ = X.XUngrabButton(display, button, modifiers, grab_window);
+}
+
 /// The XUngrabPointer function releases the pointer and any queued events if
 /// this client has actively grabbed the pointer from XGrabPointer,
 /// XGrabButton, or from a normal button press. XUngrabPointer does not release
