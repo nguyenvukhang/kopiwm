@@ -152,13 +152,13 @@ pub const Client = struct {
         if (!self.neverfocus) {
             _ = X.XSetInputFocus(z.dpy, self.win, X.RevertToPointerRoot, X.CurrentTime);
         }
-        _ = X.XChangeProperty(
+        Xt.XChangeProperty(
             z.dpy,
             z.root,
             z.netatom.get(.ActiveWindow),
             X.XA_WINDOW,
             32,
-            X.PropModeReplace,
+            .Replace,
             @ptrCast(&self.win),
             1,
         );
@@ -245,13 +245,13 @@ pub const Client = struct {
     pub fn setFullscreen(self: *Self, fullscreen: bool) void {
         const z = self.app;
         if (fullscreen and !self.isfullscreen) {
-            _ = X.XChangeProperty(
+            Xt.XChangeProperty(
                 z.dpy,
                 self.win,
                 z.netatom.get(.WMState),
                 X.XA_ATOM,
                 32,
-                X.PropModeReplace,
+                .Replace,
                 @ptrCast(&z.netatom.get(.WMFullscreen)),
                 1,
             );
@@ -261,13 +261,13 @@ pub const Client = struct {
             self.resize(self.mon.m);
             // XRaiseWindow(dpy, self.win);
         } else if (!fullscreen and self.isfullscreen) {
-            _ = X.XChangeProperty(
+            Xt.XChangeProperty(
                 z.dpy,
                 self.win,
                 z.netatom.get(.WMState),
                 X.XA_ATOM,
                 32,
-                X.PropModeReplace,
+                .Replace,
                 null,
                 0,
             );
@@ -533,13 +533,13 @@ pub const Client = struct {
     pub fn setState(self: *Self, state: u32) void {
         const data: [2]u32 = .{ state, X.None };
         const z = self.app;
-        _ = X.XChangeProperty(
+        Xt.XChangeProperty(
             z.dpy,
             self.win,
             z.wmatom.get(.State),
             z.wmatom.get(.State),
             32,
-            X.PropModeReplace,
+            .Replace,
             @ptrCast(&data),
             2,
         );

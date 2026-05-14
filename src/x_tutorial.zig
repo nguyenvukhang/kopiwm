@@ -44,6 +44,59 @@ pub const XftFont = X.XftFont;
 // Functions
 // -----------------------------------------------------------------------------
 
+/// The XChangeProperty function alters the property for the specified window
+/// and causes the X server to generate a PropertyNotify event on that window.
+/// XChangeProperty performs the following:
+///
+/// * If mode is PropModeReplace, XChangeProperty discards the previous
+///   property value and stores the new data.
+///
+/// * If mode is PropModePrepend or PropModeAppend, XChangeProperty inserts the
+///   specified data before the beginning of the existing data or onto the end
+///   of the existing data, respectively. The type and format must match the
+///   existing property value, or a BadMatch error results. If the property is
+///   undefined, it is treated as defined with the correct type and format with
+///   zero-length data.
+///
+/// If the specified format is 8, the property data must be a char array. If
+/// the specified format is 16, the property data must be a short array. If the
+/// specified format is 32, the property data must be a long array.
+///
+/// The lifetime of a property is not tied to the storing client. Properties
+/// remain until explicitly deleted, until the window is destroyed, or until
+/// the server resets. For a discussion of what happens when the connection to
+/// the X server is closed, see section 2.6. The maximum size of a property is
+/// server dependent and can vary dynamically depending on the amount of memory
+/// the server has available. (If there is insufficient space, a BadAlloc error
+/// results.)
+///
+/// XChangeProperty can generate BadAlloc, BadAtom, BadMatch, BadValue, and
+/// BadWindow errors.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XGetWindowProperty.3.xhtml
+pub inline fn XChangeProperty(
+    display: *Display,
+    window: Window,
+    property: Atom,
+    p_type: Atom,
+    format: c_int,
+    mode: PropMode,
+    data: [*c]const u8,
+    nelements: c_int,
+) void {
+    // Meaning of return value is not specified in documentation.
+    _ = X.XChangeProperty(
+        display,
+        window,
+        property,
+        p_type,
+        format,
+        @intFromEnum(mode),
+        data,
+        nelements,
+    );
+}
+
 /// The XCloseDisplay function closes the connection to the X server for the
 /// display specified in the Display structure and destroys all windows,
 /// resource IDs (Window, Font, Pixmap, Colormap, Cursor, and GContext), or
@@ -304,14 +357,8 @@ pub inline fn XGrabPointer(
         grab_window,
         @intFromBool(owner_events),
         event_mask,
-        switch (pointer_mode) {
-            .Sync => X.GrabModeSync,
-            .Async => X.GrabModeAsync,
-        },
-        switch (keyboard_mode) {
-            .Sync => X.GrabModeSync,
-            .Async => X.GrabModeAsync,
-        },
+        @intFromEnum(pointer_mode),
+        @intFromEnum(keyboard_mode),
         confine_to,
         cursor,
         time,
@@ -363,7 +410,7 @@ pub inline fn XInternAtom(
 ///
 /// XMoveWindow can generate a BadWindow error.
 ///
-/// https://x.org/releases/X11R7.7/doc/man/man3/XConfigureWindow.3.xhtml
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XConfigureWindow.3.xhtml
 pub inline fn XMoveWindow(
     display: *Display,
     window: Window,
@@ -579,11 +626,15 @@ pub const err = struct {
     pub const BadMatch = X.BadMatch;
 };
 
-pub const GrabMode = enum {
-    /// Equivalent to X's GrabModeSync.
-    Sync,
-    /// Equivalent to X's GrabModeAsync.
-    Async,
+pub const GrabMode = enum(c_int) {
+    Sync = X.GrabModeSync,
+    Async = X.GrabModeAsync,
+};
+
+pub const PropMode = enum(c_int) {
+    Replace = X.PropModeReplace,
+    Prepend = X.PropModePrepend,
+    Append = X.PropModeAppend,
 };
 
 ////////////////////////////////////////////////////////////////////////////////

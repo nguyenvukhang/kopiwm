@@ -321,13 +321,13 @@ fn manage(allocator: Allocator, w: Xt.Window, wa: *Xt.XWindowAttributes) error{O
     c.attach();
     c.attachStack();
 
-    _ = X.XChangeProperty(
+    Xt.XChangeProperty(
         z.dpy,
         z.root,
         z.netatom.get(.ClientList),
         X.XA_WINDOW,
         32,
-        X.PropModeAppend,
+        .Append,
         @ptrCast(&c.win),
         1,
     );
@@ -387,13 +387,13 @@ fn updateClientList() void {
     while (m_opt) |m| : (m_opt = m.next) {
         c_opt = m.clients;
         while (c_opt) |c| : (c_opt = c.next) {
-            _ = X.XChangeProperty(
+            Xt.XChangeProperty(
                 z.dpy,
                 z.root,
                 z.netatom.get(.ClientList),
                 X.XA_WINDOW,
                 32,
-                X.PropModeAppend,
+                .Append,
                 @ptrCast(&c.win),
                 1,
             );
@@ -1247,19 +1247,19 @@ fn setup(allocator: Allocator, wmcheckwin: *Xt.Window) DwmError!void {
     // Supporting window for NetWMCheck.
     wmcheckwin.* = X.XCreateSimpleWindow(z.dpy, z.root, 0, 0, 1, 1, 0, 0, 0);
     // The @ptrCast is hella sus from dwm. This is supposed to be a const char* in C.
-    _ = X.XChangeProperty(z.dpy, wmcheckwin.*, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(wmcheckwin), 1);
-    _ = X.XChangeProperty(z.dpy, wmcheckwin.*, z.netatom.get(.WMName), utf8string, 8, X.PropModeReplace, "dwm", 3);
-    _ = X.XChangeProperty(z.dpy, z.root, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(wmcheckwin), 1);
+    Xt.XChangeProperty(z.dpy, wmcheckwin.*, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, .Replace, @ptrCast(wmcheckwin), 1);
+    Xt.XChangeProperty(z.dpy, wmcheckwin.*, z.netatom.get(.WMName), utf8string, 8, .Replace, "dwm", 3);
+    Xt.XChangeProperty(z.dpy, z.root, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, .Replace, @ptrCast(wmcheckwin), 1);
 
     // EWMH support per view.
     // https://specifications.freedesktop.org/wm/latest/
-    _ = X.XChangeProperty(
+    Xt.XChangeProperty(
         z.dpy,
         z.root,
         z.netatom.get(.Supported),
         X.XA_ATOM,
         32,
-        X.PropModeReplace,
+        .Replace,
         @ptrCast(&z.netatom.values),
         @intCast(z.netatom.values.len),
     );
