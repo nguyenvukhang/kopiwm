@@ -395,6 +395,33 @@ pub inline fn XInternAtom(
     return if (atom == X.None) null else atom;
 }
 
+/// The XMoveResizeWindow function changes the size and location of the
+/// specified window without raising it. Moving and resizing a mapped window
+/// may generate an Expose event on the window. Depending on the new size and
+/// location parameters, moving and resizing a window may generate Expose
+/// events on windows that the window formerly obscured.
+///
+/// If the override-redirect flag of the window is False and some other client
+/// has selected SubstructureRedirectMask on the parent, the X server generates
+/// a ConfigureRequest event, and no further processing is performed.
+/// Otherwise, the window size and location are changed.
+///
+/// XMoveResizeWindow can generate BadValue and BadWindow errors.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XConfigureWindow.3.xhtml
+pub inline fn XMoveResizeWindow(
+    display: *Display,
+    window: Window,
+    x: c_int,
+    y: c_int,
+    width: c_uint,
+    height: c_uint,
+) void {
+    // It is not specified in documentation what the return value of XMoveWindow
+    // is, so we shall discard it.
+    _ = X.XMoveResizeWindow(display, window, x, y, width, height);
+}
+
 /// The XMoveWindow function moves the specified window to the specified x and
 /// y coordinates, but it does not change the window's size, raise the window,
 /// or change the mapping state of the window. Moving a mapped window may or

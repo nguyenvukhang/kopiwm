@@ -331,7 +331,7 @@ fn manage(allocator: Allocator, w: Xt.Window, wa: *Xt.XWindowAttributes) error{O
         @ptrCast(&c.win),
         1,
     );
-    _ = X.XMoveResizeWindow(
+    Xt.XMoveResizeWindow(
         z.dpy,
         c.win,
         c.pos.now.x + 2 * @as(i32, @intCast(z.s.w)),
@@ -588,7 +588,7 @@ fn configureRequest(e: *Xt.XEvent) void {
             }
             if (c.isVisible()) {
                 const r = &c.pos.now;
-                _ = X.XMoveResizeWindow(z.dpy, c.win, r.x, r.y, r.w, r.h);
+                Xt.XMoveResizeWindow(z.dpy, c.win, r.x, r.y, r.w, r.h);
             }
         } else {
             c.configure(z.dpy);
@@ -630,7 +630,7 @@ fn configureNotify(allocator: Allocator, e: *Xt.XEvent) error{OutOfMemory}!void 
                     c.resize(m.m);
                 }
             }
-            _ = X.XMoveResizeWindow(z.dpy, m.barwin, m.w.x, m.w.y, m.w.w, z.bar_height);
+            Xt.XMoveResizeWindow(z.dpy, m.barwin, m.w.x, m.w.y, m.w.w, z.bar_height);
         }
         focus(allocator, null);
         arrange(allocator, null);
@@ -1664,7 +1664,7 @@ pub fn tile(m: *Monitor) void {
 pub fn toggleBar(_: *const Arg) void {
     z.selmon.show_bar = !z.selmon.show_bar;
     updateBarPosition(z.selmon);
-    _ = X.XMoveResizeWindow(
+    Xt.XMoveResizeWindow(
         z.dpy,
         z.selmon.barwin,
         z.selmon.w.x,
