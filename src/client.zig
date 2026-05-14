@@ -191,7 +191,7 @@ pub const Client = struct {
             };
             ev.xclient.data.l[0] = @intCast(proto);
             ev.xclient.data.l[1] = X.CurrentTime;
-            _ = X.XSendEvent(z.dpy, self.win, X.False, Xt.NoEventMask, &ev);
+            _ = X.XSendEvent(z.dpy, self.win, Xt.False, Xt.NoEventMask, &ev);
         }
         return exists;
     }
@@ -217,7 +217,7 @@ pub const Client = struct {
         xconf.above = Xt.None;
         xconf.override_redirect = Xt.False;
         var event = Xt.XEvent{ .xconfigure = xconf };
-        _ = X.XSendEvent(dpy, self.win, X.False, X.StructureNotifyMask, &event);
+        _ = X.XSendEvent(dpy, self.win, Xt.False, X.StructureNotifyMask, &event);
     }
 
     /// (dwm) getatomprop

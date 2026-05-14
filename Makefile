@@ -7,6 +7,9 @@ LOG_DIR := $(ZIG_OUT)
 quick: x quick-make-command
 
 x:
+	python3 $(MAKEFILE_DIR)/scripts/tutorial.py
+
+x-rg:
 	rg 'X\.' --glob '!*x_tutorial*' --stats
 
 build:

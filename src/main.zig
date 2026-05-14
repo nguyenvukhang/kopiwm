@@ -1352,7 +1352,7 @@ fn grabbuttons(c: *Client, focused: bool) void {
             X.AnyButton,
             X.AnyModifier,
             c.win,
-            X.False,
+            Xt.False,
             X.ButtonPressMask | X.ButtonReleaseMask,
             X.GrabModeSync,
             X.GrabModeSync,
@@ -1368,7 +1368,7 @@ fn grabbuttons(c: *Client, focused: bool) void {
                     button.button,
                     button.mask | modifier,
                     c.win,
-                    X.False,
+                    Xt.False,
                     X.ButtonPressMask | X.ButtonReleaseMask,
                     X.GrabModeAsync,
                     X.GrabModeSync,
@@ -1407,7 +1407,7 @@ fn grabkeys() void {
                         keycode,
                         key.mod | mod,
                         z.root,
-                        X.True,
+                        Xt.True,
                         X.GrabModeAsync,
                         X.GrabModeAsync,
                     );
@@ -1490,7 +1490,7 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
 /// (dwm) updatebars
 fn updateBars() void {
     var wa: X.XSetWindowAttributes = .{
-        .override_redirect = X.True,
+        .override_redirect = Xt.True,
         .background_pixmap = X.ParentRelative,
         .event_mask = X.ButtonPressMask | X.ExposureMask,
     };
