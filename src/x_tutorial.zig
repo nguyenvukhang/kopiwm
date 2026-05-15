@@ -176,6 +176,17 @@ pub inline fn XCreateWindow(
     );
 }
 
+/// The XFree function is a general-purpose Xlib routine that frees the
+/// specified data. You must use it to free any objects that were allocated by
+/// Xlib, unless an alternate function is explicitly specified for the object.
+/// A NULL pointer cannot be passed to this function.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XFree.3.xhtml
+pub inline fn XFree(ptr: ?*anyopaque) void {
+    // The meaning of the return value was not specified in documentation.
+    _ = X.XFree(ptr);
+}
+
 /// The XGetWindowProperty function returns the actual type of the property; the
 /// actual format of the property; the number of 8-bit, 16-bit, or 32-bit items
 /// transferred; the number of bytes remaining to be read in the property; and a

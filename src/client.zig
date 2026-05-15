@@ -87,7 +87,7 @@ pub const Client = struct {
         var wmh: *X.XWMHints = X.XGetWMHints(dpy, self.win) orelse return;
         if (urgent) wmh.flags |= X.XUrgencyHint else wmh.flags &= ~X.XUrgencyHint;
         _ = X.XSetWMHints(dpy, self.win, wmh);
-        _ = X.XFree(wmh);
+        Xt.XFree(wmh);
     }
 
     /// Gets a pointer to the node in the linked list `self.mon.stack` that
@@ -177,7 +177,7 @@ pub const Client = struct {
                 n -= 1;
                 exists = protocols.?[@intCast(n)] == proto;
             }
-            _ = X.XFree(@ptrCast(protocols));
+            Xt.XFree(@ptrCast(protocols));
         }
         if (exists) {
             var ev = Xt.XEvent{
@@ -231,7 +231,7 @@ pub const Client = struct {
         const res = Xt.XGetWindowProperty(dpy, self.win, prop, 0, @sizeOf(Xt.Atom), //
             false, X.XA_ATOM, &da, &format, &nitems, &dl, &property);
         if (!res) return null;
-        defer _ = X.XFree(property);
+        defer Xt.XFree(property);
         if (property) |p| {
             if (nitems > 0 and format == 32) {
                 atom = @as([*]Xt.Atom, @ptrCast(@alignCast(p)))[0];
@@ -430,7 +430,7 @@ pub const Client = struct {
     pub fn updateWMHints(self: *Self) void {
         const z = self.app;
         const wmh: *X.XWMHints = X.XGetWMHints(z.dpy, self.win) orelse return;
-        defer _ = X.XFree(wmh);
+        defer Xt.XFree(wmh);
         const wmh_urg = wmh.flags & X.XUrgencyHint != 0;
         if (self == z.selmon.sel and wmh_urg) {
             wmh.flags &= ~X.XUrgencyHint;
@@ -519,8 +519,8 @@ pub const Client = struct {
             self.tags |= rule.tags;
         }
 
-        if (ch.res_class) |x| _ = X.XFree(x);
-        if (ch.res_name) |x| _ = X.XFree(x);
+        if (ch.res_class) |x| Xt.XFree(x);
+        if (ch.res_name) |x| Xt.XFree(x);
         if (self.tags & cfg.TAGMASK == 0) {
             self.tags = self.mon.tags;
         } else {

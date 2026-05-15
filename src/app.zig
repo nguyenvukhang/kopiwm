@@ -99,26 +99,28 @@ pub fn getRootPtr(self: *const Self) ?Coordinates(c_int) {
 /// (dwm) gettextprop
 pub fn getTextProp(self: *const Self, w: Window, atom: Xt.Atom, buffer: []u8) ?usize {
     if (buffer.len == 0) return null;
-    var tp: X.XTextProperty = undefined;
-    if (X.XGetTextProperty(self.dpy, w, &tp, atom) == 0 or tp.nitems == 0) {
+    const text_property = Xt.XGetTextProperty(self.dpy, w, atom) orelse return null;
+    if (text_property.nitems == 0) {
         return null;
     }
     var l: ?usize = null;
-    if (tp.encoding == X.XA_STRING) {
-        const value: []const u8 = std.mem.span(tp.value);
+    if (text_property.encoding == X.XA_STRING) {
+        const value: []const u8 = std.mem.span(text_property.value);
         l = @min(value.len, buffer.len);
         @memcpy(buffer[0..l.?], value[0..l.?]);
     } else {
-        var list: [*c][*c]u8 = undefined;
+        var list_opt: [*c][*c]u8 = undefined;
         var n: c_int = undefined;
-        const res = X.XmbTextPropertyToTextList(self.dpy, &tp, &list, &n);
-        if (res >= X.Success and n > 0 and list != null) {
-            const value: []const u8 = std.mem.span(list[0]);
-            l = @min(value.len, buffer.len);
-            @memcpy(buffer[0..l.?], value[0..l.?]);
+        const res = X.XmbTextPropertyToTextList(self.dpy, &text_property, &list_opt, &n);
+        if (list_opt) |list| {
+            if (res >= X.Success and n > 0) {
+                const value: []const u8 = std.mem.span(list[0]);
+                l = @min(value.len, buffer.len);
+                @memcpy(buffer[0..l.?], value[0..l.?]);
+            }
+            X.XFreeStringList(list);
         }
-        X.XFreeStringList(list);
     }
-    _ = X.XFree(tp.value);
+    Xt.XFree(text_property.value);
     return l;
 }

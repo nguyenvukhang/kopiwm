@@ -237,7 +237,7 @@ fn getState(w: Xt.Window) i32 {
     const res = Xt.XGetWindowProperty(z.dpy, w, z.wmatom.get(.State), 0, 2, //
         false, z.wmatom.get(.State), &real, &format, &n, &extra, &property);
     if (!res) return -1;
-    defer _ = X.XFree(property);
+    defer Xt.XFree(property);
     if (property) |p| {
         if (n != 0 and format == 32) {
             result = @as([*]i32, @ptrCast(@alignCast(p)))[0];
@@ -833,7 +833,7 @@ fn scan(allocator: Allocator) error{OutOfMemory}!void {
     }
     // No need to call XFree because null in Zig means NULL in C.
     const wins: [*]Xt.Window = wins_opt orelse return;
-    defer _ = X.XFree(wins);
+    defer Xt.XFree(wins);
 
     // Note: this section down here in important in deciding which window to be
     // `manage`d. We specifically do NOT want to be `manage`-ing the bar
@@ -1377,7 +1377,7 @@ fn grabkeys() void {
     const syms: [*]Xt.KeySym =
         X.XGetKeyboardMapping(z.dpy, @intCast(start), end - start + 1, &skip) orelse
         return;
-    defer _ = X.XFree(syms);
+    defer Xt.XFree(syms);
 
     var keycode = start;
     while (keycode < end) : (keycode += 1) {
