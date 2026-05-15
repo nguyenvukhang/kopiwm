@@ -4,6 +4,7 @@
 
 const X = @import("c_lib.zig").X;
 const Coordinates = @import("enums.zig").Coordinates;
+const log = @import("std").log;
 
 // -----------------------------------------------------------------------------
 // XID aliases
@@ -445,6 +446,28 @@ pub inline fn XGetTransientForHint(display: *Display, window: Window) ?Window {
     return prop_window_return;
 }
 
+pub const YGetWindowPropertyResult = struct {
+    const Self = @This();
+
+    /// The atom identifier that defines the actual type of the property.
+    type: Atom,
+    /// The number of bytes remaining to be read in the property if a partial
+    /// read was performed.
+    bytes_after: c_ulong,
+    /// Returns the data in the specified format. If the returned format is 8,
+    /// the returned data is represented as a char array. If the returned
+    /// format is 16, the returned data is represented as a array of short int
+    /// type and should be cast to that type to obtain the elements. If the
+    /// returned format is 32, the property data will be stored as an array of
+    /// longs (which in a 64-bit application will be 64-bit values that are
+    /// padded in the upper 4 bytes).
+    value: FormattedData,
+
+    pub fn deinit(self: *const Self) void {
+        self.value.deinit();
+    }
+};
+
 /// The XGetWindowProperty function returns the actual type of the property; the
 /// actual format of the property; the number of 8-bit, 16-bit, or 32-bit items
 /// transferred; the number of bytes remaining to be read in the property; and a
@@ -513,40 +536,51 @@ pub inline fn XGetWindowProperty(
     /// The atom identifier associated with the property type or
     /// AnyPropertyType.
     req_type: Atom,
-    /// The atom identifier that defines the actual type of the property.
-    actual_type_return: [*c]Atom,
-    /// The actual format of the property.
-    actual_format_return: [*c]c_int,
-    nitems_return: [*c]c_ulong,
-    /// The number of bytes remaining to be read in the property if a partial
-    /// read was performed.
-    bytes_after_return: [*c]c_ulong,
-    /// Returns the data in the specified format. If the returned format is 8,
-    /// the returned data is represented as a char array. If the returned
-    /// format is 16, the returned data is represented as a array of short int
-    /// type and should be cast to that type to obtain the elements. If the
-    /// returned format is 32, the property data will be stored as an array of
-    /// longs (which in a 64-bit application will be 64-bit values that are
-    /// padded in the upper 4 bytes).
-    prop_return: [*c][*c]u8,
-) bool {
-    const result = X.XGetWindowProperty(
-        display,
-        w,
-        property,
-        long_offset,
-        long_length,
-        @intFromBool(delete),
-        req_type,
-        actual_type_return,
-        actual_format_return,
-        nitems_return,
-        bytes_after_return,
-        prop_return,
-    );
+) ?YGetWindowPropertyResult {
+    var r_type: c_ulong = 0;
+    // The number of 8-bit, 16-bit, or 32-bit items stored in the data.
+    var nitems: c_ulong = 0;
+    var r_bytes_after: c_ulong = 0;
+    var raw_data: [*c]u8 = undefined;
+    var format: c_int = 0;
+    const status = X.XGetWindowProperty(display, w, property, long_offset, //
+        long_length, @intFromBool(delete), req_type, &r_type, &format, //
+        &nitems, &r_bytes_after, &raw_data);
+
     // From the original docs:
     // "The function returns Success if it executes successfully."
-    return result == X.Success;
+    if (status != X.Success) return null;
+
+    // If the specified property does not exist for the specified window,
+    // XGetWindowProperty returns None to actual_type_return and the value zero
+    // to actual_format_return and bytes_after_return. The nitems_return
+    // argument is empty. In this case, the delete argument is ignored.
+    if (r_type == X.None or format == 0 or r_bytes_after == 0) return null;
+
+    return .{
+        .type = r_type,
+        .bytes_after = r_bytes_after,
+        .value = blk: {
+            const n: usize = @intCast(nitems);
+            switch (format) {
+                8 => {
+                    break :blk .{ .Fmt8 = raw_data[0..n] };
+                },
+                16 => {
+                    const data16: [*c]u16 = @ptrCast(@alignCast(raw_data));
+                    break :blk .{ .Fmt16 = data16[0..n] };
+                },
+                32 => {
+                    const data32: [*c]u32 = @ptrCast(@alignCast(raw_data));
+                    break :blk .{ .Fmt32 = data32[0..n] };
+                },
+                else => {
+                    log.err("Format value: {d}", .{format});
+                    unreachable;
+                },
+            }
+        },
+    };
 }
 
 /// The XGrabButton function establishes a passive grab. In the future, the
@@ -827,7 +861,7 @@ pub inline fn XOpenDisplay(display_name: [*c]const u8) ?*Display {
 /// Custom struct for dealing with XQueryPointer.
 ///
 /// source: https://x.org/releases/X11R7.7/doc/man/man3/XQueryPointer.3.xhtml
-pub const XQueryPointerResult = struct {
+pub const YQueryPointerResult = struct {
     /// The root window the pointer is logically on.
     root_window: Window,
     /// The coordinates of the pointer relative to the root window's origin.
@@ -865,8 +899,8 @@ pub const XQueryPointerResult = struct {
 pub inline fn XQueryPointer(
     display: *Display,
     window: Window,
-) XQueryPointerResult {
-    var r: XQueryPointerResult = .{
+) YQueryPointerResult {
+    var r: YQueryPointerResult = .{
         .root_window = undefined,
         .root_pos = .zero,
         .win_pos = .zero,
@@ -1113,6 +1147,51 @@ pub const ClientMessage = X.ClientMessage;
 pub const NoEventMask = X.NoEventMask;
 pub const ConfigureNotify = X.ConfigureNotify;
 
+/// Specifies whether the data should be viewed as a list of 8-bit, 16-bit, or
+/// 32-bit quantities. Used in XGetWindowProperty, among other places.
+pub const Format = enum {
+    // Data should be read as an 8-bit value.
+    Fmt8,
+    // Data should be read as an 16-bit value.
+    Fmt16,
+    // Data should be read as an 32-bit value.
+    Fmt32,
+};
+
+pub const FormattedData = union(Format) {
+    const Self = @This();
+    Fmt8: []u8,
+    Fmt16: []u16,
+    Fmt32: []u32,
+
+    pub fn len(self: *const Self) usize {
+        return switch (self.*) {
+            .Fmt8 => |v| v.len,
+            .Fmt16 => |v| v.len,
+            .Fmt32 => |v| v.len,
+        };
+    }
+
+    pub fn deinit(self: Self) void {
+        switch (self) {
+            .Fmt8 => |v| XFree(v.ptr),
+            .Fmt16 => |v| XFree(v.ptr),
+            .Fmt32 => |v| XFree(v.ptr),
+        }
+    }
+};
+
+pub const GrabMode = enum(c_int) {
+    Sync = X.GrabModeSync,
+    Async = X.GrabModeAsync,
+};
+
+pub const PropMode = enum(c_int) {
+    Replace = X.PropModeReplace,
+    Prepend = X.PropModePrepend,
+    Append = X.PropModeAppend,
+};
+
 pub const None = X.None;
 
 pub const False = X.False;
@@ -1190,17 +1269,6 @@ pub const err = struct {
     pub const BadDrawable = X.BadDrawable;
     pub const BadGC = X.BadGC;
     pub const BadMatch = X.BadMatch;
-};
-
-pub const GrabMode = enum(c_int) {
-    Sync = X.GrabModeSync,
-    Async = X.GrabModeAsync,
-};
-
-pub const PropMode = enum(c_int) {
-    Replace = X.PropModeReplace,
-    Prepend = X.PropModePrepend,
-    Append = X.PropModeAppend,
 };
 
 ////////////////////////////////////////////////////////////////////////////////

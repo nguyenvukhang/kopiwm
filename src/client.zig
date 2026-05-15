@@ -229,23 +229,21 @@ pub const Client = struct {
 
     /// (dwm) getatomprop
     fn getAtomProp(self: *Self, dpy: *Display, prop: Xt.Atom) ?Xt.Atom {
-        var da: Xt.Atom = undefined; // dummy atom.
-        var atom: Xt.Atom = undefined;
-        var format: c_int = undefined;
-        var nitems: c_ulong = undefined;
-        var dl: c_ulong = undefined; // dummy long.
-        var property: ?[*]u8 = undefined;
+        // var da: Xt.Atom = undefined; // dummy atom.
+        // var atom: Xt.Atom = undefined;
+        // var format: c_int = undefined;
+        // var nitems: c_ulong = undefined;
+        // var dl: c_ulong = undefined; // dummy long.
+        // var property: ?[*]u8 = undefined;
 
-        const res = Xt.XGetWindowProperty(dpy, self.win, prop, 0, @sizeOf(Xt.Atom), //
-            false, X.XA_ATOM, &da, &format, &nitems, &dl, &property);
-        if (!res) return null;
-        defer Xt.XFree(property);
-        if (property) |p| {
-            if (nitems > 0 and format == 32) {
-                atom = @as([*]Xt.Atom, @ptrCast(@alignCast(p)))[0];
-            }
-        }
-        return atom;
+        const data = Xt.XGetWindowProperty(dpy, self.win, prop, 0, @sizeOf(Xt.Atom), false, X.XA_ATOM) orelse return null;
+        defer data.deinit();
+        if (data.value.len() == 0) return null;
+        return switch (data.value) {
+            .Fmt8 => |v| @as([*]Xt.Atom, @ptrCast(@alignCast(v)))[0],
+            .Fmt16 => |v| @as([*]Xt.Atom, @ptrCast(@alignCast(v)))[0],
+            .Fmt32 => |v| @as([*]Xt.Atom, @ptrCast(@alignCast(v)))[0],
+        };
     }
 
     /// (dwm) setfullscreen

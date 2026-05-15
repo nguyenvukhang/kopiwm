@@ -227,22 +227,24 @@ fn winToClient(w: Xt.Window) ?*Client {
 
 /// (dwm) getstate
 fn getState(w: Xt.Window) i32 {
-    var real: Xt.Atom = undefined;
-    var format: c_int = undefined;
-    var n: c_ulong = undefined;
-    var extra: c_ulong = undefined;
-    var property: ?[*]u8 = undefined;
-    var result: i32 = -1;
-
-    const res = Xt.XGetWindowProperty(z.dpy, w, z.wmatom.get(.State), 0, 2, //
-        false, z.wmatom.get(.State), &real, &format, &n, &extra, &property);
-    if (!res) return -1;
-    defer Xt.XFree(property);
-    if (property) |p| {
-        if (n != 0 and format == 32) {
-            result = @as([*]i32, @ptrCast(@alignCast(p)))[0];
-        }
-    }
+    log.info("::getState", .{});
+    const data = Xt.XGetWindowProperty(
+        z.dpy,
+        w,
+        z.wmatom.get(.State),
+        0,
+        2,
+        false,
+        z.wmatom.get(.State),
+    ) orelse return -1;
+    defer data.deinit();
+    if (data.value.len() == 0) return -1;
+    const result: i32 = switch (data.value) {
+        .Fmt8 => |v| @intCast(v[0]),
+        .Fmt16 => |v| @intCast(v[0]),
+        .Fmt32 => |v| @intCast(v[0]),
+    };
+    log.info("::getState returns {d}", .{result});
     return result;
 }
 
