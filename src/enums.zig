@@ -1,5 +1,5 @@
 const Xt = @import("x_tutorial.zig");
-const App = @import("app.zig").App;
+const App = @import("app.zig");
 const Layout = @import("layout.zig").Layout;
 const DwmError = @import("errors.zig").DwmError;
 const LazyFn = @import("lazy_fn.zig").LazyFn;

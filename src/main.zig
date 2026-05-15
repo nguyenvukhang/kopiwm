@@ -2,7 +2,7 @@ const std = @import("std");
 const mem = std.mem;
 const meta = std.meta;
 const log = std.log;
-const dwmz = @import("app.zig");
+const App = @import("app.zig");
 const drw = @import("drw.zig").drw;
 const cfg = @import("config.zig");
 const Allocator = std.mem.Allocator;
@@ -34,7 +34,7 @@ var global_allocator: Allocator = undefined;
 const X = @import("c_lib.zig").X;
 const C = @import("c_lib.zig").C;
 
-var z: dwmz.App = .init();
+var z: App = .init();
 
 pub const std_options: std.Options = .{
     .log_level = .debug,
