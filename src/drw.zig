@@ -102,6 +102,7 @@ fn xfontFree(allocator: Allocator, font: *Fnt) void {
         X.FcPatternDestroy(pattern);
     }
     X.XftFontClose(font.dpy, font.xfont);
+    log.warn("Deallocate font: {*}", .{font});
     allocator.destroy(font);
 }
 
@@ -298,6 +299,7 @@ pub const Drw = struct {
         self.clrFree(&scheme.fg);
         self.clrFree(&scheme.bg);
         self.clrFree(&scheme.border);
+        log.warn("Deallocate color scheme: {*}", .{scheme});
         allocator.destroy(scheme);
     }
 

@@ -352,10 +352,12 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
         _ = X.XSetErrorHandler(xerror);
         _ = X.XUngrabServer(z.dpy);
     }
+    log.warn("Deallocate client: {*} (will arrange monitor {*})", .{ c, c.mon });
+    const m = c.mon; // So that we can still access c.mon after freeing c.
     allocator.destroy(c);
     focus(allocator, null);
     updateClientList();
-    arrange(allocator, c.mon);
+    arrange(allocator, m);
 }
 
 /// (dwm) updateclientlist
@@ -1466,6 +1468,7 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
     }
     _ = Xt.XUnmapWindow(z.dpy, mon.barwin);
     _ = X.XDestroyWindow(z.dpy, mon.barwin);
+    log.warn("Deallocate monitor: {*}", .{mon});
     allocator.destroy(mon);
 }
 
