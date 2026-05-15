@@ -1005,6 +1005,75 @@ pub inline fn XUnmapWindow(display: *Display, window: Window) c_int {
     return X.XUnmapWindow(display, window);
 }
 
+/// The XmbTextPropertyToTextList, XwcTextPropertyToTextList and
+/// Xutf8TextPropertyToTextList functions return a list of text strings
+/// representing the null-separated elements of the specified XTextProperty
+/// structure. The returned strings are encoded using the current locale
+/// encoding (for XmbTextPropertyToTextList and XwcTextPropertyToTextList) or
+/// in UTF-8 (for Xutf8TextPropertyToTextList). The data in text_prop must be
+/// format 8.
+///
+/// Multiple elements of the property (for example, the strings in a disjoint
+/// text selection) are separated by a null byte. The contents of the property
+/// are not required to be null-terminated; any terminating null should not be
+/// included in text_prop.nitems.
+///
+/// If insufficient memory is available for the list and its elements,
+/// XmbTextPropertyToTextList, XwcTextPropertyToTextList and
+/// Xutf8TextPropertyToTextList return XNoMemory. If the current locale is not
+/// supported, the functions return XLocaleNotSupported. Otherwise, if the
+/// encoding field of text_prop is not convertible to the encoding of the
+/// current locale, the functions return XConverterNotFound. For supported
+/// locales, existence of a converter from COMPOUND_TEXT, STRING, UTF8_STRING
+/// or the encoding of the current locale is guaranteed if XSupportsLocale
+/// returns True for the current locale (but the actual text may contain
+/// unconvertible characters). Conversion of other encodings is
+/// implementation-dependent. In all of these error cases, the functions do not
+/// set any return values.
+///
+/// Otherwise, XmbTextPropertyToTextList, XwcTextPropertyToTextList and
+/// Xutf8TextPropertyToTextList return the list of null-terminated text strings
+/// to list_return and the number of text strings to count_return.
+///
+/// If the value field of text_prop is not fully convertible to the encoding of
+/// the current locale, the functions return the number of unconvertible
+/// characters. Each unconvertible character is converted to a string in the
+/// current locale that is specific to the current locale. To obtain the value
+/// of this string, use XDefaultString. Otherwise, XmbTextPropertyToTextList,
+/// XwcTextPropertyToTextList and Xutf8TextPropertyToTextList return Success.
+///
+/// To free the storage for the list and its contents returned by
+/// XmbTextPropertyToTextList or Xutf8TextPropertyToTextList, use
+/// XFreeStringList. To free the storage for the list and its contents returned
+/// by XwcTextPropertyToTextList, use XwcFreeStringList.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XmbTextListToTextProperty.3.xhtml
+pub inline fn XmbTextPropertyToTextList(
+    display: *Display,
+    text_prop: *const XTextProperty,
+) ?[][*c]u8 {
+    var list_return: [*c][*c]u8 = undefined;
+    var count_return: c_int = undefined;
+    const result = X.XmbTextPropertyToTextList(
+        display,
+        text_prop,
+        &list_return,
+        &count_return,
+    );
+    switch (result) {
+        X.XNoMemory => return null,
+        X.XLocaleNotSupported => return null,
+        X.XConverterNotFound => return null,
+        else => {},
+    }
+    if (list_return) |list| {
+        if (count_return > 0) {
+            return list[0..@intCast(count_return)];
+        }
+    }
+    return null;
+}
+
 // -----------------------------------------------------------------------------
 // Enums
 // -----------------------------------------------------------------------------

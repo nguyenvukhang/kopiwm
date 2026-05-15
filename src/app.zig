@@ -109,16 +109,11 @@ pub fn getTextProp(self: *const Self, w: Window, atom: Xt.Atom, buffer: []u8) ?u
         l = @min(value.len, buffer.len);
         @memcpy(buffer[0..l.?], value[0..l.?]);
     } else {
-        var list_opt: [*c][*c]u8 = undefined;
-        var n: c_int = undefined;
-        const res = X.XmbTextPropertyToTextList(self.dpy, &text_property, &list_opt, &n);
-        if (list_opt) |list| {
-            if (res >= X.Success and n > 0) {
-                const value: []const u8 = std.mem.span(list[0]);
-                l = @min(value.len, buffer.len);
-                @memcpy(buffer[0..l.?], value[0..l.?]);
-            }
-            Xt.XFreeStringList(list);
+        if (Xt.XmbTextPropertyToTextList(self.dpy, &text_property)) |list| {
+            const value: []const u8 = std.mem.span(list[0]);
+            l = @min(value.len, buffer.len);
+            @memcpy(buffer[0..l.?], value[0..l.?]);
+            Xt.XFreeStringList(list.ptr);
         }
     }
     Xt.XFree(text_property.value);
