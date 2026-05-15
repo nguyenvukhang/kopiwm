@@ -16,18 +16,6 @@ pub const KeySym = X.KeySym;
 /// To specify a null state, use `None`.
 pub const Window = X.Window;
 
-/// The XTextProperty structure contains:
-/// ```c
-/// typedef struct {
-///     unsigned char *value; /* property data */
-///     Atom encoding;        /* type of property */
-///     int format;           /* 8, 16, or 32 */
-///     unsigned long nitems; /* number of items in value */
-/// } XTextProperty;
-/// ```
-/// source: https://x.org/releases/X11R7.7/doc/man/man3/XStringListToTextProperty.3.xhtml
-pub const XTextProperty = X.XTextProperty;
-
 // -----------------------------------------------------------------------------
 // Integer type aliases
 // -----------------------------------------------------------------------------
@@ -46,11 +34,242 @@ pub const Display = X.Display;
 
 pub const FcPattern = X.FcPattern;
 pub const Visual = X.Visual;
+
+/// When you receive this event, the structure members are set as follows.
+///
+/// The type member is set to the event type constant name that uniquely
+/// identifies it. For example, when the X server reports a GraphicsExpose
+/// event to a client application, it sends an XGraphicsExposeEvent structure
+/// with the type member set to GraphicsExpose. The display member is set to a
+/// pointer to the display the event was read on. The send_event member is set
+/// to True if the event came from a SendEvent protocol request. The serial
+/// member is set from the serial number reported in the protocol but expanded
+/// from the 16-bit least-significant bits to a full 32-bit value. The window
+/// member is set to the window that is most useful to toolkit dispatchers.
+///
+/// The event member is set either to the reconfigured window or to its parent,
+/// depending on whether StructureNotify or SubstructureNotify was selected.
+/// The window member is set to the window whose size, position, border, and/or
+/// stacking order was changed.
+///
+/// The x and y members are set to the coordinates relative to the parent
+/// window's origin and indicate the position of the upper-left outside corner
+/// of the window. The width and height members are set to the inside size of
+/// the window, not including the border. The border_width member is set to the
+/// width of the window's border, in pixels.
+///
+/// The above member is set to the sibling window and is used for stacking
+/// operations. If the X server sets this member to None, the window whose
+/// state was changed is on the bottom of the stack with respect to sibling
+/// windows. However, if this member is set to a sibling window, the window
+/// whose state was changed is placed on top of this sibling window.
+///
+/// The override_redirect member is set to the override-redirect attribute of
+/// the window. Window manager clients normally should ignore this window if
+/// the override_redirect member is True.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XConfigureEvent.3.xhtml
+pub const XConfigureEvent = X.XConfigureEvent;
+
+/// When you receive this event, the structure members are set as follows.
+///
+/// The serial member is the number of requests, starting from one, sent over
+/// the network connection since it was opened. It is the number that was the
+/// value of NextRequest immediately before the failing call was made. The
+/// request_code member is a protocol request of the procedure that failed, as
+/// defined in <X11/Xproto.h>.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XErrorEvent.3.xhtml
 pub const XErrorEvent = X.XErrorEvent;
+
+/// An XEvent structure's first entry always is the type member, which is set
+/// to the event type. The second member always is the serial number of the
+/// protocol request that generated the event. The third member always is
+/// send_event, which is a Bool that indicates if the event was sent by a
+/// different client. The fourth member always is a display, which is the
+/// display that the event was read from. Except for keymap events, the fifth
+/// member always is a window, which has been carefully selected to be useful
+/// to toolkit dispatchers. To avoid breaking toolkits, the order of these
+/// first five entries is not to change. Most events also contain a time
+/// member, which is the time at which an event occurred. In addition, a
+/// pointer to the generic event must be cast before it is used to access any
+/// other information in the structure.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XAnyEvent.3.xhtml
 pub const XEvent = X.XEvent;
+
+/// The XModifierKeymap structure contains:
+///
+/// ```c
+/// typedef struct {
+///     int max_keypermod; /* This server's max number of keys per modifier */
+///     KeyCode *modifiermap; /* An 8 by max_keypermod array of the modifiers */
+/// } XModifierKeymap;
+/// ```
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XChangeKeyboardMapping.3.xhtml
+pub const XModifierKeymap = X.XModifierKeymap;
+
+/// The XSetWindowAttributes structure contains:
+///
+/// ```c
+/// typedef struct {
+///     Pixmap background_pixmap;/* background, None, or ParentRelative */
+///     unsigned long background_pixel;/* background pixel */
+///     Pixmap border_pixmap; /* border of the window or CopyFromParent */
+///     unsigned long border_pixel;/* border pixel value */
+///     int bit_gravity; /* one of bit gravity values */
+///     int win_gravity; /* one of the window gravity values */
+///     int backing_store; /* NotUseful, WhenMapped, Always */
+///     unsigned long backing_planes;/* planes to be preserved if possible */
+///     unsigned long backing_pixel;/* value to use in restoring planes */
+///     Bool save_under; /* should bits under be saved? (popups) */
+///     long event_mask; /* set of events that should be saved */
+///     long do_not_propagate_mask;/* set of events that should not propagate */
+///     Bool override_redirect; /* boolean value for override_redirect */
+///     Colormap colormap; /* color map to be associated with window */
+///     Cursor cursor; /* cursor to be displayed (or None) */
+/// } XSetWindowAttributes;
+/// ```
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XCreateWindow.3.xhtml
 pub const XSetWindowAttributes = X.XSetWindowAttributes;
+
+/// The XTextProperty structure contains:
+/// ```c
+/// typedef struct {
+///     unsigned char *value; /* property data */
+///     Atom encoding;        /* type of property */
+///     int format;           /* 8, 16, or 32 */
+///     unsigned long nitems; /* number of items in value */
+/// } XTextProperty;
+/// ```
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XStringListToTextProperty.3.xhtml
+pub const XTextProperty = X.XTextProperty;
+
+/// The XWindowAttributes structure contains:
+///
+/// ```c
+/// typedef struct {
+///     int x, y; /* location of window */
+///     int width, height; /* width and height of window */
+///     int border_width; /* border width of window */
+///     int depth; /* depth of window */
+///     Visual *visual; /* the associated visual structure */
+///     Window root; /* root of screen containing window */
+///     int class; /* InputOutput, InputOnly*/
+///     int bit_gravity; /* one of the bit gravity values */
+///     int win_gravity; /* one of the window gravity values */
+///     int backing_store; /* NotUseful, WhenMapped, Always */
+///     unsigned long backing_planes;/* planes to be preserved if possible */
+///     unsigned long backing_pixel;/* value to be used when restoring planes */
+///     Bool save_under; /* boolean, should bits under be saved? */
+///     Colormap colormap; /* color map to be associated with window */
+///     Bool map_installed; /* boolean, is color map currently installed*/
+///     int map_state; /* IsUnmapped, IsUnviewable, IsViewable */
+///     long all_event_masks; /* set of events all people have interest in*/
+///     long your_event_mask; /* my event mask */
+///     long do_not_propagate_mask;/* set of events that should not propagate */
+///     Bool override_redirect; /* boolean value for override-redirect */
+///     Screen *screen; /* back pointer to correct screen */
+/// } XWindowAttributes;
+/// ```
+///
+/// The x and y members are set to the upper-left outer corner relative to the
+/// parent window's origin. The width and height members are set to the inside
+/// size of the window, not including the border. The border_width member is
+/// set to the window's border width in pixels. The depth member is set to the
+/// depth of the window (that is, bits per pixel for the object). The visual
+/// member is a pointer to the screen's associated Visual structure. The root
+/// member is set to the root window of the screen containing the window. The
+/// class member is set to the window's class and can be either InputOutput or
+/// InputOnly.
+///
+/// For additional information on gravity, see section 3.3.
+///
+/// The backing_store member is set to indicate how the X server should
+/// maintain the contents of a window and can be WhenMapped, Always, or
+/// NotUseful. The backing_planes member is set to indicate (with bits set to
+/// 1) which bit planes of the window hold dynamic data that must be preserved
+/// in backing_stores and during save_unders. The backing_pixel member is set
+/// to indicate what values to use for planes not set in backing_planes.
+///
+/// The save_under member is set to True or False. The colormap member is set
+/// to the colormap for the specified window and can be a colormap ID or None.
+/// The map_installed member is set to indicate whether the colormap is
+/// currently installed and can be True or False. The map_state member is set
+/// to indicate the state of the window and can be IsUnmapped, IsUnviewable, or
+/// IsViewable. IsUnviewable is used if the window is mapped but some ancestor
+/// is unmapped.
+///
+/// The all_event_masks member is set to the bitwise inclusive OR of all event
+/// masks selected on the window by all clients. The your_event_mask member is
+/// set to the bitwise inclusive OR of all event masks selected by the querying
+/// client. The do_not_propagate_mask member is set to the bitwise inclusive OR
+/// of the set of events that should not propagate.
+///
+/// The override_redirect member is set to indicate whether this window
+/// overrides structure control facilities and can be True or False. Window
+/// manager clients should ignore the window if this member is True.
+///
+/// The screen member is set to a screen pointer that gives you a back pointer
+/// to the correct screen. This makes it easier to obtain the screen
+/// information without having to loop over the root window fields to see which
+/// field matches.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XGetWindowAttributes.3.xhtml
 pub const XWindowAttributes = X.XWindowAttributes;
+
+/// An XftColor object permits text and other items to be rendered in a
+/// particular color (or the closest approximation offered by the X visual in
+/// use). The XRenderColor data type is defined by the X Render Extension
+/// library.
+///
+/// XftColorAllocName() and XftColorAllocValue() request a color allocation
+/// from the X server (if necessary) and initialize the members of XftColor.
+/// XftColorFree() instructs the X server to free the color currently allocated
+/// for an XftColor.
+///
+/// One an XftColor has been initialized, XftDrawSrcPicture(), XftDrawGlyphs(),
+/// the XftDrawString*() family, XftDrawCharSpec(), XftDrawCharFontSpec(),
+/// XftDrawGlyphSpec(), XftDrawGlyphFontSpec(), and XftDrawRect() may be used
+/// to draw various objects using it.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/Xft.3.xhtml
 pub const XftColor = X.XftColor;
+
+/// An XftFont is the primary data structure of interest to programmers using
+/// Xft; it contains general font metrics and pointers to the Fontconfig
+/// character set and pattern associated with the font. The FcCharSet and
+/// FcPattern data types are defined by the Fontconfig library.
+///
+/// XftFonts are populated with any of XftFontOpen(), XftFontOpenName(),
+/// XftFontOpenXlfd(), XftFontOpenInfo(), or XftFontOpenPattern().
+/// XftFontCopy() is used to duplicate XftFonts, and XftFontClose() is used to
+/// mark an XftFont as unused. XftFonts are internally allocated,
+/// reference-counted, and freed by Xft; the programmer does not ordinarily
+/// need to allocate or free storage for them.
+///
+/// XftDrawGlyphs(), the XftDrawString*() family, XftDrawCharSpec(), and
+/// XftDrawGlyphSpec() use XftFonts to render text to an XftDraw object, which
+/// may correspond to either a core X drawable or an X Rendering Extension
+/// drawable.
+///
+/// XftGlyphExtents() and the XftTextExtents*() family are used to determine
+/// the extents (maximum dimensions) of an XftFont.
+///
+/// An XftFont's glyph or character coverage can be determined with
+/// XftFontCheckGlyph() or XftCharExists(). XftCharIndex() returns the
+/// XftFont-specific character index corresponding to a given Unicode
+/// codepoint.
+///
+/// XftGlyphRender(), XftGlyphSpecRender(), XftCharSpecRender(), and the
+/// XftTextRender*() family use XftFonts to draw into X Rendering Extension
+/// Picture structures. Note: XftDrawGlyphs(), the XftDrawString*() family,
+/// XftDrawCharSpec(), and XftDrawGlyphSpec() provide a means of rendering
+/// fonts that is independent of the availability of the X Rendering Extension
+/// on the X server.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/Xft.3.xhtml
 pub const XftFont = X.XftFont;
 
 // -----------------------------------------------------------------------------
@@ -196,6 +415,13 @@ pub inline fn XCreateWindow(
 pub inline fn XFree(ptr: ?*anyopaque) void {
     // The meaning of the return value was not specified in documentation.
     _ = X.XFree(ptr);
+}
+
+/// The XFreeModifiermap function frees the specified XModifierKeymap structure.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XChangeKeyboardMapping.3.xhtml
+pub inline fn XFreeModifiermap(modmap: [*c]X.XModifierKeymap) void {
+    X.XFreeModifiermap(modmap);
 }
 
 /// The XFreeStringList function releases memory allocated by
@@ -587,6 +813,9 @@ pub inline fn XOpenDisplay(display_name: [*c]const u8) ?*Display {
     return X.XOpenDisplay(display_name);
 }
 
+/// Custom struct for dealing with XQueryPointer.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XQueryPointer.3.xhtml
 pub const XQueryPointerResult = struct {
     /// The root window the pointer is logically on.
     root_window: Window,
@@ -803,7 +1032,6 @@ pub const CurrentTime = X.CurrentTime;
 pub const ClientMessage = X.ClientMessage;
 pub const NoEventMask = X.NoEventMask;
 pub const ConfigureNotify = X.ConfigureNotify;
-pub const XConfigureEvent = X.XConfigureEvent;
 
 pub const None = X.None;
 

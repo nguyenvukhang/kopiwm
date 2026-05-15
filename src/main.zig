@@ -1856,9 +1856,10 @@ pub fn main() !void {
     try run(allocator);
 }
 
+const X_TUTORIAL_SOURCE: []const u8 = @embedFile("x_tutorial.zig");
+
 test "All inline functions for docs" {
-    const source: []const u8 = @embedFile("x_tutorial.zig");
-    var iter = std.mem.splitScalar(u8, source, '\n');
+    var iter = std.mem.splitScalar(u8, X_TUTORIAL_SOURCE, '\n');
     while (iter.next()) |line| {
         // We don't want any non-inlined functions because they really are just
         // macros of X11 library functions that contain docs.
@@ -1868,16 +1869,41 @@ test "All inline functions for docs" {
 }
 
 test "All inline functions have sources" {
-    const source: []const u8 = @embedFile("x_tutorial.zig");
-    var iter = std.mem.splitScalar(u8, source, '\n');
+    var iter = std.mem.splitScalar(u8, X_TUTORIAL_SOURCE, '\n');
     const n = 2;
     var prev: [n]?[]const u8 = undefined;
     while (iter.next()) |line| {
         if (std.mem.startsWith(u8, line, "pub inline fn")) {
+            log.info("line: {s}", .{line});
             try std.testing.expectStringStartsWith(prev[1].?, "///");
             try std.testing.expectStringStartsWith(prev[0].?, "/// source: https://x.org/");
         }
         @memmove(prev[1..n], prev[0 .. n - 1]);
         prev[0] = line;
     }
+}
+
+test "All struct docs have sources" {
+    var iter = std.mem.splitScalar(u8, X_TUTORIAL_SOURCE, '\n');
+    const n = 2;
+    var prev: [n]?[]const u8 = undefined;
+    while (iter.next()) |line| {
+        const select = std.mem.startsWith(u8, line, "pub const X") and
+            std.mem.containsAtLeast(u8, line, 1, "= X.");
+        if (select) {
+            log.info("line: {s}", .{line});
+            try std.testing.expectStringStartsWith(prev[1].?, "///");
+            try std.testing.expectStringStartsWith(prev[0].?, "/// source: https://x.org/");
+        }
+        @memmove(prev[1..n], prev[0 .. n - 1]);
+        prev[0] = line;
+    }
+}
+
+test "Don't use weird quotes" {
+    try std.testing.expect(!std.mem.containsAtLeast(u8, X_TUTORIAL_SOURCE, 1, "“"));
+    try std.testing.expect(!std.mem.containsAtLeast(u8, X_TUTORIAL_SOURCE, 1, "”"));
+    try std.testing.expect(!std.mem.containsAtLeast(u8, X_TUTORIAL_SOURCE, 1, "‘"));
+    try std.testing.expect(!std.mem.containsAtLeast(u8, X_TUTORIAL_SOURCE, 1, "’"));
+    try std.testing.expect(!std.mem.containsAtLeast(u8, X_TUTORIAL_SOURCE, 1, "’"));
 }
