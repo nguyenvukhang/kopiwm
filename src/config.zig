@@ -1,5 +1,8 @@
 const std = @import("std");
 const X = @import("c_lib.zig").X;
+const Xt = @import("x_tutorial.zig");
+const k = @import("x_tutorial.zig").keys;
+const m = @import("x_tutorial.zig").masks;
 const lt = @import("layout.zig");
 const Layout = @import("layout.zig").Layout;
 const SchemeState = @import("enums.zig").SchemeState;
@@ -20,18 +23,11 @@ const defaults = @import("config_defaults.zig");
 // those functions.
 const USE_DEFAULT_CONFIG = false;
 
-pub const BUTTONMASK = X.ButtonPressMask | X.ButtonReleaseMask;
-pub const MOUSEMASK = BUTTONMASK | X.PointerMotionMask;
+pub const BUTTONMASK = m.ButtonPressMask | m.ButtonReleaseMask;
+pub const MOUSEMASK = BUTTONMASK | m.PointerMotionMask;
 
 // AwesomeWM provides a very helpful graphic here:
 // https://awesomewm.org/doc/api/libraries/mouse.html
-
-/// Left click.
-const Button1 = X.Button1;
-/// Middle click.
-const Button2 = X.Button2;
-/// Right click.
-const Button3 = X.Button3;
 
 /// Number of pixels to snap during movement.
 pub const snap: i32 = 32;
@@ -41,11 +37,7 @@ pub const borderpx: u32 = 1;
 
 pub const Tag = struct {
     text: []const u8,
-    key: X.KeySym,
-
-    fn init(name: []const u8, key: X.KeySym) @This() {
-        return .{ .text = name, .key = key };
-    }
+    key: Xt.KeySym,
 };
 
 /// The tags. These will determine which clients are visible on the screen.
@@ -57,11 +49,11 @@ pub const Tag = struct {
 /// 0b00100 <=> tags[2]
 /// ```
 pub const tags = [_]Tag{
-    .init("1", X.XK_1),
-    .init("2", X.XK_2),
-    .init("3", X.XK_3),
-    .init("4", X.XK_4),
-    .init("T", X.XK_0),
+    .{ .text = "1", .key = k.XK_1 },
+    .{ .text = "2", .key = k.XK_2 },
+    .{ .text = "3", .key = k.XK_3 },
+    .{ .text = "4", .key = k.XK_4 },
+    .{ .text = "T", .key = k.XK_0 },
 };
 
 // Amazingly, Zig throws a COMPILE ERROR if `tags.len` is >= 32. This is because
@@ -78,7 +70,7 @@ pub inline fn tagMask(tag_index: usize) u32 {
     return @as(u32, 1) << @intCast(tag_index);
 }
 
-pub const fonts = [_][]const u8{"monospace:size=10"};
+pub const fonts = [_][]const u8{"sans:size=10.5"};
 
 /// Factor of the master area size [0.05...0.95].
 pub const mfact: f32 = 0.5;
@@ -116,7 +108,7 @@ fn initColors() EnumArray(SchemeState, Scheme([]const u8)) {
     var c: EnumArray(SchemeState, Scheme([]const u8)) = undefined;
     // zig fmt: off
     c.set(.Normal,   .{ .fg = col_gray3, .bg = col_gray1,      .border = col_gray2      });
-    c.set(.Selected, .{ .fg = col_gray1, .bg = col_accent_400, .border = col_accent_900 });
+    c.set(.Selected, .{ .fg = col_gray1, .bg = col_accent_400, .border = col_accent_400 });
     c.set(.Bar,      .{ .fg = col_gray3, .bg = col_gray2,      .border = col_gray2      });
     // zig fmt: on
     return c;
@@ -124,30 +116,30 @@ fn initColors() EnumArray(SchemeState, Scheme([]const u8)) {
 
 pub const colors = initColors();
 
-const AltMask = X.Mod1Mask;
-const ControlMask = X.ControlMask;
-const ShiftMask = X.ShiftMask;
-const HyperMask = AltMask | ControlMask | ShiftMask | X.Mod4Mask;
+const AltMask = m.Mod1Mask;
+const ControlMask = m.ControlMask;
+const ShiftMask = m.ShiftMask;
+const HyperMask = AltMask | ControlMask | ShiftMask | m.Mod4Mask;
 
-const MODKEY = X.Mod4Mask;
+const MODKEY = m.Mod4Mask;
 const launchcmd: [*:null]const ?[*:0]const u8 = &.{ "rofi", "-show", "run", "-matching", "fuzzy", "-sort", "-sorting-method", "fzf" };
-const termcmd: [*:null]const ?[*:0]const u8 = &.{"xterm"};
+const termcmd: [*:null]const ?[*:0]const u8 = &.{"kitty"};
 
 // zig fmt: off
 const my_keys = [_]Key{
     // TODO: test to see if we DON'T specify null at the end of an args array,
     // will there still be a null there thanks to Zig?
-    .init(MODKEY,                       X.XK_space,  .f(M.spawn,          .{ .args = launchcmd  })),
-    .init(MODKEY,                       X.XK_Return, .f(M.spawn,          .{ .args = termcmd    })),
-    .init(MODKEY,                       X.XK_j,      .f(M.focusStack,     .{ .d = .Next         })),
-    .init(MODKEY,                       X.XK_k,      .f(M.focusStack,     .{ .d = .Prev         })),
-    .init(MODKEY|ControlMask|ShiftMask, X.XK_equal,  .f(M.setMFact,       .{ .f =  0.04         })),
-    .init(MODKEY|ControlMask|ShiftMask, X.XK_minus,  .f(M.setMFact,       .{ .f = -0.04         })),
-    .init(MODKEY,                       X.XK_Return, .f(M.zoom,           undefined              )),
-    .init(MODKEY,                       X.XK_Tab,    .f(M.focusStack,     .{ .d = .Next         })),
-    .init(MODKEY,                       X.XK_q,      .f(M.killClient,     undefined              )),
-    .init(MODKEY|ControlMask,           X.XK_f,      .f(M.toggleFloating, undefined              )),
-    .init(HyperMask,                    X.XK_q,      .f(M.quit,           undefined              )),
+    .init(MODKEY,                       k.XK_space,  .f(M.spawn,          .{ .args = launchcmd  })),
+    .init(MODKEY,                       k.XK_Return, .f(M.spawn,          .{ .args = termcmd    })),
+    .init(MODKEY,                       k.XK_j,      .f(M.focusStack,     .{ .d = .Next         })),
+    .init(MODKEY,                       k.XK_k,      .f(M.focusStack,     .{ .d = .Prev         })),
+    .init(MODKEY|ControlMask|ShiftMask, k.XK_equal,  .f(M.setMFact,       .{ .f =  0.04         })),
+    .init(MODKEY|ControlMask|ShiftMask, k.XK_minus,  .f(M.setMFact,       .{ .f = -0.04         })),
+    .init(MODKEY,                       k.XK_Return, .f(M.zoom,           undefined              )),
+    .init(MODKEY,                       k.XK_Tab,    .f(M.focusStack,     .{ .d = .Next         })),
+    .init(MODKEY,                       k.XK_q,      .f(M.killClient,     undefined              )),
+    .init(MODKEY|ControlMask,           k.XK_f,      .f(M.toggleFloating, undefined              )),
+    .init(HyperMask,                    k.XK_q,      .f(M.quit,           undefined              )),
 };
 // zig fmt: on
 
@@ -171,9 +163,9 @@ pub fn initKeys(
         const j = base.len + i * tag_keys.len;
         const tag_mask = @as(u32, 1) << @intCast(i);
         @memcpy(arr[j .. j + T], tag_keys);
-        for (j..j + T) |k| {
-            arr[k].sym = tags[i].key;
-            arr[k].lf.arg = .{ .ui = tag_mask };
+        for (j..j + T) |l| {
+            arr[l].sym = tags[i].key;
+            arr[l].lf.arg = .{ .ui = tag_mask };
         }
     }
     return arr;
@@ -185,12 +177,18 @@ pub const keys = initKeys(
 
 // zig fmt: off
 pub const my_buttons = [_]Button{
-.init(.ClientWin,    MODKEY,   Button1,   .F( M.moveMouse,        undefined)),
-.init(.ClientWin,    MODKEY,   Button3,   .F( M.resizeMouse,      undefined)),
-.init(.TagBar,       0,        Button1,   .f( M.view,             undefined)),
-.init(.TagBar,       0,        Button3,   .f( M.toggleView,       undefined)),
+.init(.ClientWin,    MODKEY,   k.Button1,   .F( M.moveMouse,        undefined)),
+.init(.ClientWin,    MODKEY,   k.Button3,   .F( M.resizeMouse,      undefined)),
+.init(.TagBar,       0,        k.Button1,   .f( M.view,             undefined)),
+.init(.TagBar,       0,        k.Button3,   .f( M.toggleView,       undefined)),
 };
 // zig fmt: on
 pub const buttons: []const Button = if (USE_DEFAULT_CONFIG) &defaults.buttons else &my_buttons;
 
-pub const rules = [_]Rule{};
+// zig fmt: off
+pub const rules = [_]Rule{
+    Rule{ .class = "firefox",  .tags = tagMask(1), .is_floating = false },
+    Rule{ .class = "discord",  .tags = tagMask(2), .is_floating = false },
+    Rule{ .class = "Telegram", .tags = tagMask(2), .is_floating = false },
+};
+// zig fmt: on

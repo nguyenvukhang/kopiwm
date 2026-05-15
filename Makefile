@@ -4,7 +4,13 @@ MAKEFILE_DIR := $(realpath $(dir $(MAKEFILE_PATH)))
 ZIG_OUT := $(MAKEFILE_DIR)/zig-out
 LOG_DIR := $(ZIG_OUT)
 
-quick: quick-make-command
+quick: x quick-make-command
+
+x:
+	python3 $(MAKEFILE_DIR)/scripts/tutorial.py
+
+x-rg:
+	rg 'X\.' --glob '!*x_tutorial*' --stats
 
 build:
 	zig build

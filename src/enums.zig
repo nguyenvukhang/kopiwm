@@ -1,36 +1,9 @@
-const X = @import("c_lib.zig").X;
-const App = @import("app.zig").App;
+const Xt = @import("x_tutorial.zig");
+const App = @import("app.zig");
 const Layout = @import("layout.zig").Layout;
 const DwmError = @import("errors.zig").DwmError;
 const LazyFn = @import("lazy_fn.zig").LazyFn;
-const XEvent = X.XEvent;
 const Allocator = @import("std").mem.Allocator;
-
-/// Count the number of enum variants that exist.
-pub fn N(comptime T: type) usize {
-    return @import("std").meta.fields(T).len;
-}
-
-/// (dwm) WM* atoms.
-pub const WM = enum(u8) {
-    Protocols,
-    Delete,
-    State,
-    TakeFocus,
-};
-
-/// (dwm) Net* atoms.
-pub const Net = enum(u8) {
-    Supported,
-    WMName,
-    WMState,
-    WMCheck,
-    WMFullscreen,
-    ActiveWindow,
-    WMWindowType,
-    WMWindowTypeDialog,
-    ClientList,
-};
 
 /// (dwm) Clk* enums.
 pub const Clk = enum {
@@ -70,10 +43,10 @@ pub const Key = struct {
     /// Modifier keys, in any.
     mod: c_uint,
     /// X keysym.
-    sym: X.KeySym,
+    sym: Xt.KeySym,
     lf: LazyFn,
 
-    pub fn init(mod: c_uint, sym: X.KeySym, lf: LazyFn) @This() {
+    pub fn init(mod: c_uint, sym: Xt.KeySym, lf: LazyFn) @This() {
         return .{ .mod = mod, .sym = sym, .lf = lf };
     }
 };
@@ -95,8 +68,8 @@ pub const BarPosition = enum { top, bottom };
 
 pub const Rule = struct {
     class: ?[]const u8,
-    instance: ?[]const u8,
-    title: ?[]const u8,
+    instance: ?[]const u8 = null,
+    title: ?[]const u8 = null,
     /// Active tags bitmask.
     tags: u32,
     is_floating: bool,
@@ -104,23 +77,34 @@ pub const Rule = struct {
 
 pub const Size = struct {
     const Self = @This();
-
     /// Width.
     w: u32,
     /// Height.
     h: u32,
-
     pub const zero: Self = .{ .w = 0, .h = 0 };
-
     pub inline fn eq(lhs: *const Self, rhs: *const Self) bool {
         return lhs.w == rhs.w and lhs.h == rhs.h;
     }
 };
 
+pub fn Coordinates(comptime T: type) type {
+    return struct {
+        const Self = @This();
+        /// x-coordinate.
+        x: T,
+        /// y-coordinate.
+        y: T,
+        pub const zero: Self = .{ .x = 0, .y = 0 };
+        pub inline fn eq(lhs: *const Self, rhs: *const Self) bool {
+            return lhs.x == rhs.x and lhs.y == rhs.y;
+        }
+    };
+}
+
 pub const HandlerFnTag = enum { NoAllocE, AllocE, NoAlloc, Alloc };
 pub const HandlerFn = union(HandlerFnTag) {
-    NoAllocE: *const fn (*XEvent) DwmError!void,
-    AllocE: *const fn (Allocator, *XEvent) DwmError!void,
-    NoAlloc: *const fn (*XEvent) void,
-    Alloc: *const fn (Allocator, *XEvent) void,
+    NoAllocE: *const fn (*Xt.XEvent) DwmError!void,
+    AllocE: *const fn (Allocator, *Xt.XEvent) DwmError!void,
+    NoAlloc: *const fn (*Xt.XEvent) void,
+    Alloc: *const fn (Allocator, *Xt.XEvent) void,
 };

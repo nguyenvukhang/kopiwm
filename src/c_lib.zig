@@ -9,10 +9,6 @@ pub const X = @cImport({
     @cInclude("X11/XKBlib.h");
 });
 
-pub const fc = @cImport({
-    @cInclude("fontconfig/fontconfig.h");
-});
-
 pub const C = @cImport({
     @cInclude("locale.h");
     @cInclude("signal.h");

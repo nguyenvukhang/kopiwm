@@ -2,31 +2,30 @@ const std = @import("std");
 const mem = std.mem;
 const meta = std.meta;
 const log = std.log;
-const dwmz = @import("app.zig");
+const App = @import("app.zig");
 const drw = @import("drw.zig").drw;
 const cfg = @import("config.zig");
 const Allocator = std.mem.Allocator;
 const Monitor = @import("monitor.zig").Monitor;
 const Client = @import("client.zig").Client;
-const WM = @import("enums.zig").WM;
 const Direction = @import("lazy_fn.zig").Direction;
 const Layout = @import("layout.zig").Layout;
 const Clk = @import("enums.zig").Clk;
 const Arg = @import("lazy_fn.zig").Arg;
-const Net = @import("enums.zig").Net;
 const Rect = @import("rect.zig").Rect;
 const SchemeState = @import("enums.zig").SchemeState;
 const ColorScheme = @import("drw.zig").ColorScheme;
 const N = @import("enums.zig").N;
-const ForkError = std.posix.ForkError;
 const MOUSEMASK = @import("config.zig").MOUSEMASK;
 const DwmError = @import("errors.zig").DwmError;
 const HandlerFn = @import("enums.zig").HandlerFn;
+const atoms = @import("atoms.zig");
+const Xt = @import("x_tutorial.zig");
 
 const NAME = @import("build_opts").name;
 const VERSION = @import("build_opts").version;
 
-const line = "----------------------------------------------------------------------";
+const LINE = "----------------------------------------------------------------------";
 
 // This exists because of config callbacks.
 var global_allocator: Allocator = undefined;
@@ -34,32 +33,12 @@ var global_allocator: Allocator = undefined;
 // X11 stuff.
 const X = @import("c_lib.zig").X;
 const C = @import("c_lib.zig").C;
-const Window = X.Window;
-const Display = X.Display;
-const XErrorEvent = X.XErrorEvent;
-const XEvent = X.XEvent;
 
-var z: dwmz.App = .init();
+var z: App = .init();
 
 pub const std_options: std.Options = .{
     .log_level = .debug,
     .logFn = @import("logger.zig").customLog,
-};
-
-pub const QuickWrite = struct {
-    const Self = @This();
-    const Writer = std.Io.Writer;
-
-    writer: *Writer,
-
-    fn print(self: *Self, comptime fmt: []const u8, args: anytype) Writer.Error!void {
-        try self.writer.print(fmt, args);
-        try self.writer.flush();
-    }
-
-    pub fn init(writer: *Writer) Self {
-        return .{ .writer = writer };
-    }
 };
 
 /// (dwm) CLEANMASK
@@ -68,12 +47,12 @@ fn CLEANMASK(mask: u32) u32 {
         (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod2Mask | X.Mod3Mask | X.Mod4Mask | X.Mod5Mask);
 }
 
-fn xerrordummy(_: ?*Display, _: [*c]XErrorEvent) callconv(.c) c_int {
+fn xerrordummy(_: ?*Xt.Display, _: [*c]Xt.XErrorEvent) callconv(.c) c_int {
     return 0;
 }
 
 /// (dwm) xerrorstart
-fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
+fn xerrorstart(_dpy: ?*Xt.Display, _event: [*c]Xt.XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
     _ = _event;
     std.debug.print(NAME ++ ": another window manager is already running\n", .{});
@@ -81,10 +60,10 @@ fn xerrorstart(_dpy: ?*Display, _event: [*c]XErrorEvent) callconv(.c) c_int {
 }
 
 /// (dwm) xerror
-fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
+fn xerror(_dpy: ?*Xt.Display, err_event: [*c]Xt.XErrorEvent) callconv(.c) c_int {
     _ = _dpy;
     if (err_event == null) {
-        std.debug.print(NAME ++ ": called xerror with null XErrorEvent value\n", .{});
+        std.debug.print(NAME ++ ": called xerror with null Xt.XErrorEvent value\n", .{});
         if (xerrorlib) |f| {
             return f(z.dpy, err_event);
         }
@@ -94,14 +73,14 @@ fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     const rc = e.request_code;
     const ec = e.error_code;
     if (ec == X.BadWindow or
-        (rc == X.X_SetInputFocus and ec == X.BadMatch) or
-        (rc == X.X_PolyText8 and ec == X.BadDrawable) or
-        (rc == X.X_PolyFillRectangle and ec == X.BadDrawable) or
-        (rc == X.X_PolySegment and ec == X.BadDrawable) or
-        (rc == X.X_ConfigureWindow and ec == X.BadMatch) or
-        (rc == X.X_GrabButton and ec == X.BadAccess) or
-        (rc == X.X_GrabKey and ec == X.BadAccess) or
-        (rc == X.X_CopyArea and ec == X.BadDrawable))
+        (rc == X.X_SetInputFocus and ec == Xt.err.BadMatch) or
+        (rc == X.X_PolyText8 and ec == Xt.err.BadDrawable) or
+        (rc == X.X_PolyFillRectangle and ec == Xt.err.BadDrawable) or
+        (rc == X.X_PolySegment and ec == Xt.err.BadDrawable) or
+        (rc == X.X_ConfigureWindow and ec == Xt.err.BadMatch) or
+        (rc == X.X_GrabButton and ec == Xt.err.BadAccess) or
+        (rc == X.X_GrabKey and ec == Xt.err.BadAccess) or
+        (rc == X.X_CopyArea and ec == Xt.err.BadDrawable))
     {
         return 0;
     }
@@ -112,16 +91,16 @@ fn xerror(_dpy: ?*Display, err_event: [*c]XErrorEvent) callconv(.c) c_int {
     @panic("xerror called but xerrorlib not defined yet.");
 }
 
-var xerrorlib: ?*const fn (?*Display, [*c]XErrorEvent) callconv(.c) c_int = null;
+var xerrorlib: ?*const fn (?*Xt.Display, [*c]Xt.XErrorEvent) callconv(.c) c_int = null;
 
 /// (dwm) checkotherwm
 fn check_other_wm() void {
     xerrorlib = X.XSetErrorHandler(xerrorstart);
     // this causes an error if some other window manager is running
     _ = X.XSelectInput(z.dpy, X.DefaultRootWindow(z.dpy), X.SubstructureRedirectMask);
-    _ = X.XSync(z.dpy, X.False);
+    Xt.XSync(z.dpy, false);
     _ = X.XSetErrorHandler(xerror);
-    _ = X.XSync(z.dpy, X.False);
+    Xt.XSync(z.dpy, false);
 }
 
 /// (dwm) dirtomon
@@ -234,7 +213,7 @@ fn intersect(x: i32, y: i32, w: i32, h: i32, m: *Monitor) i32 {
 /// (dwm) wintoclient
 /// Searches all the monitors and all of their clients for one that matches
 /// the window search query. Returns the first hit.
-fn winToClient(w: Window) ?*Client {
+fn winToClient(w: Xt.Window) ?*Client {
     var m_opt = z.mons;
     var c_opt: ?*Client = null;
     while (m_opt) |m| : (m_opt = m.next) {
@@ -247,50 +226,39 @@ fn winToClient(w: Window) ?*Client {
 }
 
 /// (dwm) getstate
-fn getState(w: Window) i32 {
-    var real: X.Atom = undefined;
-    var format: c_int = undefined;
-    var n: c_ulong = undefined;
-    var extra: c_ulong = undefined;
-    var property: ?[*]u8 = undefined;
-    var result: i32 = -1;
-
-    const res = X.XGetWindowProperty(
+fn getState(w: Xt.Window) i32 {
+    log.info("::getState", .{});
+    const data = Xt.XGetWindowProperty(
         z.dpy,
         w,
         z.wmatom.get(.State),
-        0, // long_offset: Specifies the offset in the specified property (in 32-bit quantities) where the data is to be retrieved.
-        2, // long_length: Specifies the length in 32-bit multiples of the data to be retrieved.
-        X.False,
+        0,
+        2,
+        false,
         z.wmatom.get(.State),
-        &real,
-        &format,
-        &n,
-        &extra,
-        &property,
-    );
-    if (res != X.Success) return -1;
-    defer _ = X.XFree(property);
-    if (property) |p| {
-        if (n != 0 and format == 32) {
-            result = @as([*]i32, @ptrCast(@alignCast(p)))[0];
-        }
-    }
+    ) orelse return -1;
+    defer data.deinit();
+    if (data.value.len() == 0) return -1;
+    const result: i32 = switch (data.value) {
+        .Fmt8 => |v| @intCast(v[0]),
+        .Fmt16 => |v| @intCast(v[0]),
+        .Fmt32 => |v| @intCast(v[0]),
+    };
+    log.info("::getState returns {d}", .{result});
     return result;
 }
 
 /// (dwm) manage
-fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOfMemory}!void {
+fn manage(allocator: Allocator, w: Xt.Window, wa: *Xt.XWindowAttributes) error{OutOfMemory}!void {
     const c = try allocator.create(Client);
-    c.* = .init(&z, w, wa);
-    var trans: Window = X.None;
-    var wc: X.XWindowChanges = undefined;
+    c.* = .init(&z, w, z.selmon, wa);
+    const transient_window = Xt.XGetTransientForHint(z.dpy, w);
 
     log.info("Created client {*}", .{c});
 
     c.updateTitle();
     blk: {
-        if (X.XGetTransientForHint(z.dpy, w, &trans) != 0) {
+        if (transient_window) |_| {
             // This seems to make very little sense if there is a bijection between
             // clients and windows.
             if (winToClient(w)) |other_client| {
@@ -316,7 +284,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     r.y = @max(r.y, c.mon.w.y); // If client is too far up, truncate it.
     c.bw.set(cfg.borderpx);
 
-    wc.border_width = @intCast(c.bw.now);
+    var wc: X.XWindowChanges = .{ .border_width = @intCast(c.bw.now) };
     _ = X.XConfigureWindow(z.dpy, w, X.CWBorderWidth, &wc);
     _ = X.XSetWindowBorder(z.dpy, w, z.scheme.get(.Normal).border.pixel);
 
@@ -330,7 +298,7 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     grabbuttons(c, false);
 
     if (!c.is_floating.now) {
-        c.is_floating = .init(trans != X.None or c.is_fixed);
+        c.is_floating = .init(transient_window != null or c.is_fixed);
     }
     if (c.is_floating.now) {
         _ = X.XRaiseWindow(z.dpy, c.win);
@@ -338,17 +306,17 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
     c.attach();
     c.attachStack();
 
-    _ = X.XChangeProperty(
+    Xt.XChangeProperty(
         z.dpy,
         z.root,
         z.netatom.get(.ClientList),
         X.XA_WINDOW,
         32,
-        X.PropModeAppend,
+        .Append,
         @ptrCast(&c.win),
         1,
     );
-    _ = X.XMoveResizeWindow(
+    Xt.XMoveResizeWindow(
         z.dpy,
         c.win,
         c.pos.now.x + 2 * @as(i32, @intCast(z.s.w)),
@@ -371,7 +339,6 @@ fn manage(allocator: Allocator, w: Window, wa: *X.XWindowAttributes) error{OutOf
 /// (dwm) unmanage
 /// Destroys a client and removes it from the monitor that owns it.
 fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
-    const m = c.mon;
     c.detach();
     c.detachStack();
 
@@ -381,12 +348,14 @@ fn unmanage(allocator: Allocator, c: *Client, destroyed: bool) void {
         _ = X.XSelectInput(z.dpy, c.win, X.NoEventMask);
         var wc: X.XWindowChanges = .{ .border_width = @intCast(c.bw.prev) };
         _ = X.XConfigureWindow(z.dpy, c.win, X.CWBorderWidth, &wc); // restore border
-        _ = X.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
+        Xt.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
         c.setState(X.WithdrawnState);
-        _ = X.XSync(z.dpy, X.False);
+        Xt.XSync(z.dpy, false);
         _ = X.XSetErrorHandler(xerror);
         _ = X.XUngrabServer(z.dpy);
     }
+    log.warn("Deallocate client: {*} (will arrange monitor {*})", .{ c, c.mon });
+    const m = c.mon; // So that we can still access c.mon after freeing c.
     allocator.destroy(c);
     focus(allocator, null);
     updateClientList();
@@ -404,13 +373,13 @@ fn updateClientList() void {
     while (m_opt) |m| : (m_opt = m.next) {
         c_opt = m.clients;
         while (c_opt) |c| : (c_opt = c.next) {
-            _ = X.XChangeProperty(
+            Xt.XChangeProperty(
                 z.dpy,
                 z.root,
                 z.netatom.get(.ClientList),
                 X.XA_WINDOW,
                 32,
-                X.PropModeAppend,
+                .Append,
                 @ptrCast(&c.win),
                 1,
             );
@@ -451,8 +420,8 @@ fn restack(allocator: Allocator, m: *Monitor) void {
         }
     }
 
-    _ = X.XSync(z.dpy, X.False);
-    var ev: XEvent = undefined;
+    Xt.XSync(z.dpy, false);
+    var ev: Xt.XEvent = undefined;
     while (X.XCheckMaskEvent(z.dpy, X.EnterWindowMask, &ev) != 0) {}
 }
 
@@ -481,7 +450,7 @@ fn arrange(allocator: Allocator, monitor: ?*Monitor) void {
 }
 
 /// (dwm) buttonpress
-fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
+fn buttonPress(allocator: Allocator, e: *Xt.XEvent) DwmError!void {
     const ev: X.XButtonPressedEvent = e.xbutton;
     var click: Clk = .RootWin;
     var arg: Arg = undefined;
@@ -544,7 +513,7 @@ fn buttonPress(allocator: Allocator, e: *XEvent) DwmError!void {
 }
 
 /// (dwm) clientmessage
-fn clientMessage(e: *XEvent) void {
+fn clientMessage(e: *Xt.XEvent) void {
     const ev: X.XClientMessageEvent = e.xclient;
     var c: *Client = winToClient(ev.window) orelse return;
 
@@ -565,7 +534,7 @@ fn clientMessage(e: *XEvent) void {
 }
 
 /// (dwm) configurerequest
-fn configureRequest(e: *XEvent) void {
+fn configureRequest(e: *Xt.XEvent) void {
     const ev = e.xconfigurerequest;
     const vmask = ev.value_mask;
 
@@ -605,7 +574,7 @@ fn configureRequest(e: *XEvent) void {
             }
             if (c.isVisible()) {
                 const r = &c.pos.now;
-                _ = X.XMoveResizeWindow(z.dpy, c.win, r.x, r.y, r.w, r.h);
+                Xt.XMoveResizeWindow(z.dpy, c.win, r.x, r.y, r.w, r.h);
             }
         } else {
             c.configure(z.dpy);
@@ -622,13 +591,11 @@ fn configureRequest(e: *XEvent) void {
         };
         _ = X.XConfigureWindow(z.dpy, ev.window, @intCast(vmask), &wc);
     }
-
-    // if ((c = wintoclient(ev->window))) {
-    _ = X.XSync(z.dpy, X.False);
+    Xt.XSync(z.dpy, false);
 }
 
 /// (dwm) configurenotify
-fn configureNotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
+fn configureNotify(allocator: Allocator, e: *Xt.XEvent) error{OutOfMemory}!void {
     const ev: X.XConfigureEvent = e.xconfigure;
     if (ev.window != z.root) return;
     const dirty = z.s.w != ev.width or z.s.h != ev.height;
@@ -649,7 +616,7 @@ fn configureNotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
                     c.resize(m.m);
                 }
             }
-            _ = X.XMoveResizeWindow(z.dpy, m.barwin, m.w.x, m.w.y, m.w.w, z.bar_height);
+            Xt.XMoveResizeWindow(z.dpy, m.barwin, m.w.x, m.w.y, m.w.w, z.bar_height);
         }
         focus(allocator, null);
         arrange(allocator, null);
@@ -657,13 +624,13 @@ fn configureNotify(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
 }
 
 /// (dwm) destroynotify
-fn destroyNotify(allocator: Allocator, e: *XEvent) void {
+fn destroyNotify(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XDestroyWindowEvent = e.xdestroywindow;
     if (winToClient(ev.window)) |c| unmanage(allocator, c, true);
 }
 
 /// (dwm) enternotify
-fn enterNotify(allocator: Allocator, e: *XEvent) void {
+fn enterNotify(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XCrossingEvent = e.xcrossing;
     if ((ev.mode != X.NotifyNormal or ev.detail == X.NotifyInferior) and ev.window != z.root) {
         return;
@@ -680,7 +647,7 @@ fn enterNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// (dwm) expose
-fn expose(allocator: Allocator, e: *XEvent) void {
+fn expose(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XExposeEvent = e.xexpose;
     if (ev.count == 0) {
         drawbar(allocator, wintomon(ev.window));
@@ -688,7 +655,7 @@ fn expose(allocator: Allocator, e: *XEvent) void {
 }
 
 /// (dwm) focusin
-fn focusIn(e: *XEvent) void {
+fn focusIn(e: *Xt.XEvent) void {
     const ev: X.XFocusChangeEvent = e.xfocus;
     if (z.selmon.sel) |sel| {
         if (ev.window != sel.win) sel.setFocus();
@@ -696,7 +663,7 @@ fn focusIn(e: *XEvent) void {
 }
 
 /// (dwm) keypress
-fn keyPress(e: *XEvent) DwmError!void {
+fn keyPress(e: *Xt.XEvent) DwmError!void {
     const ev: X.XKeyEvent = e.xkey;
     const keysym = X.XkbKeycodeToKeysym(z.dpy, @intCast(ev.keycode), 0, 0);
     for (cfg.keys) |key| {
@@ -710,7 +677,7 @@ fn keyPress(e: *XEvent) DwmError!void {
 }
 
 /// (dwm) mappingnotify
-fn mappingNotify(e: *XEvent) void {
+fn mappingNotify(e: *Xt.XEvent) void {
     const ev: *X.XMappingEvent = &e.xmapping;
     _ = X.XRefreshKeyboardMapping(ev);
     if (ev.request == X.MappingKeyboard) {
@@ -719,9 +686,9 @@ fn mappingNotify(e: *XEvent) void {
 }
 
 /// (dwm) maprequest
-fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
+fn mapRequest(allocator: Allocator, e: *Xt.XEvent) error{OutOfMemory}!void {
     const ev: X.XMapRequestEvent = e.xmaprequest;
-    var wa: X.XWindowAttributes = undefined;
+    var wa: Xt.XWindowAttributes = undefined;
 
     const res = X.XGetWindowAttributes(z.dpy, ev.window, &wa);
     if (res == 0 or wa.override_redirect != 0) return;
@@ -733,7 +700,7 @@ fn mapRequest(allocator: Allocator, e: *XEvent) error{OutOfMemory}!void {
 }
 
 /// (dwm) motionnotify
-fn motionNotify(allocator: Allocator, e: *XEvent) void {
+fn motionNotify(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XMotionEvent = e.xmotion;
     const static = struct {
         var mon: ?*Monitor = null;
@@ -754,7 +721,7 @@ fn motionNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// (dwm) propertynotify
-fn propertyNotify(allocator: Allocator, e: *XEvent) void {
+fn propertyNotify(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XPropertyEvent = e.xproperty;
     if (ev.window == z.root and ev.atom == X.XA_WM_NAME) {
         updateStatus(allocator);
@@ -763,7 +730,7 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
     } else if (winToClient(ev.window)) |c| {
         switch (ev.atom) {
             X.XA_WM_TRANSIENT_FOR => {
-                var trans: Window = undefined;
+                var trans: Xt.Window = undefined;
                 const b = !c.is_floating.now and
                     X.XGetTransientForHint(z.dpy, c.win, &trans) != 0;
                 c.is_floating.set(winToClient(trans) != null);
@@ -789,7 +756,7 @@ fn propertyNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// (dwm) unmapnotify
-fn unmapNotify(allocator: Allocator, e: *XEvent) void {
+fn unmapNotify(allocator: Allocator, e: *Xt.XEvent) void {
     const ev: X.XUnmapEvent = e.xunmap;
     if (winToClient(ev.window)) |c| {
         if (ev.send_event == 0) {
@@ -801,13 +768,13 @@ fn unmapNotify(allocator: Allocator, e: *XEvent) void {
 }
 
 /// For debugging: implement an emergency timeout in case we can't back out.
-const TIMEOUT: bool = true;
+const TIMEOUT: bool = false;
 
 /// (dwm) run
 /// main event loop
 fn run(allocator: Allocator) DwmError!void {
-    _ = X.XSync(z.dpy, X.False);
-    var ev: XEvent = undefined;
+    Xt.XSync(z.dpy, false);
+    var ev: Xt.XEvent = undefined;
     const start = std.time.timestamp();
 
     while (z.running and X.XNextEvent(z.dpy, &ev) == X.Success) {
@@ -816,7 +783,7 @@ fn run(allocator: Allocator) DwmError!void {
     }
 }
 
-inline fn runOne(allocator: Allocator, ev: *XEvent) DwmError!void {
+inline fn runOne(allocator: Allocator, ev: *Xt.XEvent) DwmError!void {
     if (handler[@intCast(ev.type)]) |handler_fn| {
         switch (handler_fn) {
             .NoAllocE => |f| try f(ev),
@@ -857,19 +824,19 @@ fn createHandler() [X.LASTEvent]?HandlerFn {
 
 /// (dwm) scan
 fn scan(allocator: Allocator) error{OutOfMemory}!void {
-    var wa: X.XWindowAttributes = undefined;
+    var wa: Xt.XWindowAttributes = undefined;
     var num: c_uint = undefined;
     var i: c_uint = undefined;
-    var d1: Window = undefined;
-    var d2: Window = undefined;
-    var wins_opt: ?[*]Window = undefined;
+    var d1: Xt.Window = undefined;
+    var d2: Xt.Window = undefined;
+    var wins_opt: ?[*]Xt.Window = undefined;
 
     if (X.XQueryTree(z.dpy, z.root, &d1, &d2, &wins_opt, &num) == 0) {
         return;
     }
     // No need to call XFree because null in Zig means NULL in C.
-    const wins: [*]Window = wins_opt orelse return;
-    defer _ = X.XFree(wins);
+    const wins: [*]Xt.Window = wins_opt orelse return;
+    defer Xt.XFree(wins);
 
     // Note: this section down here in important in deciding which window to be
     // `manage`d. We specifically do NOT want to be `manage`-ing the bar
@@ -918,7 +885,7 @@ pub fn killClient(_: *const Arg) void {
         _ = X.XSetErrorHandler(xerrordummy);
         _ = X.XSetCloseDownMode(z.dpy, X.DestroyAll);
         _ = X.XKillClient(z.dpy, sel.win);
-        _ = X.XSync(z.dpy, X.False);
+        Xt.XSync(z.dpy, false);
         _ = X.XSetErrorHandler(xerror);
         _ = X.XUngrabServer(z.dpy);
     } else {
@@ -957,22 +924,13 @@ pub fn moveMouse(_: *const Arg) DwmError!void {
     const ocx = c.pos.now.x;
     const ocy = c.pos.now.y;
 
-    const grab_res = X.XGrabPointer(
-        z.dpy,
-        z.root,
-        X.False,
-        MOUSEMASK,
-        X.GrabModeAsync,
-        X.GrabModeAsync,
-        X.None,
-        z.cursors.get(.Move),
-        X.CurrentTime,
-    );
-    if (grab_res != X.GrabSuccess) return;
-    var x: c_int = undefined;
-    var y: c_int = undefined;
-    if (!z.getRootPtr(&x, &y)) return;
-    var ev: XEvent = undefined;
+    const grab_ok = Xt.XGrabPointer(z.dpy, z.root, false, MOUSEMASK, .Async, //
+        .Async, Xt.None, z.cursors.get(.Move), X.CurrentTime);
+    if (!grab_ok) return;
+    const coords = z.getRootPtr() orelse return;
+    const x = coords.x;
+    const y = coords.y;
+    var ev: Xt.XEvent = undefined;
     var lasttime: X.Time = 0;
     while (true) {
         _ = X.XMaskEvent(z.dpy, MOUSEMASK | X.ExposureMask | X.SubstructureRedirectMask, &ev);
@@ -1013,7 +971,7 @@ pub fn moveMouse(_: *const Arg) DwmError!void {
             else => {},
         }
     }
-    _ = X.XUngrabPointer(z.dpy, X.CurrentTime);
+    Xt.XUngrabPointer(z.dpy, X.CurrentTime);
     const m_opt = c.pos.now.toMonitor(z.mons);
     if (m_opt != z.selmon) {
         if (m_opt) |m| {
@@ -1064,28 +1022,28 @@ pub fn resizeMouse(_: *const Arg) DwmError!void {
     const ocx = c.pos.now.x;
     const ocy = c.pos.now.y;
 
-    const grab_res = X.XGrabPointer(
+    const grab_ok = Xt.XGrabPointer(
         z.dpy,
         z.root,
-        X.False,
+        false,
         MOUSEMASK,
-        X.GrabModeAsync,
-        X.GrabModeAsync,
-        X.None,
+        .Async,
+        .Async,
+        Xt.None,
         z.cursors.get(.Resize),
-        X.CurrentTime,
+        Xt.CurrentTime,
     );
-    if (grab_res != X.GrabSuccess) return;
+    if (!grab_ok) return;
     if (c.is_floating.now) {
-        _ = X.XWarpPointer(z.dpy, X.None, c.win, 0, 0, 0, 0, //
+        _ = X.XWarpPointer(z.dpy, Xt.None, c.win, 0, 0, 0, 0, //
             @intCast(c.pos.now.w + c.bw.now - 1), //
             @intCast(c.pos.now.h + c.bw.now - 1));
     } else {
-        _ = X.XWarpPointer(z.dpy, X.None, z.selmon.barwin, 0, 0, 0, 0, //
+        _ = X.XWarpPointer(z.dpy, Xt.None, z.selmon.barwin, 0, 0, 0, 0, //
             @intFromFloat(z.selmon.mfact * @as(f32, @floatFromInt(z.selmon.m.w))), //
             @intCast(@divFloor(z.selmon.m.h, 2)));
     }
-    var ev: XEvent = undefined;
+    var ev: Xt.XEvent = undefined;
     var lasttime: X.Time = 0;
     while (true) {
         _ = X.XMaskEvent(z.dpy, MOUSEMASK | X.ExposureMask | X.SubstructureRedirectMask, &ev);
@@ -1131,11 +1089,11 @@ pub fn resizeMouse(_: *const Arg) DwmError!void {
         }
     }
     if (c.is_floating.now) {
-        _ = X.XWarpPointer(z.dpy, X.None, c.win, 0, 0, 0, 0, //
+        _ = X.XWarpPointer(z.dpy, Xt.None, c.win, 0, 0, 0, 0, //
             @intCast(c.pos.now.w + c.bw.now - 1), //
             @intCast(c.pos.now.h + c.bw.now - 1));
     }
-    _ = X.XUngrabPointer(z.dpy, X.CurrentTime);
+    Xt.XUngrabPointer(z.dpy, X.CurrentTime);
     while (X.XCheckMaskEvent(z.dpy, X.EnterWindowMask, &ev) != 0) {}
     const m_opt = c.pos.now.toMonitor(z.mons);
     if (m_opt != z.selmon) {
@@ -1176,14 +1134,14 @@ pub fn toggleFloating(_: *const Arg) void {
 }
 
 /// (dwm) wintomon
-fn wintomon(w: Window) *Monitor {
-    var x: c_int = undefined;
-    var y: c_int = undefined;
-    if (w == z.root and z.getRootPtr(&x, &y)) {
-        const r = Rect{ .x = @intCast(x), .y = @intCast(y), .w = 1, .h = 1 };
-        // To guarantee a non-null return of `*Monitor`, we deviate a tad from
-        // dwm's behaviour and return `selmon` if nothing is found.
-        return r.toMonitor(z.mons) orelse (z.mons orelse unreachable);
+fn wintomon(w: Xt.Window) *Monitor {
+    if (w == z.root) {
+        if (z.getRootPtr()) |coords| {
+            const r = Rect{ .x = @intCast(coords.x), .y = @intCast(coords.y), .w = 1, .h = 1 };
+            // To guarantee a non-null return of `*Monitor`, we deviate a tad from
+            // dwm's behaviour and return `selmon` if nothing is found.
+            return r.toMonitor(z.mons) orelse (z.mons orelse unreachable);
+        }
     }
     var m_opt = z.mons;
     while (m_opt) |m| : (m_opt = m.next) {
@@ -1220,8 +1178,7 @@ fn updategeom(allocator: Allocator, selmon: *?*Monitor) error{OutOfMemory}!bool 
 }
 
 /// (dwm) setup
-fn setup(allocator: Allocator) DwmError!void {
-    var utf8string: X.Atom = undefined;
+fn setup(allocator: Allocator, wmcheckwin: *Xt.Window) DwmError!void {
     var sa: C.struct_sigaction = undefined;
 
     // Do not transform children into zombies when they terminate.
@@ -1253,21 +1210,9 @@ fn setup(allocator: Allocator) DwmError!void {
     }
 
     // Initialize atoms.
-    utf8string = X.XInternAtom(z.dpy, "UTF8_STRING", X.False);
-    z.wmatom.set(.Protocols, X.XInternAtom(z.dpy, "WM_PROTOCOLS", X.False));
-    z.wmatom.set(.Delete, X.XInternAtom(z.dpy, "WM_DELETE_WINDOW", X.False));
-    z.wmatom.set(.State, X.XInternAtom(z.dpy, "WM_STATE", X.False));
-    z.wmatom.set(.TakeFocus, X.XInternAtom(z.dpy, "WM_TAKE_FOCUS", X.False));
-
-    z.netatom.set(.ActiveWindow, X.XInternAtom(z.dpy, "_NET_ACTIVE_WINDOW", X.False));
-    z.netatom.set(.Supported, X.XInternAtom(z.dpy, "_NET_SUPPORTED", X.False));
-    z.netatom.set(.WMName, X.XInternAtom(z.dpy, "_NET_WM_NAME", X.False));
-    z.netatom.set(.WMState, X.XInternAtom(z.dpy, "_NET_WM_STATE", X.False));
-    z.netatom.set(.WMCheck, X.XInternAtom(z.dpy, "_NET_SUPPORTING_WM_CHECK", X.False));
-    z.netatom.set(.WMFullscreen, X.XInternAtom(z.dpy, "_NET_WM_STATE_FULLSCREEN", X.False));
-    z.netatom.set(.WMWindowType, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE", X.False));
-    z.netatom.set(.WMWindowTypeDialog, X.XInternAtom(z.dpy, "_NET_WM_WINDOW_TYPE_DIALOG", X.False));
-    z.netatom.set(.ClientList, X.XInternAtom(z.dpy, "_NET_CLIENT_LIST", X.False));
+    const utf8string = Xt.XInternAtom(z.dpy, "UTF8_STRING", false).?;
+    atoms.initializeAtomsForEnum(atoms.WM, Xt.Atom, &z.wmatom, z.dpy);
+    atoms.initializeAtomsForEnum(atoms.Net, Xt.Atom, &z.netatom, z.dpy);
 
     // Initialize cursors.
     z.cursors.set(.Normal, z.drw.curCreate(X.XC_left_ptr));
@@ -1286,15 +1231,24 @@ fn setup(allocator: Allocator) DwmError!void {
     updateStatus(allocator);
 
     // Supporting window for NetWMCheck.
-    z.wmcheckwin = X.XCreateSimpleWindow(z.dpy, z.root, 0, 0, 1, 1, 0, 0, 0);
+    wmcheckwin.* = X.XCreateSimpleWindow(z.dpy, z.root, 0, 0, 1, 1, 0, 0, 0);
     // The @ptrCast is hella sus from dwm. This is supposed to be a const char* in C.
-    _ = X.XChangeProperty(z.dpy, z.wmcheckwin, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(&z.wmcheckwin), 1);
-    _ = X.XChangeProperty(z.dpy, z.wmcheckwin, z.netatom.get(.WMName), utf8string, 8, X.PropModeReplace, "dwm", 3);
-    _ = X.XChangeProperty(z.dpy, z.root, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, X.PropModeReplace, @ptrCast(&z.wmcheckwin), 1);
+    Xt.XChangeProperty(z.dpy, wmcheckwin.*, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, .Replace, @ptrCast(wmcheckwin), 1);
+    Xt.XChangeProperty(z.dpy, wmcheckwin.*, z.netatom.get(.WMName), utf8string, 8, .Replace, "dwm", 3);
+    Xt.XChangeProperty(z.dpy, z.root, z.netatom.get(.WMCheck), X.XA_WINDOW, 32, .Replace, @ptrCast(wmcheckwin), 1);
 
     // EWMH support per view.
     // https://specifications.freedesktop.org/wm/latest/
-    _ = X.XChangeProperty(z.dpy, z.root, z.netatom.get(.Supported), X.XA_ATOM, 32, X.PropModeReplace, @ptrCast(&z.netatom.values), @intCast(N(Net)));
+    Xt.XChangeProperty(
+        z.dpy,
+        z.root,
+        z.netatom.get(.Supported),
+        X.XA_ATOM,
+        32,
+        .Replace,
+        @ptrCast(&z.netatom.values),
+        @intCast(z.netatom.values.len),
+    );
     _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ClientList));
 
     // Select events.
@@ -1377,35 +1331,35 @@ fn drawbars(allocator: Allocator) void {
 fn grabbuttons(c: *Client, focused: bool) void {
     updatenumlockmask();
     const modifiers: [4]c_uint = .{ 0, X.LockMask, z.numlockmask, z.numlockmask | X.LockMask };
-    _ = X.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
+    Xt.XUngrabButton(z.dpy, X.AnyButton, X.AnyModifier, c.win);
     if (!focused) {
-        _ = X.XGrabButton(
+        Xt.XGrabButton(
             z.dpy,
             X.AnyButton,
             X.AnyModifier,
             c.win,
-            X.False,
+            false,
             X.ButtonPressMask | X.ButtonReleaseMask,
-            X.GrabModeSync,
-            X.GrabModeSync,
-            X.None,
-            X.None,
+            .Sync,
+            .Sync,
+            Xt.None,
+            Xt.None,
         );
     }
     for (cfg.buttons) |button| {
         if (button.click == .ClientWin) {
             for (modifiers) |modifier| {
-                _ = X.XGrabButton(
+                Xt.XGrabButton(
                     z.dpy,
                     button.button,
                     button.mask | modifier,
                     c.win,
-                    X.False,
+                    false,
                     X.ButtonPressMask | X.ButtonReleaseMask,
-                    X.GrabModeAsync,
-                    X.GrabModeSync,
-                    X.None,
-                    X.None,
+                    .Async,
+                    .Sync,
+                    Xt.None,
+                    Xt.None,
                 );
             }
         }
@@ -1423,10 +1377,10 @@ fn grabkeys() void {
 
     _ = X.XUngrabKey(z.dpy, X.AnyKey, X.AnyModifier, z.root);
     _ = X.XDisplayKeycodes(z.dpy, &start, &end);
-    const syms: [*]X.KeySym =
+    const syms: [*]Xt.KeySym =
         X.XGetKeyboardMapping(z.dpy, @intCast(start), end - start + 1, &skip) orelse
         return;
-    defer _ = X.XFree(syms);
+    defer Xt.XFree(syms);
 
     var keycode = start;
     while (keycode < end) : (keycode += 1) {
@@ -1439,7 +1393,7 @@ fn grabkeys() void {
                         keycode,
                         key.mod | mod,
                         z.root,
-                        X.True,
+                        Xt.True,
                         X.GrabModeAsync,
                         X.GrabModeAsync,
                     );
@@ -1470,7 +1424,7 @@ fn updatenumlockmask() void {
 
 /// (dwm) cleanup
 // Continue to build this up as we go.
-fn cleanup(allocator: Allocator) void {
+fn cleanup(allocator: Allocator, wmcheckwin: *Xt.Window) void {
     // View all clients at once. ~0 yields a bitmask of all high bits. I don't
     // fully understand why we do this yet, but I think it helps with clearing
     // out the clients.
@@ -1493,9 +1447,9 @@ fn cleanup(allocator: Allocator) void {
     for (std.enums.values(SchemeState)) |ss| {
         z.drw.scmFree(allocator, z.scheme.get(ss));
     }
-    _ = X.XDestroyWindow(z.dpy, z.wmcheckwin);
+    _ = X.XDestroyWindow(z.dpy, wmcheckwin.*);
     z.drw.deinit(allocator);
-    _ = X.XSync(z.dpy, X.False);
+    Xt.XSync(z.dpy, false);
     _ = X.XSetInputFocus(z.dpy, X.PointerRoot, X.RevertToPointerRoot, X.CurrentTime);
     _ = X.XDeleteProperty(z.dpy, z.root, z.netatom.get(.ActiveWindow));
 }
@@ -1514,15 +1468,16 @@ fn cleanupmon(allocator: Allocator, mon: *Monitor) void {
             }
         }
     }
-    _ = X.XUnmapWindow(z.dpy, mon.barwin);
+    _ = Xt.XUnmapWindow(z.dpy, mon.barwin);
     _ = X.XDestroyWindow(z.dpy, mon.barwin);
+    log.warn("Deallocate monitor: {*}", .{mon});
     allocator.destroy(mon);
 }
 
 /// (dwm) updatebars
 fn updateBars() void {
     var wa: X.XSetWindowAttributes = .{
-        .override_redirect = X.True,
+        .override_redirect = Xt.True,
         .background_pixmap = X.ParentRelative,
         .event_mask = X.ButtonPressMask | X.ExposureMask,
     };
@@ -1532,7 +1487,7 @@ fn updateBars() void {
         if (m.barwin != 0) {
             continue;
         }
-        m.barwin = X.XCreateWindow(
+        m.barwin = Xt.XCreateWindow(
             z.dpy,
             z.root,
             m.w.x,
@@ -1696,7 +1651,7 @@ pub fn tile(m: *Monitor) void {
 pub fn toggleBar(_: *const Arg) void {
     z.selmon.show_bar = !z.selmon.show_bar;
     updateBarPosition(z.selmon);
-    _ = X.XMoveResizeWindow(
+    Xt.XMoveResizeWindow(
         z.dpy,
         z.selmon.barwin,
         z.selmon.w.x,
@@ -1746,7 +1701,7 @@ pub fn pop(allocator: Allocator, c: *Client) void {
 
 /// (dwm) quit
 pub fn quit(_: *const Arg) void {
-    log.info("{s}", .{line});
+    log.info("{s}", .{LINE});
     log.info("quit() called.", .{});
     z.running = false;
 }
@@ -1846,139 +1801,113 @@ fn drawbar(allocator: Allocator, m: *Monitor) void {
     z.drw.map(m.barwin, .{ .x = 0, .y = 0, .w = m.w.w, .h = z.bar_height });
 }
 
-pub fn main() !void {
-    if (false) return simplemain();
-    log.info("{s}", .{line});
-    log.info("Started execution of {s}", .{NAME});
-    log.info("{s}", .{line});
-
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        _ = gpa.deinit();
-        log.info("Closed the allocator", .{});
+/// Returns true if we should terminate the process immediately after this
+/// function ends.
+fn handleCliArgs(buffer: []u8) error{WriteFailed}!bool {
+    var stdout_writer = std.fs.File.stdout().writer(buffer);
+    var stdout = &stdout_writer.interface;
+    const argv = std.os.argv;
+    // If the only flag given is "-v", then print the version.
+    if (argv.len == 2 and mem.eql(u8, mem.span(argv[1]), "-v")) {
+        try stdout.print("{s}-{s}\n", .{ NAME, VERSION });
+        try stdout.flush();
+        return true;
     }
+    // Otherwise, if there are any CLI args at all, print the super-minimal help
+    // text, which is to either run the binary with no flags, or run it with the
+    // "-v" flag.
+    else if (argv.len != 1) {
+        try stdout.print("usage: {s} [-v]\n", .{NAME});
+        try stdout.flush();
+        return true;
+    }
+    return false;
+}
+
+pub fn main() !void {
+    log.info("{s}", .{LINE});
+    log.info("Started execution of {s}", .{NAME});
+    log.info("{s}", .{LINE});
+
+    { // Handle the CLI args, if any.
+        var buffer: [64]u8 = undefined;
+        if (try handleCliArgs(&buffer)) return;
+    }
+
+    var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
+    defer _ = gpa.deinit();
     const allocator = gpa.allocator();
     global_allocator = allocator;
 
-    var diebuf: [32]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&diebuf);
-    var stdout: QuickWrite = .init(&stdout_writer.interface);
-    var stderr_writer = std.fs.File.stderr().writer(&diebuf);
-    var stderr: QuickWrite = .init(&stderr_writer.interface);
-
-    { // Parse arguments.
-        const argv = std.os.argv;
-        if (argv.len == 2 and mem.eql(u8, mem.span(argv[1]), "-v"))
-            return try stdout.print("{s}-{s}\n", .{ NAME, VERSION })
-        else if (argv.len != 1)
-            return try stdout.print("usage: {s} [-v]\n", .{NAME});
+    if (C.setlocale(C.LC_CTYPE, "") == null or !Xt.XSupportsLocale()) {
+        std.debug.print("warning: no locale support\n", .{});
     }
-    if (C.setlocale(C.LC_CTYPE, "") == null or X.XSupportsLocale() == X.False) {
-        try stderr.print("warning: no locale support\n", .{});
-    }
-    z.dpy = X.XOpenDisplay(null) orelse {
-        return try stdout.print(NAME ++ ": cannot open display\n", .{});
+    z.dpy = Xt.XOpenDisplay(null) orelse {
+        return std.debug.print(NAME ++ ": cannot open display\n", .{});
     };
-    defer _ = X.XCloseDisplay(z.dpy);
+    defer Xt.XCloseDisplay(z.dpy);
 
     check_other_wm();
 
-    try setup(allocator);
-    defer cleanup(allocator);
-
-    log.info("{s}", .{line});
-    log.info("Completed setup()", .{});
-    log.info("{s}", .{line});
+    var wmcheckwin: Xt.Window = undefined;
+    try setup(allocator, &wmcheckwin);
+    defer cleanup(allocator, &wmcheckwin);
 
     try scan(allocator);
-    log.info("{s}", .{line});
-    log.info("Completed scan()", .{});
-    log.info("{s}", .{line});
-
+    log.info("{s}", .{LINE});
+    log.info("Starting event loop", .{});
+    log.info("{s}", .{LINE});
     try run(allocator);
 }
 
-var test_window: ?Window = null;
+const X_TUTORIAL_SOURCE: []const u8 = @embedFile("x_tutorial.zig");
 
-fn testWindow() void {
-    const w = 100;
-    const h = 100;
-    var wa: X.XSetWindowAttributes = .{
-        .override_redirect = X.True,
-        .background_pixmap = X.ParentRelative,
-        .event_mask = X.ButtonPressMask | X.ExposureMask,
-    };
-    const win = X.XCreateWindow(
-        z.dpy,
-        z.root,
-        0,
-        0,
-        w,
-        h,
-        0,
-        X.DefaultDepth(z.dpy, z.screen),
-        X.CopyFromParent,
-        X.DefaultVisual(z.dpy, z.screen),
-        X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
-        &wa,
-    );
-    test_window = win;
-    // _ = X.XSelectInput(dpy, rootwin, X.ExposureMask | X.ButtonPressMask);
-    _ = X.XMapRaised(z.dpy, win);
-}
-
-pub fn simplemain() !void {
-    const dpy = X.XOpenDisplay(null) orelse {
-        return std.debug.print(NAME ++ ": cannot open display\n", .{});
-    };
-    defer _ = X.XCloseDisplay(dpy);
-
-    const w = 100;
-    const h = 100;
-
-    const scr = X.DefaultScreen(dpy);
-    const rootwin = X.RootWindow(dpy, scr);
-    const pixmap = X.XCreatePixmap(dpy, rootwin, w, h, @intCast(X.DefaultDepth(dpy, scr)));
-    // const cmap = X.DefaultColormap(dpy, scr);
-
-    var wa: X.XSetWindowAttributes = .{
-        .override_redirect = X.True,
-        .background_pixmap = X.ParentRelative,
-        .event_mask = X.ButtonPressMask | X.ExposureMask,
-    };
-    const win = X.XCreateWindow(
-        dpy,
-        rootwin,
-        0,
-        0,
-        w,
-        h,
-        0,
-        X.DefaultDepth(dpy, scr),
-        X.CopyFromParent,
-        X.DefaultVisual(dpy, scr),
-        X.CWOverrideRedirect | X.CWBackPixmap | X.CWEventMask,
-        &wa,
-    );
-    const gc = X.XCreateGC(dpy, rootwin, 0, null);
-    _ = X.XSetForeground(dpy, gc, X.WhitePixel(dpy, scr));
-    _ = X.XSelectInput(dpy, rootwin, X.ExposureMask | X.ButtonPressMask);
-    _ = X.XMapRaised(dpy, win);
-
-    var ev: XEvent = undefined;
-    while (true) {
-        _ = X.XNextEvent(dpy, &ev);
-        if (ev.type == X.Expose and ev.xexpose.count < 1) {
-            // _ = X.XDrawString(dpy, win, gc, 10, 10, "Hello world", 12);
-            _ = X.XDrawString(dpy, pixmap, gc, 10, 10, "Hello world", 12);
-            // _ = X.XCopyArea(dpy, pixmap, win, gc, 0, 0, w, h, 0, 0);
-            // _ = X.XSync(dpy, X.False);
-        } else if (ev.type == X.ButtonPress) {
-            break;
-        }
+test "All inline functions for docs" {
+    var iter = std.mem.splitScalar(u8, X_TUTORIAL_SOURCE, '\n');
+    while (iter.next()) |line| {
+        // We don't want any non-inlined functions because they really are just
+        // macros of X11 library functions that contain docs.
+        const contains_pub_fn = std.mem.containsAtLeast(u8, line, 1, "pub fn");
+        try std.testing.expect(!contains_pub_fn);
     }
 }
 
-test {
-    _ = @import("small.zig");
+test "All inline functions have sources" {
+    var iter = std.mem.splitScalar(u8, X_TUTORIAL_SOURCE, '\n');
+    const n = 2;
+    var prev: [n]?[]const u8 = undefined;
+    while (iter.next()) |line| {
+        if (std.mem.startsWith(u8, line, "pub inline fn")) {
+            log.info("line: {s}", .{line});
+            try std.testing.expectStringStartsWith(prev[1].?, "///");
+            try std.testing.expectStringStartsWith(prev[0].?, "/// source: https://x.org/");
+        }
+        @memmove(prev[1..n], prev[0 .. n - 1]);
+        prev[0] = line;
+    }
+}
+
+test "All struct docs have sources" {
+    var iter = std.mem.splitScalar(u8, X_TUTORIAL_SOURCE, '\n');
+    const n = 2;
+    var prev: [n]?[]const u8 = undefined;
+    while (iter.next()) |line| {
+        const select = std.mem.startsWith(u8, line, "pub const X") and
+            std.mem.containsAtLeast(u8, line, 1, "= X.");
+        if (select) {
+            log.info("line: {s}", .{line});
+            try std.testing.expectStringStartsWith(prev[1].?, "///");
+            try std.testing.expectStringStartsWith(prev[0].?, "/// source: https://x.org/");
+        }
+        @memmove(prev[1..n], prev[0 .. n - 1]);
+        prev[0] = line;
+    }
+}
+
+test "Don't use weird quotes" {
+    try std.testing.expect(!std.mem.containsAtLeast(u8, X_TUTORIAL_SOURCE, 1, "“"));
+    try std.testing.expect(!std.mem.containsAtLeast(u8, X_TUTORIAL_SOURCE, 1, "”"));
+    try std.testing.expect(!std.mem.containsAtLeast(u8, X_TUTORIAL_SOURCE, 1, "‘"));
+    try std.testing.expect(!std.mem.containsAtLeast(u8, X_TUTORIAL_SOURCE, 1, "’"));
+    try std.testing.expect(!std.mem.containsAtLeast(u8, X_TUTORIAL_SOURCE, 1, "’"));
 }
