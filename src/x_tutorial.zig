@@ -434,6 +434,17 @@ pub inline fn XFreeStringList(list: [*c][*c]u8) void {
     X.XFreeStringList(list);
 }
 
+/// The XGetTransientForHint function returns the WM_TRANSIENT_FOR property for
+/// the specified window. It returns a nonzero status on success; otherwise, it
+/// returns a zero status.
+///
+/// XGetTransientForHint can generate a BadWindow error.
+pub inline fn XGetTransientForHint(display: *Display, window: Window) ?Window {
+    var prop_window_return: Window = X.None;
+    if (X.XGetTransientForHint(display, window, &prop_window_return) == 0) return null;
+    return prop_window_return;
+}
+
 /// The XGetWindowProperty function returns the actual type of the property; the
 /// actual format of the property; the number of 8-bit, 16-bit, or 32-bit items
 /// transferred; the number of bytes remaining to be read in the property; and a

@@ -25,38 +25,46 @@ const ClientSizes = struct {
     /// Note that this is the reciprocal of the conventional notion of the
     /// aspect ratio because of how we'll be using it.
     mina: ?f32 = null,
+
+    const init: @This() = .{};
 };
 
 pub const Client = struct {
     const Self = @This();
     app: *const App,
 
-    name: fstr(256) = undefined,
+    name: fstr(256) = .empty,
     /// Position, current and previous.
     pos: toggle(Rect),
-    sz: ClientSizes = undefined,
-    hintsvalid: bool = undefined,
+    sz: ClientSizes = .init,
+    hintsvalid: bool = false,
     /// Border width.
     bw: toggle(u32),
     /// Bitmask of active tags.
     tags: u32 = 0,
-    is_fixed: bool = undefined,
-    is_floating: toggle(bool),
-    isurgent: bool = undefined,
-    neverfocus: bool = undefined,
-    isfullscreen: bool = undefined,
+    is_fixed: bool = false,
+    is_floating: toggle(bool) = .init(false),
+    isurgent: bool = false,
+    neverfocus: bool = false,
+    isfullscreen: bool = false,
     /// Next client in the linked list of clients.
     next: ?*Self = null,
     /// Next client in the display stack.
     snext: ?*Self = null,
     /// The parent monitor to this client.
-    mon: *Monitor = undefined,
+    mon: *Monitor,
     win: Window,
 
-    pub fn init(app: *const App, w: Window, wa: *X.XWindowAttributes) Self {
+    pub fn init(
+        app: *const App,
+        window: Window,
+        monitor: *Monitor,
+        wa: *X.XWindowAttributes,
+    ) Self {
         return Self{
             .app = app,
-            .win = w,
+            .win = window,
+            .mon = monitor,
             .pos = .init(.fromX(X.XWindowAttributes, wa)),
             .bw = .init(@intCast(wa.border_width)),
             .is_floating = .init(false),

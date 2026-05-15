@@ -249,15 +249,14 @@ fn getState(w: Xt.Window) i32 {
 /// (dwm) manage
 fn manage(allocator: Allocator, w: Xt.Window, wa: *Xt.XWindowAttributes) error{OutOfMemory}!void {
     const c = try allocator.create(Client);
-    c.* = .init(&z, w, wa);
-    var trans: Xt.Window = Xt.None;
-    var wc: X.XWindowChanges = undefined;
+    c.* = .init(&z, w, z.selmon, wa);
+    const transient_window = Xt.XGetTransientForHint(z.dpy, w);
 
     log.info("Created client {*}", .{c});
 
     c.updateTitle();
     blk: {
-        if (X.XGetTransientForHint(z.dpy, w, &trans) != 0) {
+        if (transient_window) |_| {
             // This seems to make very little sense if there is a bijection between
             // clients and windows.
             if (winToClient(w)) |other_client| {
@@ -283,7 +282,7 @@ fn manage(allocator: Allocator, w: Xt.Window, wa: *Xt.XWindowAttributes) error{O
     r.y = @max(r.y, c.mon.w.y); // If client is too far up, truncate it.
     c.bw.set(cfg.borderpx);
 
-    wc.border_width = @intCast(c.bw.now);
+    var wc: X.XWindowChanges = .{ .border_width = @intCast(c.bw.now) };
     _ = X.XConfigureWindow(z.dpy, w, X.CWBorderWidth, &wc);
     _ = X.XSetWindowBorder(z.dpy, w, z.scheme.get(.Normal).border.pixel);
 
@@ -297,7 +296,7 @@ fn manage(allocator: Allocator, w: Xt.Window, wa: *Xt.XWindowAttributes) error{O
     grabbuttons(c, false);
 
     if (!c.is_floating.now) {
-        c.is_floating = .init(trans != Xt.None or c.is_fixed);
+        c.is_floating = .init(transient_window != null or c.is_fixed);
     }
     if (c.is_floating.now) {
         _ = X.XRaiseWindow(z.dpy, c.win);
