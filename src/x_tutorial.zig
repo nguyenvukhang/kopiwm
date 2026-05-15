@@ -15,6 +15,17 @@ pub const Drawable = X.Drawable;
 pub const KeySym = X.KeySym;
 /// To specify a null state, use `None`.
 pub const Window = X.Window;
+
+/// The XTextProperty structure contains:
+/// ```c
+/// typedef struct {
+///     unsigned char *value; /* property data */
+///     Atom encoding;        /* type of property */
+///     int format;           /* 8, 16, or 32 */
+///     unsigned long nitems; /* number of items in value */
+/// } XTextProperty;
+/// ```
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XStringListToTextProperty.3.xhtml
 pub const XTextProperty = X.XTextProperty;
 
 // -----------------------------------------------------------------------------
@@ -185,6 +196,16 @@ pub inline fn XCreateWindow(
 pub inline fn XFree(ptr: ?*anyopaque) void {
     // The meaning of the return value was not specified in documentation.
     _ = X.XFree(ptr);
+}
+
+/// The XFreeStringList function releases memory allocated by
+/// XmbTextPropertyToTextList, Xutf8TextPropertyToTextList and
+/// XTextPropertyToStringList and the missing charset list allocated by
+/// XCreateFontSet.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XStringListToTextProperty.3.xhtml
+pub inline fn XFreeStringList(list: [*c][*c]u8) void {
+    X.XFreeStringList(list);
 }
 
 /// The XGetWindowProperty function returns the actual type of the property; the

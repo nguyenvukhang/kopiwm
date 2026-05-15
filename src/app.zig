@@ -118,7 +118,7 @@ pub fn getTextProp(self: *const Self, w: Window, atom: Xt.Atom, buffer: []u8) ?u
                 l = @min(value.len, buffer.len);
                 @memcpy(buffer[0..l.?], value[0..l.?]);
             }
-            X.XFreeStringList(list);
+            Xt.XFreeStringList(list);
         }
     }
     Xt.XFree(text_property.value);
