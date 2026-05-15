@@ -41,22 +41,6 @@ pub const std_options: std.Options = .{
     .logFn = @import("logger.zig").customLog,
 };
 
-pub const QuickWrite = struct {
-    const Self = @This();
-    const Writer = std.Io.Writer;
-
-    writer: *Writer,
-
-    fn print(self: *Self, comptime fmt: []const u8, args: anytype) Writer.Error!void {
-        try self.writer.print(fmt, args);
-        try self.writer.flush();
-    }
-
-    pub fn init(writer: *Writer) Self {
-        return .{ .writer = writer };
-    }
-};
-
 /// (dwm) CLEANMASK
 fn CLEANMASK(mask: u32) u32 {
     return (mask & ~(z.numlockmask | X.LockMask)) &
