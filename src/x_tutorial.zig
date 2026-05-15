@@ -15,6 +15,7 @@ pub const Drawable = X.Drawable;
 pub const KeySym = X.KeySym;
 /// To specify a null state, use `None`.
 pub const Window = X.Window;
+pub const XTextProperty = X.XTextProperty;
 
 // -----------------------------------------------------------------------------
 // Integer type aliases
@@ -624,6 +625,35 @@ pub inline fn XQueryPointer(
         if (r.child == X.None) r.child = null;
     }
     return r;
+}
+
+/// The XGetTextProperty function reads the specified property from the window
+/// and stores the data in the returned XTextProperty structure. It stores the
+/// data in the value field, the type of the data in the encoding field, the
+/// format of the data in the format field, and the number of items of data in
+/// the nitems field. An extra byte containing null (which is not included in
+/// the nitems member) is stored at the end of the value field of
+/// text_prop_return. The particular interpretation of the property's encoding
+/// and data as text is left to the calling application. If the specified
+/// property does not exist on the window, XGetTextProperty sets the value
+/// field to NULL, the encoding field to None, the format field to zero, and
+/// the nitems field to zero.
+///
+/// If it was able to read and store the data in the XTextProperty structure,
+/// XGetTextProperty returns a nonzero status; otherwise, it returns a zero
+/// status.
+///
+/// XGetTextProperty can generate BadAtom and BadWindow errors.
+///
+/// source: https://x.org/releases/X11R7.7/doc/man/man3/XSetTextProperty.3.xhtml
+pub inline fn XGetTextProperty(
+    display: *Display,
+    window: Window,
+    property: Atom,
+) ?XTextProperty {
+    var ret: XTextProperty = undefined;
+    const status = X.XGetTextProperty(display, window, &ret, property);
+    return if (status == 0) null else ret;
 }
 
 /// The XSupportsLocale function returns True if Xlib functions are capable of
