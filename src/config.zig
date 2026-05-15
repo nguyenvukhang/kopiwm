@@ -108,7 +108,7 @@ fn initColors() EnumArray(SchemeState, Scheme([]const u8)) {
     var c: EnumArray(SchemeState, Scheme([]const u8)) = undefined;
     // zig fmt: off
     c.set(.Normal,   .{ .fg = col_gray3, .bg = col_gray1,      .border = col_gray2      });
-    c.set(.Selected, .{ .fg = col_gray1, .bg = col_accent_400, .border = col_accent_900 });
+    c.set(.Selected, .{ .fg = col_gray1, .bg = col_accent_400, .border = col_accent_400 });
     c.set(.Bar,      .{ .fg = col_gray3, .bg = col_gray2,      .border = col_gray2      });
     // zig fmt: on
     return c;
